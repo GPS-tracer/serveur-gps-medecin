@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="GPS Tracker agent — share your location with the dashboard." />
+  <meta name="theme-color" content="#0f1419" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>GPS Tracker — Agent</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="header">
+      <div class="header-top">
+        <div>
+          <h1>Agent</h1>
+          <p class="subtitle">Stream GPS to Realtime Database for the dashboard map</p>
+        </div>
+        <div
+          id="connectionBadge"
+          class="connection connection--disconnected"
+          role="status"
+          aria-live="polite"
+          aria-label="Connection status"
+        >
+          <span class="connection__dot" aria-hidden="true"></span>
+          <span class="connection__text" id="connectionText">Disconnected</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="card">
+      <label class="field">
+        <span>Device ID</span>
+        <input type="text" id="deviceId" autocomplete="off" placeholder="e.g. agent_001" inputmode="text" />
+      </label>
+      <label class="field">
+        <span>Nom</span>
+        <input type="text" id="agentName" autocomplete="name" placeholder="Prénom Nom" inputmode="text" />
+      </label>
+      <label class="field">
+        <span>Téléphone</span>
+        <input type="tel" id="agentPhone" autocomplete="tel" placeholder="+242 06 000 0000" inputmode="tel" />
+      </label>
+      <p class="hint">Use the same ID on the dashboard to recognize this device.</p>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <button type="button" id="btnStart" class="btn btn-primary">Start</button>
+        <button type="button" id="btnStop" class="btn" disabled>Stop</button>
+      </div>
+      <p id="status" class="status">Ready — press Start to begin tracking</p>
+    </section>
+
+    <section class="card mono">
+      <dl class="coords" id="coords">
+        <dt>Latitude</dt><dd id="lat">—</dd>
+        <dt>Longitude</dt><dd id="lng">—</dd>
+        <dt>Accuracy (m)</dt><dd id="acc">—</dd>
+        <dt>Last fix</dt><dd id="updated">—</dd>
+        <dt>Last sent</dt><dd id="lastSent">—</dd>
+      </dl>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,383 @@
+/**
+ * Dashboard layout — sidebar + full-height Leaflet map.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --border: #2d3a4d;
+  --text: #e8eef4;
+  --muted: #8b9cb3;
+  --accent: #3d9cf9;
+  --radius: 12px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) 1fr;
+  height: 100dvh;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(160px, 38vh) 1fr;
+  }
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.auth-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+  background: var(--bg);
+}
+
+.sidebar-header {
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.btn-signout {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-signout:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.sidebar-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.2rem;
+  font-weight: 650;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.card.trail-card {
+  margin: 0;
+  padding: 0.75rem 1rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.trail-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.trail-desc {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.trail-desc code,
+.subtitle code {
+  font-size: 0.85em;
+  background: rgba(45, 58, 77, 0.6);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+}
+
+.field span {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field select,
+.field input[type="date"] {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.field select:focus,
+.field input[type="date"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.trail-meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+/* —— Active agents panel —— */
+.panel.agents-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.panel-count {
+  min-width: 1.5rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: center;
+}
+
+.agent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.agent-card {
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.agent-card:hover {
+  border-color: rgba(61, 156, 249, 0.55);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.agent-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.agent-card__id {
+  font-size: 0.88rem;
+  font-weight: 650;
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+.status {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+}
+
+.status--online {
+  color: #a7f3d0;
+  background: rgba(52, 211, 153, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.status--offline {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.agent-card__update {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-bottom: 0.35rem;
+}
+
+.agent-card__label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.agent-card__time {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.agent-card__coords {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.agent-card__address {
+  font-size: 0.78rem;
+  color: var(--accent, #38bdf8);
+  margin-top: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-card__phone {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.agent-popup__address {
+  font-size: 0.82rem;
+  color: #38bdf8;
+  margin-top: 0.35rem;
+}
+
+.agent-popup__phone {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin-top: 0.2rem;
+}
+
+.agents-empty {
+  padding: 0.75rem 1rem 1rem;
+}
+
+.empty {
+  padding: 1rem 1.1rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.map {
+  min-height: 200px;
+  height: 100%;
+  z-index: 0;
+}
+
+.leaflet-container {
+  font-family: inherit;
+  background: var(--bg);
+}
+
+/* Popups: readable on OSM tiles (className set on .leaflet-popup) */
+.leaflet-popup.agent-popup .leaflet-popup-content-wrapper {
+  border-radius: 10px;
+}
+
+.leaflet-popup.agent-popup .leaflet-popup-content {
+  margin: 0.65rem 0.85rem;
+  line-height: 1.35;
+}
+
+.agent-popup-inner {
+  min-width: 12rem;
+}
+
+.agent-popup__id {
+  font-weight: 650;
+  font-size: 0.95rem;
+  margin-bottom: 0.35rem;
+  word-break: break-word;
+}
+
+.agent-popup__label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 0.15rem;
+}
+
+.agent-popup__time {
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+/* Dark theme popups when Leaflet default light box — keep contrast */
+.leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f1419" />
+  <title>Sign in — Dashboard</title>
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <main class="login">
+    <h1>Dashboard</h1>
+    <p class="hint">Sign in with your Firebase account (email / password).</p>
+    <form id="loginForm" class="form">
+      <label class="field">
+        <span>Email</span>
+        <input type="email" id="email" autocomplete="username" required />
+      </label>
+      <label class="field">
+        <span>Password</span>
+        <input type="password" id="password" autocomplete="current-password" required />
+      </label>
+      <p id="loginError" class="error" role="alert"></p>
+      <button type="submit" class="btn">Sign in</button>
+    </form>
+  </main>
+  <script type="module" src="login.js"></script>
+</body>
+</html>

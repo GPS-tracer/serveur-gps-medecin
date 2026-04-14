@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="GPS Tracker dashboard — live map of agent devices." />
+  <meta name="theme-color" content="#0f1419" />
+  <title>GPS Tracker — Dashboard</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <p id="auth-loading" class="auth-loading">Checking session…</p>
+
+  <div id="dashboard-root" class="layout" hidden>
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <div class="sidebar-header__row">
+          <div>
+            <h1>Dashboard</h1>
+            <p class="subtitle">Map + live agents from Firebase <code>agents</code></p>
+          </div>
+          <button type="button" id="btnSignOut" class="btn-signout" title="Sign out">
+            Sign out
+          </button>
+        </div>
+      </header>
+
+      <section class="panel agents-panel" aria-labelledby="agents-heading">
+        <div class="panel-head">
+          <h2 id="agents-heading" class="panel-title">Active agents</h2>
+          <span id="agentCount" class="panel-count" aria-live="polite">0</span>
+        </div>
+        <ul id="deviceList" class="agent-list" aria-live="polite"></ul>
+        <p id="emptyState" class="empty agents-empty">No active agents. Start an agent app.</p>
+      </section>
+
+      <section class="card trail-card" aria-labelledby="trail-heading">
+        <h2 id="trail-heading" class="trail-title">Movement history</h2>
+        <p class="trail-desc">Agent + date → polyline from <code>history</code>.</p>
+        <label class="field">
+          <span>Agent</span>
+          <select id="historyAgent" aria-label="Agent for history trail">
+            <option value="">— Select agent —</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Date</span>
+          <input type="date" id="historyDate" aria-label="Day for history trail" />
+        </label>
+        <p id="historyTrailMeta" class="trail-meta" aria-live="polite"></p>
+      </section>
+    </aside>
+    <div id="map" class="map" role="application" aria-label="Map of agent positions"></div>
+  </div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script type="module" src="bootstrap.js"></script>
+</body>
+</html>

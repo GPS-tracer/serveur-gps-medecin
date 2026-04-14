@@ -1,0 +1,25 @@
+# Android
+android/build/
+android/app/build/
+android/.gradle/
+android/.idea/
+android/local.properties
+*.apk
+*.aab
+*.jks
+
+# Firebase
+.firebaserc
+firebase.json
+
+# Node modules (si tu en as)
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
