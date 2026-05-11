@@ -1,5 +1,5 @@
 import { auth, db } from "../shared/firebase.js";
-import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -107,8 +107,8 @@ function validateForm(companyName, sector, address, email, password) {
         throw new Error('Veuillez sélectionner un secteur d\'activité');
     }
     
-    if (!address || address.length < 10) {
-        throw new Error('Veuillez entrer une adresse complète');
+    if (!address || address.trim().length < 5) {
+        throw new Error('Veuillez entrer une adresse (minimum 5 caractères)');
     }
     
     if (!email || !email.includes('@')) {
@@ -166,13 +166,17 @@ form.addEventListener('submit', async (e) => {
             status: 'active'
         });
         
-        console.log('Inscription réussie!');
-        showSuccess('Compte créé avec succès! Redirection...');
+        console.log('Envoi de l\'email de vérification...');
+        // Envoyer l'email de vérification
+        await sendEmailVerification(user);
         
-        // Rediriger vers le dashboard après 2 secondes
+        console.log('Inscription réussie!');
+        showSuccess('Compte créé avec succès! Vérifiez votre email pour activer votre compte.');
+        
+        // Rediriger vers le login après 3 secondes
         setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 2000);
+            window.location.href = 'login.html';
+        }, 3000);
         
     } catch (error) {
         console.error('Erreur inscription:', error);

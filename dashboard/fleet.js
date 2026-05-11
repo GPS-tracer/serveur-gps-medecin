@@ -39,6 +39,13 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
     
+    // Vérifier si l'email est vérifié
+    if (!user.emailVerified) {
+        await auth.signOut();
+        window.location.href = 'login.html';
+        return;
+    }
+    
     currentUser = user;
     
     // Charger les infos de la société

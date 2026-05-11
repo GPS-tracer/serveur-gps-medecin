@@ -1,5 +1,5 @@
 /**
- * Loads the dashboard only when Firebase Auth has a signed-in user.
+ * Loads the dashboard only when Firebase Auth has a signed-in user with verified email.
  */
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -21,11 +21,20 @@ onAuthStateChanged(auth, async (user) => {
   if (!user) {
     log("Aucun utilisateur connecté → redirection vers login.html");
     appStarted = false;
-    window.location.replace(new URL("login.html", import.meta.url));
+    window.location.replace("login.html");
     return;
   }
 
-  log("Utilisateur connecté : " + user.email + " → chargement du dashboard...");
+  // Vérifier si l'email est vérifié
+  if (!user.emailVerified) {
+    log("Email non vérifié → redirection vers login.html");
+    appStarted = false;
+    await auth.signOut();
+    window.location.replace("login.html");
+    return;
+  }
+
+  log("Utilisateur connecté et vérifié : " + user.email + " → chargement du dashboard...");
 
   if (appStarted) return;
   appStarted = true;

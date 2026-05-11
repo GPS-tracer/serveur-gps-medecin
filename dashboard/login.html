@@ -1,28 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0f1419" />
-  <title>Sign in — Dashboard</title>
+  <title>Connexion — GPS Tracker</title>
   <link rel="stylesheet" href="login.css" />
+  <style>
+    .warning {
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fbbf24;
+    }
+    .success {
+      background-color: #d1fae5;
+      color: #065f46;
+      border: 1px solid #10b981;
+    }
+    .verification-box {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .verification-box p {
+      margin: 0 0 12px 0;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+    .btn-secondary {
+      background: #475569;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover {
+      background: #64748b;
+    }
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .register-link {
+      text-align: center;
+      margin-top: 20px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    .register-link a {
+      color: #38bdf8;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .register-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
   <main class="login">
-    <h1>Dashboard</h1>
-    <p class="hint">Sign in with your Firebase account (email / password).</p>
+    <h1>GPS Tracker</h1>
+    <p class="hint">Connectez-vous à votre tableau de bord</p>
     <form id="loginForm" class="form">
       <label class="field">
         <span>Email</span>
         <input type="email" id="email" autocomplete="username" required />
       </label>
       <label class="field">
-        <span>Password</span>
+        <span>Mot de passe</span>
         <input type="password" id="password" autocomplete="current-password" required />
       </label>
       <p id="loginError" class="error" role="alert"></p>
-      <button type="submit" class="btn">Sign in</button>
+      
+      <div id="verificationWarning" class="verification-box hidden">
+        <p>📧 Un email de vérification a été envoyé à votre adresse.</p>
+        <p>Cliquez sur le lien dans l'email pour activer votre compte.</p>
+        <button type="button" id="resendVerification" class="btn-secondary">
+          Renvoyer l'email
+        </button>
+      </div>
+      
+      <button type="submit" id="submitBtn" class="btn">Se connecter</button>
     </form>
+    
+    <div class="register-link">
+      Pas encore de compte ? <a href="register.html">Créer un compte</a>
+    </div>
   </main>
   <script type="module" src="login.js"></script>
 </body>
