@@ -4,6 +4,9 @@ android/app/build/
 android/.gradle/
 android/.idea/
 android/local.properties
+android/keystore.properties
+android/app/*.keystore
+android/app/google-services.json
 *.apk
 *.aab
 *.jks

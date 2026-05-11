@@ -79,8 +79,26 @@ class MainActivity : AppCompatActivity() {
         val allGranted = locationPermissions.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
         }
-        if (allGranted) startTracking()
-        else permissionLauncher.launch(locationPermissions)
+        
+        if (!allGranted) {
+            permissionLauncher.launch(locationPermissions)
+            return
+        }
+        
+        // Pour Android 10+, demander la permission background
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val bgGranted = ContextCompat.checkSelfPermission(
+                this, 
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            
+            if (!bgGranted) {
+                bgPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                return
+            }
+        }
+        
+        startTracking()
     }
 
     private fun startTracking() {

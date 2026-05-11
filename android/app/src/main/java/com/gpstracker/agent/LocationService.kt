@@ -7,8 +7,10 @@ import android.app.Service
 import android.content.Intent
 import android.location.Location
 import android.os.Build
+import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.android.gms.location.*
 import com.google.firebase.database.FirebaseDatabase
@@ -25,18 +27,22 @@ class LocationService : Service() {
 
     private lateinit var fusedClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
+    private lateinit var locationThread: HandlerThread
     private val db = FirebaseDatabase.getInstance().reference
 
     override fun onCreate() {
         super.onCreate()
         isRunning = true
         createNotificationChannel()
-        startForeground(NOTIF_ID, buildNotification("Démarrage GPS…"))
+        startForeground(NOTIF_ID, buildNotification("Demarrage GPS..."))
         startLocationUpdates()
     }
 
     private fun startLocationUpdates() {
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
+        
+        locationThread = HandlerThread("LocationThread")
+        locationThread.start()
 
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, INTERVAL_MS)
             .setMinUpdateIntervalMillis(INTERVAL_MS / 2)
@@ -49,7 +55,7 @@ class LocationService : Service() {
         }
 
         try {
-            fusedClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
+            fusedClient.requestLocationUpdates(request, locationCallback, locationThread.looper)
         } catch (_: SecurityException) {
             stopSelf()
         }
@@ -74,6 +80,9 @@ class LocationService : Service() {
         if (!phone.isNullOrEmpty()) updates["$prefix/phone"] = phone
 
         db.updateChildren(updates)
+            .addOnFailureListener { e ->
+                Log.e("GPS", "Firebase error: ${e.message}")
+            }
 
         updateNotification("📍 ${location.latitude.format(5)}, ${location.longitude.format(5)}")
     }
@@ -101,19 +110,22 @@ class LocationService : Service() {
                 CHANNEL_ID,
                 "GPS Tracker",
                 NotificationManager.IMPORTANCE_LOW
-            ).apply { description = "Tracking GPS en arrière-plan" }
+            ).apply { description = "Tracking GPS en arriere-plan" }
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return START_STICKY // redémarre automatiquement si tué par le système
+        return START_STICKY // redemarre automatiquement si tue par le systeme
     }
 
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
         fusedClient.removeLocationUpdates(locationCallback)
+        if (::locationThread.isInitialized) {
+            locationThread.quitSafely()
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
