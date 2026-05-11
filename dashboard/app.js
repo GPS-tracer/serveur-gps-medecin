@@ -3,7 +3,7 @@
  */
 
 import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { db, AGENTS_PATH, auth } from "../shared/firebase.js";
 
 const DEFAULT_CENTER = [-4.7761, 11.8635];
@@ -400,6 +400,18 @@ setInterval(() => {
   }
 }, 10_000);
 
+/** Current company ID for filtering agents */
+let currentCompanyId = null;
+
+/** Load company info and set up agent listener */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+  currentCompanyId = user.uid;
+});
+
 const agentsRef = ref(db, AGENTS_PATH);
 
 onValue(
@@ -414,7 +426,14 @@ onValue(
 
     if (val && typeof val === "object") {
       for (const id of Object.keys(val)) {
-        const dev = rowToDevice(id, val[id]);
+        const row = val[id];
+        
+        // Filter: only show agents belonging to current company
+        if (currentCompanyId && row?.companyId !== currentCompanyId) {
+          continue;
+        }
+        
+        const dev = rowToDevice(id, row);
         if (!dev) continue;
 
         devices.push(dev);
