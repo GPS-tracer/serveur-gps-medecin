@@ -17,6 +17,7 @@ const licenceForm     = document.getElementById('licenceForm');
 const licenceKeyInput = document.getElementById('licenceKey');
 const licenceMessage  = document.getElementById('licenceMessage');
 const btnActivate     = document.getElementById('btnActivate');
+const btnPaste        = document.getElementById('btnPaste');
 const licenceHistory  = document.getElementById('licenceHistory');
 const historyList     = document.getElementById('historyList');
 const btnSignOut      = document.getElementById('btnSignOut');
@@ -38,12 +39,45 @@ btnSignOut?.addEventListener('click', () => {
   signOut(auth).then(() => { window.location.href = 'login.html'; });
 });
 
-// ─── Formater la clé en XXXX-XXXX-XXXX-XXXX ─────────────────
+// ─── Auto-formatage : XXXX-XXXX-XXXX-XXXX ───────────────────
+// Force majuscules, supprime espaces, insère tirets automatiquement
+
+function formatKey(raw) {
+  // Trim + majuscules + garder uniquement alphanumérique
+  const clean = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  // Groupes de 4 séparés par tirets
+  return (clean.match(/.{1,4}/g) || []).join('-').slice(0, 19);
+}
+
 licenceKeyInput.addEventListener('input', (e) => {
-  let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  // Insérer les tirets automatiquement
-  val = val.match(/.{1,4}/g)?.join('-') || val;
-  e.target.value = val.slice(0, 19);
+  const pos    = e.target.selectionStart;
+  const before = e.target.value.length;
+  e.target.value = formatKey(e.target.value);
+  // Repositionner le curseur proprement
+  const diff = e.target.value.length - before;
+  e.target.setSelectionRange(pos + diff, pos + diff);
+});
+
+// Forcer le trim/majuscules aussi au blur (copier-coller sans frappe)
+licenceKeyInput.addEventListener('blur', (e) => {
+  e.target.value = formatKey(e.target.value);
+});
+
+// ─── Bouton Coller ───────────────────────────────────────────
+btnPaste?.addEventListener('click', async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    licenceKeyInput.value = formatKey(text);
+    licenceKeyInput.focus();
+    showMessage('✅ Clé collée depuis le presse-papiers', 'success');
+    setTimeout(hideMessage, 2000);
+  } catch {
+    // Fallback si l'API clipboard n'est pas disponible
+    licenceKeyInput.focus();
+    document.execCommand('paste');
+    licenceKeyInput.value = formatKey(licenceKeyInput.value);
+    showMessage('Collez manuellement avec Ctrl+V / ⌘+V', 'info');
+  }
 });
 
 // ─── Charger le statut freemium depuis l'API ─────────────────
@@ -188,11 +222,12 @@ licenceForm.addEventListener('submit', async (e) => {
 // ─── Helpers UI ──────────────────────────────────────────────
 function showMessage(text, type) {
   licenceMessage.textContent = text;
-  licenceMessage.className = `px-4 py-3 rounded-lg text-sm font-medium ${
-    type === 'success'
-      ? 'bg-green-500/10 border border-green-500/30 text-green-300'
-      : 'bg-red-500/10 border border-red-500/30 text-red-300'
-  }`;
+  const styles = {
+    success: 'bg-green-500/10 border border-green-500/30 text-green-300',
+    error:   'bg-red-500/10 border border-red-500/30 text-red-300',
+    info:    'bg-sky-500/10 border border-sky-500/30 text-sky-300',
+  };
+  licenceMessage.className = `px-4 py-3 rounded-lg text-sm font-medium ${styles[type] || styles.info}`;
   licenceMessage.classList.remove('hidden');
 }
 

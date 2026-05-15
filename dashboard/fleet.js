@@ -199,6 +199,11 @@ form.addEventListener('submit', async (e) => {
             return;
         }
 
+        // ── Avertissement préventif à 8 ou 9 agents ──────────────
+        if (limitData.warning) {
+            showFreemiumWarning(limitData.warning, limitData.count, limitData.max);
+        }
+
         submitBtn.textContent = 'Ajout en cours...';
 
         // Vérifier si l'ID existe déjà
@@ -233,7 +238,29 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-// Afficher le blocage freemium avec lien vers la page licences
+// Avertissement préventif (8 ou 9 agents) — meilleur pour la conversion
+function showFreemiumWarning(message, count, max) {
+    const existing = document.getElementById('freemiumWarning');
+    if (existing) return; // afficher une seule fois
+
+    const remaining = max - count;
+    const div = document.createElement('div');
+    div.id = 'freemiumWarning';
+    div.className = 'mb-4 bg-orange-500/10 border border-orange-500/40 rounded-lg p-4 text-sm';
+    div.innerHTML = `
+        <p class="text-orange-300 font-semibold mb-1">⚠️ Plus que ${remaining} place${remaining > 1 ? 's' : ''} gratuite${remaining > 1 ? 's' : ''}</p>
+        <p class="text-slate-300 text-xs mb-3">${message}</p>
+        <a href="licence.html"
+           class="inline-block bg-orange-500 hover:bg-orange-400 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs">
+            ♾️ Passer à l'illimité (23 550 FCFA)
+        </a>
+        <button onclick="this.parentElement.remove()" class="ml-2 text-slate-500 hover:text-slate-300 text-xs">Ignorer</button>
+    `;
+    // Insérer avant le formulaire
+    form.parentElement.insertBefore(div, form);
+}
+
+// Blocage complet à 10 agents
 function showFreemiumBlock(message) {
     const existing = document.getElementById('freemiumBlock');
     if (existing) existing.remove();

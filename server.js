@@ -7,10 +7,26 @@ const PORT = process.env.PORT || 3000;
 
 // ─────────────────────────────────────────────────────────────
 // Firebase Admin SDK
+// Render : utiliser la variable d'env FIREBASE_SERVICE_ACCOUNT (JSON minifié)
+// ou un Secret File monté à /etc/secrets/service-account.json
 // ─────────────────────────────────────────────────────────────
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-  : require('./firebase-service-account.json');
+let serviceAccount;
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  // Variable d'env : JSON minifié sur une seule ligne
+  try {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } catch (e) {
+    console.error('❌ FIREBASE_SERVICE_ACCOUNT invalide (JSON mal formé):', e.message);
+    process.exit(1);
+  }
+} else {
+  // Secret File Render ou fichier local de développement
+  const secretPath = '/etc/secrets/service-account.json';
+  const localPath  = './firebase-service-account.json';
+  const fs = require('fs');
+  const filePath = fs.existsSync(secretPath) ? secretPath : localPath;
+  serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -43,11 +59,12 @@ async function requireAuth(req, res, next) {
 // ─────────────────────────────────────────────────────────────
 const FREEMIUM = {
   MAX_AGENTS_FREE:        10,   // blocage au-delà de 10 agents
-  FREE_REPORTS_PER_DAY:   1,    // 1 impression gratuite/jour
+  WARN_AGENTS_THRESHOLD:   8,   // avertissement préventif à partir de 8
+  FREE_REPORTS_PER_DAY:    1,   // 1 impression gratuite/jour
   PACK_PRICES: {
-    '20':       500,    // FCFA
-    '40':       1000,   // FCFA
-    'illimite': 20000,  // FCFA
+    '20':       590,    // FCFA (frais Chariow inclus)
+    '40':       1180,   // FCFA (frais Chariow inclus)
+    'illimite': 23550,  // FCFA (frais Chariow inclus)
   },
 };
 
@@ -144,7 +161,7 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
 
     const licence = licenceSnap.val();
 
-    // 2. Déjà utilisée ?
+    // 2. Déjà utilisée ? (vérification rapide avant transaction)
     if (licence.statut === 'utilisé') {
       return res.status(409).json({
         error: 'Cette clé a déjà été utilisée',
@@ -152,7 +169,27 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
       });
     }
 
-    // 3. Créditer le compte
+    // 3. Verrouillage anti-double-usage via transaction Firebase
+    //    On marque la clé "utilisé" EN PREMIER de façon atomique.
+    //    Si deux requêtes arrivent simultanément, une seule réussira.
+    let alreadyUsed = false;
+    await licenceRef.transaction((current) => {
+      if (!current) return current; // nœud supprimé entre-temps
+      if (current.statut === 'utilisé') {
+        alreadyUsed = true;
+        return; // abort la transaction (retourne undefined)
+      }
+      // Marquer immédiatement comme utilisé
+      return { ...current, statut: 'utilisé', dateActivation: new Date().toISOString(), activatedBy: companyId };
+    });
+
+    if (alreadyUsed) {
+      return res.status(409).json({
+        error: 'Cette clé a déjà été utilisée (double soumission détectée)',
+      });
+    }
+
+    // 4. Créditer le compte (la clé est déjà verrouillée)
     const typePack = licence.typePack; // '20', '40', 'illimite'
     const companyRef = db.ref(`companies/${companyId}/licence`);
     const companySnap = await companyRef.get();
@@ -174,22 +211,14 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
 
     const now = new Date().toISOString();
 
-    // Transaction atomique : marquer la clé + créditer la société
+    // Créditer la société + historique (la clé est déjà marquée par la transaction)
     await Promise.all([
-      // Marquer la clé comme utilisée
-      licenceRef.update({
-        statut:          'utilisé',
-        dateActivation:  now,
-        activatedBy:     companyId,
-      }),
-      // Créditer la société
       companyRef.update({
         typePack:           newTypePack,
         rapportsRestants:   newRapportsRestants,
         lastActivation:     now,
         lastLicenceKey:     key,
       }),
-      // Historique des activations
       db.ref(`companies/${companyId}/licenceHistory`).push({
         key,
         typePack,
@@ -304,12 +333,17 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
         allowed:    false,
         count,
         max:        FREEMIUM.MAX_AGENTS_FREE,
-        message:    `Limite de ${FREEMIUM.MAX_AGENTS_FREE} agents atteinte. Passez au pack illimité (20 000 FCFA).`,
+        message:    `Limite de ${FREEMIUM.MAX_AGENTS_FREE} agents atteinte. Passez au pack illimité (23 550 FCFA).`,
         upgradeUrl: '/dashboard/licence.html',
       });
     }
 
-    res.json({ allowed: true, count, max: FREEMIUM.MAX_AGENTS_FREE, typePack });
+    // Avertissement préventif (8 ou 9 agents)
+    const warning = count >= FREEMIUM.WARN_AGENTS_THRESHOLD
+      ? `⚠️ Il ne vous reste que ${FREEMIUM.MAX_AGENTS_FREE - count} place(s) gratuite(s). Passez à l'illimité avant d'être bloqué.`
+      : null;
+
+    res.json({ allowed: true, count, max: FREEMIUM.MAX_AGENTS_FREE, typePack, warning });
   } catch (err) {
     console.error('check-limit error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
