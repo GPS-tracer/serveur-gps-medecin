@@ -53,7 +53,10 @@ onAuthStateChanged(auth, async (user) => {
     const snapshot = await get(companyRef);
     if (snapshot.exists()) {
         const company = snapshot.val();
-        companyNameEl.textContent = company.companyName || 'Ma Société';
+        const name = company.companyName || 'Ma Société';
+        companyNameEl.textContent = name;
+        // Afficher le bandeau de bienvenue + badge connecté
+        renderWelcomeBanner(name);
     }
     
     // Écouter les changements d'agents
@@ -316,3 +319,60 @@ deleteModal.addEventListener('click', (e) => {
         agentToDelete = null;
     }
 });
+
+// ─────────────────────────────────────────────────────────────
+// Bandeau de bienvenue + badge "Connecté"
+// ─────────────────────────────────────────────────────────────
+function renderWelcomeBanner(companyName) {
+    const header = document.querySelector('header .container');
+    if (!header || document.getElementById('welcomeBanner')) return;
+
+    // Injecter l'animation pulse une seule fois
+    if (!document.getElementById('pulse-style')) {
+        const style = document.createElement('style');
+        style.id = 'pulse-style';
+        style.textContent = `
+            @keyframes pulse-green {
+                0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.6); }
+                70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+                100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    const banner = document.createElement('div');
+    banner.id = 'welcomeBanner';
+    banner.className = 'w-full flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800 border border-sky-500/40 rounded-xl px-5 py-3 mt-3 gap-4';
+    banner.innerHTML = `
+        <!-- Salutation -->
+        <div class="flex items-center gap-3 min-w-0">
+            <span class="text-2xl">👋</span>
+            <div class="min-w-0">
+                <p class="text-xs text-slate-500 uppercase tracking-wide">Bienvenue</p>
+                <p class="text-base font-bold text-slate-100 truncate">
+                    Bonjour, <span class="text-sky-400">${escapeHtml(companyName)}</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Badge connecté -->
+        <div class="flex items-center gap-2 bg-green-950 border border-green-700 rounded-full px-4 py-2 flex-shrink-0" title="Session active">
+            <span style="
+                width:10px; height:10px; background:#22c55e; border-radius:50%;
+                display:inline-block;
+                animation: pulse-green 2s infinite;
+            "></span>
+            <span class="text-green-400 text-xs font-semibold whitespace-nowrap">● Connecté</span>
+        </div>
+    `;
+
+    // Insérer après le header principal
+    header.appendChild(banner);
+}
+
+function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
