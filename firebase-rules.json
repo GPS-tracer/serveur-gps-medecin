@@ -1,16 +1,43 @@
 {
   "rules": {
+
     "agents": {
       ".read": "auth != null",
       "$agentId": {
         ".write": true
       }
     },
+
+    "societes": {
+      "$societeId": {
+        ".read": "auth != null && auth.uid == $societeId",
+        ".write": "auth != null && auth.uid == $societeId",
+        "agents": {
+          "$agentId": {
+            ".read": "auth != null && auth.uid == $societeId",
+            ".write": true
+          }
+        }
+      }
+    },
+
+    "pending": {
+      "$deviceId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
     "companies": {
       "$uid": {
         ".read": "auth != null && auth.uid == $uid",
         ".write": "auth != null && auth.uid == $uid"
       }
+    },
+
+    "licences_gps": {
+      ".read": false,
+      ".write": false
     }
   }
 }

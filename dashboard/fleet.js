@@ -179,7 +179,7 @@ form.addEventListener('submit', async (e) => {
     }
     
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Ajout en cours...';
+    submitBtn.textContent = 'Vérification...';
     
     const name = document.getElementById('agentName').value.trim();
     const agentId = document.getElementById('agentId').value.trim();
@@ -187,6 +187,20 @@ form.addEventListener('submit', async (e) => {
     const phone = document.getElementById('agentPhone').value.trim();
     
     try {
+        // ── Vérifier la limite freemium avant d'ajouter ──────────
+        const token    = await currentUser.getIdToken();
+        const limitRes = await fetch(`/api/agents/check-limit/${currentUser.uid}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        const limitData = await limitRes.json();
+
+        if (!limitData.allowed) {
+            showFreemiumBlock(limitData.message);
+            return;
+        }
+
+        submitBtn.textContent = 'Ajout en cours...';
+
         // Vérifier si l'ID existe déjà
         if (agents[agentId]) {
             throw new Error('Cet identifiant existe déjà. Veuillez en choisir un autre.');
@@ -201,7 +215,6 @@ form.addEventListener('submit', async (e) => {
             createdAt: Date.now(),
             status: 'active',
             companyId: currentUser.uid,
-            // Champs compatibles avec l'app Android
             lat: null,
             lng: null,
             lastUpdate: null,
@@ -209,8 +222,6 @@ form.addEventListener('submit', async (e) => {
         });
         
         showSuccess(`Agent ${name} ajouté avec succès!`);
-        
-        // Réinitialiser le formulaire
         form.reset();
         
     } catch (error) {
@@ -221,6 +232,27 @@ form.addEventListener('submit', async (e) => {
         submitBtn.textContent = 'Ajouter l\'agent';
     }
 });
+
+// Afficher le blocage freemium avec lien vers la page licences
+function showFreemiumBlock(message) {
+    const existing = document.getElementById('freemiumBlock');
+    if (existing) existing.remove();
+
+    const div = document.createElement('div');
+    div.id = 'freemiumBlock';
+    div.className = 'mt-4 bg-yellow-500/10 border border-yellow-500/40 rounded-lg p-4 text-sm';
+    div.innerHTML = `
+        <p class="text-yellow-300 font-semibold mb-2">⚠️ Limite atteinte</p>
+        <p class="text-slate-300 mb-3">${message}</p>
+        <a href="licence.html"
+           class="inline-block bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold px-4 py-2 rounded-lg transition-all text-xs">
+            🔑 Acheter un pack
+        </a>
+    `;
+    form.appendChild(div);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Ajouter l\'agent';
+}
 
 // Supprimer un agent
 window.deleteAgent = (agentId) => {
