@@ -6,8 +6,11 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
+import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,23 +23,48 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 
+/**
+ * Flux d'enregistrement :
+ *
+ * 1. Au premier lancement, l'agent saisit son nom et téléphone.
+ *    L'app génère automatiquement un device_id = ANDROID_ID (unique, sans permission).
+ *    Elle s'enregistre dans Firebase sous : pending/{device_id}
+ *    avec status = "pending" et les infos du téléphone (modèle, version Android, version app).
+ *
+ * 2. L'admin voit l'agent dans son dashboard (nœud "pending"),
+ *    lui attribue une société, un type de véhicule et un secteur.
+ *    Il déplace l'agent vers : societes/{uid_societe}/agents/{device_id}/config
+ *    et met status = "active".
+ *
+ * 3. L'app détecte le passage à "active" via un ValueEventListener sur pending/{device_id}.
+ *    Elle persiste le companyId, verrouille l'UI et démarre le tracking automatiquement.
+ *
+ * 4. À chaque démarrage suivant, si status = "active" et companyId connu,
+ *    le tracking démarre directement sans interaction.
+ */
 class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
+        private const val APP_VERSION = "1.0.0"
     }
 
     private lateinit var prefs: SharedPreferences
     private lateinit var tvStatus: TextView
     private lateinit var tvConfigStatus: TextView
-    private lateinit var etDeviceId: TextInputEditText
+    private lateinit var tvDeviceInfo: TextView
     private lateinit var etName: TextInputEditText
     private lateinit var etPhone: TextInputEditText
-    private lateinit var btnSave: Button
+    private lateinit var btnRegister: Button
+    private lateinit var layoutPending: LinearLayout
+    private lateinit var layoutRegistration: LinearLayout
 
     private val db = FirebaseDatabase.getInstance().reference
+    private var pendingListener: ValueEventListener? = null
     private var configListener: ValueEventListener? = null
-    private var isConfigLocked = false
+
+    // Identifiant unique de l'appareil (ANDROID_ID — stable, sans permission)
+    private lateinit var deviceId: String
 
     private val locationPermissions = arrayOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -59,238 +87,253 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         prefs = getSharedPreferences("gps_tracker", MODE_PRIVATE)
-        tvStatus = findViewById(R.id.tvStatus)
-        tvConfigStatus = findViewById(R.id.tvConfigStatus)
-        etDeviceId = findViewById(R.id.etDeviceId)
-        etName = findViewById(R.id.etName)
-        etPhone = findViewById(R.id.etPhone)
-        btnSave = findViewById(R.id.btnSave)
 
-        // Charger les données locales
-        loadLocalData()
-        
-        // Vérifier l'intégrité de la configuration
-        checkConfigIntegrity()
-        
-        // Mettre à jour le statut
-        updateStatus()
+        tvStatus         = findViewById(R.id.tvStatus)
+        tvConfigStatus   = findViewById(R.id.tvConfigStatus)
+        tvDeviceInfo     = findViewById(R.id.tvDeviceInfo)
+        etName           = findViewById(R.id.etName)
+        etPhone          = findViewById(R.id.etPhone)
+        btnRegister      = findViewById(R.id.btnSave)
+        layoutPending    = findViewById(R.id.layoutPending)
+        layoutRegistration = findViewById(R.id.layoutRegistration)
 
-        btnSave.setOnClickListener {
-            if (isConfigLocked) {
-                showLockedDialog()
-                return@setOnClickListener
-            }
-            
-            val deviceId = etDeviceId.text.toString().trim()
-            val name = etName.text.toString().trim()
-            val phone = etPhone.text.toString().trim()
+        // Récupérer ou générer le device_id (ANDROID_ID)
+        deviceId = getOrCreateDeviceId()
 
-            if (deviceId.isEmpty()) {
-                etDeviceId.error = "Requis"
-                return@setOnClickListener
-            }
+        // Afficher les infos de l'appareil
+        showDeviceInfo()
 
-            prefs.edit()
-                .putString("device_id", deviceId)
-                .putString("name", name)
-                .putString("phone", phone)
-                .apply()
-
-            checkPermissionsAndStart()
+        // Décider quel écran afficher selon l'état de l'agent
+        when (getAgentStatus()) {
+            AgentStatus.ACTIVE  -> onAgentActive()
+            AgentStatus.PENDING -> onAgentPending()
+            AgentStatus.NEW     -> showRegistrationScreen()
         }
+
+        btnRegister.setOnClickListener { onRegisterClicked() }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Gestion du device_id
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Retourne le device_id persisté, ou le génère depuis ANDROID_ID.
+     * ANDROID_ID est unique par appareil + par app, stable, sans permission.
+     */
+    private fun getOrCreateDeviceId(): String {
+        var id = prefs.getString("device_id", null)
+        if (id.isNullOrEmpty()) {
+            id = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+            prefs.edit().putString("device_id", id).apply()
+            Log.i(TAG, "📱 Nouveau device_id généré: $id")
+        }
+        return id!!
     }
 
     /**
-     * Charge les données locales et vérifie si la config est verrouillée
+     * Affiche le modèle, la version Android et la version app dans l'UI.
      */
-    private fun loadLocalData() {
-        val deviceId = prefs.getString("device_id", "")
-        val name = prefs.getString("name", "")
-        val phone = prefs.getString("phone", "")
-        
-        etDeviceId.setText(deviceId)
-        etName.setText(name)
-        etPhone.setText(phone)
-        
-        // Si un device_id existe, vérifier si la config est verrouillée
-        if (!deviceId.isNullOrEmpty()) {
-            checkIfConfigLocked(deviceId)
+    private fun showDeviceInfo() {
+        val model   = "${Build.MANUFACTURER} ${Build.MODEL}"
+        val android = "Android ${Build.VERSION.RELEASE}"
+        val app     = "App v$APP_VERSION"
+        tvDeviceInfo.text = "$model • $android • $app"
+        Log.d(TAG, "📱 Device: $model | $android | ID: $deviceId")
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // États de l'agent
+    // ─────────────────────────────────────────────────────────────
+
+    private enum class AgentStatus { NEW, PENDING, ACTIVE }
+
+    private fun getAgentStatus(): AgentStatus {
+        val status    = prefs.getString("agent_status", null)
+        val companyId = prefs.getString("companyId", null)
+        return when {
+            status == "active" && !companyId.isNullOrEmpty() -> AgentStatus.ACTIVE
+            status == "pending"                              -> AgentStatus.PENDING
+            else                                             -> AgentStatus.NEW
         }
     }
 
-    /**
-     * Vérifie si la configuration est verrouillée (gérée par Firebase)
-     * Chemin: societes/{uid_societe}/agents/{id_agent}/config
-     */
-    private fun checkIfConfigLocked(deviceId: String) {
-        val societeId = prefs.getString("companyId", null)
-        
-        if (societeId.isNullOrEmpty()) {
-            // Pas encore de societeId, configuration libre
-            isConfigLocked = false
-            unlockConfiguration()
-            tvConfigStatus.text = "✏️ Configuration libre"
-            tvConfigStatus.setTextColor(getColor(R.color.text_secondary))
+    // ─────────────────────────────────────────────────────────────
+    // Écran 1 : Enregistrement (premier lancement)
+    // ─────────────────────────────────────────────────────────────
+
+    private fun showRegistrationScreen() {
+        layoutRegistration.visibility = View.VISIBLE
+        layoutPending.visibility      = View.GONE
+
+        // Pré-remplir si données déjà saisies
+        etName.setText(prefs.getString("name", ""))
+        etPhone.setText(prefs.getString("phone", ""))
+
+        tvConfigStatus.text = "📋 Enregistrez-vous pour commencer"
+        tvConfigStatus.visibility = View.VISIBLE
+        tvStatus.text = "⏸ Non enregistré"
+
+        Log.d(TAG, "📋 Écran d'enregistrement affiché")
+    }
+
+    private fun onRegisterClicked() {
+        val name  = etName.text.toString().trim()
+        val phone = etPhone.text.toString().trim()
+
+        if (name.isEmpty()) {
+            etName.error = "Requis"
             return
         }
-        
-        db.child("societes/$societeId/agents/$deviceId/config").get()
-            .addOnSuccessListener { snapshot ->
-                if (snapshot.exists()) {
-                    // L'agent existe dans Firebase = configuration verrouillée
-                    isConfigLocked = true
-                    lockConfiguration()
-                    
-                    // Charger les données depuis Firebase
-                    val firebaseName = snapshot.child("name").getValue(String::class.java)
-                    val firebasePhone = snapshot.child("phone").getValue(String::class.java)
-                    val vehicleType = snapshot.child("vehicleType").getValue(String::class.java)
-                    
-                    if (firebaseName != null) etName.setText(firebaseName)
-                    if (firebasePhone != null) etPhone.setText(firebasePhone)
-                    
-                    tvConfigStatus.text = "🔒 Configuration verrouillée par l'administrateur"
-                    tvConfigStatus.setTextColor(getColor(R.color.warning))
-                    
-                    Log.i(TAG, "🔒 Configuration verrouillée: vehicleType=$vehicleType")
-                } else {
-                    // L'agent n'existe pas encore = configuration libre
-                    isConfigLocked = false
-                    unlockConfiguration()
-                    tvConfigStatus.text = "✏️ Configuration libre"
-                    tvConfigStatus.setTextColor(getColor(R.color.text_secondary))
-                }
-            }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Erreur vérification config: ${e.message}")
-            }
+        if (phone.isEmpty()) {
+            etPhone.error = "Requis"
+            return
+        }
+
+        // Sauvegarder localement
+        prefs.edit()
+            .putString("name",  name)
+            .putString("phone", phone)
+            .apply()
+
+        // Enregistrer dans Firebase sous pending/{device_id}
+        registerAgentInFirebase(name, phone)
     }
 
     /**
-     * Verrouille les champs de configuration
-     */
-    private fun lockConfiguration() {
-        etDeviceId.isEnabled = false
-        etName.isEnabled = false
-        etPhone.isEnabled = false
-        
-        etDeviceId.alpha = 0.6f
-        etName.alpha = 0.6f
-        etPhone.alpha = 0.6f
-        
-        btnSave.text = "Démarrer le tracking"
-        
-        Log.d(TAG, "🔒 Champs verrouillés")
-    }
-
-    /**
-     * Déverrouille les champs de configuration
-     */
-    private fun unlockConfiguration() {
-        etDeviceId.isEnabled = true
-        etName.isEnabled = true
-        etPhone.isEnabled = true
-        
-        etDeviceId.alpha = 1.0f
-        etName.alpha = 1.0f
-        etPhone.alpha = 1.0f
-        
-        btnSave.text = "Enregistrer et démarrer"
-        
-        Log.d(TAG, "🔓 Champs déverrouillés")
-    }
-
-    /**
-     * Affiche un dialogue si l'utilisateur tente de modifier une config verrouillée
-     */
-    private fun showLockedDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Configuration verrouillée")
-            .setMessage("Cette configuration est gérée par votre administrateur et ne peut pas être modifiée.\n\nPour toute modification, contactez votre responsable de flotte.")
-            .setIcon(android.R.drawable.ic_lock_lock)
-            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
-            .show()
-    }
-
-    /**
-     * Vérifie l'intégrité de la configuration locale vs Firebase.
-     * Se déclenche au démarrage ET à chaque modification distante (ValueEventListener permanent).
+     * Crée l'entrée de l'agent dans Firebase sous le nœud "pending".
+     * L'admin verra cet agent dans son dashboard et pourra lui attribuer une société.
      *
-     * Cas 1 — companyId connu : écoute directement societes/{uid}/agents/{id}/config
-     * Cas 2 — premier lancement (pas de companyId) : cherche l'agent dans tous les nœuds
-     *          societes/ pour récupérer son companyId, puis attache le listener.
+     * Chemin: pending/{device_id}
      */
-    private fun checkConfigIntegrity() {
-        val deviceId = prefs.getString("device_id", null)
+    private fun registerAgentInFirebase(name: String, phone: String) {
+        btnRegister.isEnabled = false
+        btnRegister.text = "Enregistrement..."
 
-        if (deviceId.isNullOrEmpty()) {
-            Log.d(TAG, "Pas de device_id, vérification d'intégrité ignorée")
-            return
-        }
+        val model        = "${Build.MANUFACTURER} ${Build.MODEL}"
+        val androidVer   = Build.VERSION.RELEASE
+        val sdkInt       = Build.VERSION.SDK_INT
+        val ts           = System.currentTimeMillis()
 
-        val societeId = prefs.getString("companyId", null)
+        val agentData = mapOf(
+            "name"           to name,
+            "phone"          to phone,
+            "deviceId"       to deviceId,
+            "deviceModel"    to model,
+            "androidVersion" to androidVer,
+            "sdkVersion"     to sdkInt,
+            "appVersion"     to APP_VERSION,
+            "registeredAt"   to ts,
+            "status"         to "pending"
+        )
 
-        if (!societeId.isNullOrEmpty()) {
-            // companyId déjà connu → attacher le listener directement
-            attachIntegrityListener(deviceId, societeId)
-        } else {
-            // Premier lancement : rechercher le companyId dans Firebase
-            Log.d(TAG, "🔍 companyId inconnu, recherche de l'agent $deviceId dans Firebase...")
-            resolveCompanyId(deviceId)
-        }
+        db.child("pending/$deviceId").setValue(agentData)
+            .addOnSuccessListener {
+                Log.i(TAG, "✅ Agent enregistré dans Firebase: pending/$deviceId")
+                prefs.edit().putString("agent_status", "pending").apply()
+
+                // Passer à l'écran d'attente et écouter l'activation par l'admin
+                onAgentPending()
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "❌ Erreur enregistrement: ${e.message}", e)
+                btnRegister.isEnabled = true
+                btnRegister.text = "S'enregistrer"
+                Toast.makeText(this, "Erreur réseau, réessayez", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Écran 2 : En attente d'activation par l'admin
+    // ─────────────────────────────────────────────────────────────
+
+    private fun onAgentPending() {
+        layoutRegistration.visibility = View.GONE
+        layoutPending.visibility      = View.VISIBLE
+
+        tvStatus.text = "⏳ En attente d'activation"
+        tvConfigStatus.text = "🔔 Votre compte est en cours de validation par l'administrateur"
+        tvConfigStatus.visibility = View.VISIBLE
+
+        Log.d(TAG, "⏳ Écran d'attente affiché, écoute activation admin...")
+
+        // Écouter le nœud pending/{device_id} pour détecter l'activation
+        listenForActivation()
     }
 
     /**
-     * Recherche le companyId de l'agent au premier lancement en parcourant
-     * societes/{uid}/agents/{id}/config jusqu'à trouver l'agent correspondant.
+     * Écoute pending/{device_id} en temps réel.
+     * Quand l'admin attribue une société et met status = "active",
+     * l'app récupère le companyId et démarre le tracking automatiquement.
      */
-    private fun resolveCompanyId(deviceId: String) {
-        db.child("societes").get()
-            .addOnSuccessListener { societesSnapshot ->
-                if (!societesSnapshot.exists()) {
-                    Log.w(TAG, "Nœud 'societes' introuvable dans Firebase")
-                    return@addOnSuccessListener
+    private fun listenForActivation() {
+        pendingListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (!snapshot.exists()) return
+
+                val status    = snapshot.child("status").getValue(String::class.java)
+                val companyId = snapshot.child("companyId").getValue(String::class.java)
+
+                Log.d(TAG, "📡 pending/$deviceId → status=$status, companyId=$companyId")
+
+                if (status == "active" && !companyId.isNullOrEmpty()) {
+                    // L'admin a activé l'agent → persister et démarrer
+                    prefs.edit()
+                        .putString("agent_status", "active")
+                        .putString("companyId",    companyId)
+                        .apply()
+
+                    Log.i(TAG, "🎉 Agent activé par l'admin! companyId=$companyId")
+                    onAgentActive()
                 }
-
-                for (societeSnap in societesSnapshot.children) {
-                    val agentConfig = societeSnap
-                        .child("agents")
-                        .child(deviceId)
-                        .child("config")
-
-                    if (agentConfig.exists()) {
-                        val foundSocieteId = societeSnap.key ?: continue
-
-                        // Persister le companyId pour les prochains démarrages
-                        prefs.edit().putString("companyId", foundSocieteId).apply()
-                        Log.i(TAG, "✅ companyId résolu: $foundSocieteId")
-
-                        // Appliquer la config immédiatement
-                        val name        = agentConfig.child("name").getValue(String::class.java)
-                        val phone       = agentConfig.child("phone").getValue(String::class.java)
-                        val vehicleType = agentConfig.child("vehicleType").getValue(String::class.java)
-                        val sector      = agentConfig.child("sector").getValue(String::class.java)
-                        forceSyncWithFirebase(name, phone, vehicleType, sector)
-
-                        // Puis attacher le listener permanent
-                        attachIntegrityListener(deviceId, foundSocieteId)
-                        return@addOnSuccessListener
-                    }
-                }
-
-                Log.w(TAG, "Agent $deviceId introuvable dans aucune société Firebase")
             }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Erreur résolution companyId: ${e.message}")
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Erreur listener activation: ${error.message}")
             }
+        }
+
+        db.child("pending/$deviceId").addValueEventListener(pendingListener!!)
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // Écran 3 : Agent actif — tracking + intégrité config
+    // ─────────────────────────────────────────────────────────────
+
+    private fun onAgentActive() {
+        layoutRegistration.visibility = View.GONE
+        layoutPending.visibility      = View.GONE
+
+        tvStatus.text = "✅ Tracking actif"
+        tvConfigStatus.text = "🔒 Configuration gérée par l'administrateur"
+        tvConfigStatus.visibility = View.VISIBLE
+
+        // Détacher le listener pending si encore actif
+        pendingListener?.let {
+            db.child("pending/$deviceId").removeEventListener(it)
+            pendingListener = null
+        }
+
+        // Attacher le listener d'intégrité sur la config
+        val societeId = prefs.getString("companyId", null)
+        if (!societeId.isNullOrEmpty()) {
+            attachIntegrityListener(deviceId, societeId)
+        }
+
+        // Démarrer le tracking GPS
+        checkPermissionsAndStart()
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Vérification d'intégrité config (Device Owner)
+    // ─────────────────────────────────────────────────────────────
 
     /**
      * Attache un ValueEventListener permanent sur societes/{uid}/agents/{id}/config.
-     * Vérifie name, phone, vehicleType ET sector à chaque changement.
+     * Vérifie name, phone, vehicleType ET sector à chaque changement distant.
      */
     private fun attachIntegrityListener(deviceId: String, societeId: String) {
-        Log.d(TAG, "🔍 Listener d'intégrité: societes/$societeId/agents/$deviceId/config")
+        Log.d(TAG, "🔍 Listener intégrité: societes/$societeId/agents/$deviceId/config")
 
         configListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -299,19 +342,16 @@ class MainActivity : AppCompatActivity() {
                     return
                 }
 
-                // Valeurs Firebase (source de vérité)
                 val firebaseName        = snapshot.child("name").getValue(String::class.java)
                 val firebasePhone       = snapshot.child("phone").getValue(String::class.java)
                 val firebaseVehicleType = snapshot.child("vehicleType").getValue(String::class.java)
                 val firebaseSector      = snapshot.child("sector").getValue(String::class.java)
 
-                // Valeurs locales
                 val localName        = prefs.getString("name", "")
                 val localPhone       = prefs.getString("phone", "")
                 val localVehicleType = prefs.getString("vehicleType", "")
                 val localSector      = prefs.getString("sector", "")
 
-                // Détecter toute divergence
                 val violations = mutableListOf<String>()
                 if (firebaseName        != null && firebaseName        != localName)        violations.add("name: '$localName' → '$firebaseName'")
                 if (firebasePhone       != null && firebasePhone       != localPhone)       violations.add("phone: '$localPhone' → '$firebasePhone'")
@@ -319,18 +359,11 @@ class MainActivity : AppCompatActivity() {
                 if (firebaseSector      != null && firebaseSector      != localSector)      violations.add("sector: '$localSector' → '$firebaseSector'")
 
                 if (violations.isNotEmpty()) {
-                    Log.w(TAG, "⚠️ Violation d'intégrité détectée (${violations.size} champ(s)):")
+                    Log.w(TAG, "⚠️ Violation intégrité (${violations.size} champ(s)):")
                     violations.forEach { Log.w(TAG, "  - $it") }
                     forceSyncWithFirebase(firebaseName, firebasePhone, firebaseVehicleType, firebaseSector)
                 } else {
                     Log.d(TAG, "✅ Intégrité OK")
-                    // Verrouiller l'UI si ce n'est pas encore fait
-                    if (!isConfigLocked) {
-                        isConfigLocked = true
-                        lockConfiguration()
-                        tvConfigStatus.text = "🔒 Configuration verrouillée par l'administrateur"
-                        tvConfigStatus.setTextColor(getColor(R.color.warning))
-                    }
                 }
             }
 
@@ -345,7 +378,7 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * Force la resynchronisation immédiate avec Firebase (source de vérité).
-     * Écrase les SharedPreferences locales, met à jour l'UI et redémarre le service.
+     * Écrase les SharedPreferences locales et redémarre le service si actif.
      */
     private fun forceSyncWithFirebase(
         name: String?,
@@ -355,7 +388,6 @@ class MainActivity : AppCompatActivity() {
     ) {
         Log.i(TAG, "🔄 Resynchronisation forcée avec Firebase...")
 
-        // Écraser les SharedPreferences avec les valeurs Firebase
         prefs.edit().apply {
             if (name        != null) putString("name",        name)
             if (phone       != null) putString("phone",       phone)
@@ -364,77 +396,43 @@ class MainActivity : AppCompatActivity() {
             apply()
         }
 
-        // Mettre à jour l'interface
-        if (name  != null) etName.setText(name)
-        if (phone != null) etPhone.setText(phone)
-
-        // Verrouiller l'UI
-        isConfigLocked = true
-        lockConfiguration()
-        tvConfigStatus.text = "🔒 Configuration verrouillée par l'administrateur"
-        tvConfigStatus.setTextColor(getColor(R.color.warning))
-
         Toast.makeText(this, "⚠️ Configuration resynchronisée avec le serveur", Toast.LENGTH_LONG).show()
 
-        // Redémarrer le service pour appliquer immédiatement les nouveaux calculs
         if (LocationService.isRunning) {
             Log.i(TAG, "🔄 Redémarrage du service pour appliquer la nouvelle config...")
             stopService(Intent(this, LocationService::class.java))
-            etDeviceId.postDelayed({ startTracking() }, 1000)
+            tvStatus.postDelayed({ startTracking() }, 1000)
         }
 
         Log.i(TAG, "✅ Resynchronisation terminée: vehicleType=$vehicleType, sector=$sector")
     }
 
-    /**
-     * Met à jour le statut du service
-     */
-    private fun updateStatus() {
-        tvStatus.text = if (LocationService.isRunning) "✅ Tracking actif" else "⏸ Inactif"
-    }
-
-    override fun onResume() {
-        super.onResume()
-        updateStatus()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-
-        // Détacher le listener d'intégrité
-        configListener?.let {
-            val deviceId  = prefs.getString("device_id",  null)
-            val societeId = prefs.getString("companyId",  null)
-            if (!deviceId.isNullOrEmpty() && !societeId.isNullOrEmpty()) {
-                db.child("societes/$societeId/agents/$deviceId/config").removeEventListener(it)
-                Log.d(TAG, "🎧 Listener d'intégrité détaché")
-            }
-        }
-    }
+    // ─────────────────────────────────────────────────────────────
+    // Permissions et tracking
+    // ─────────────────────────────────────────────────────────────
 
     private fun checkPermissionsAndStart() {
         val allGranted = locationPermissions.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
         }
-        
+
         if (!allGranted) {
             permissionLauncher.launch(locationPermissions)
             return
         }
-        
-        // Pour Android 10+, demander la permission background
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val bgGranted = ContextCompat.checkSelfPermission(
-                this, 
+                this,
                 Manifest.permission.ACCESS_BACKGROUND_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
-            
+
             if (!bgGranted) {
                 bgPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                 return
             }
         }
-        
+
         startTracking()
     }
 
@@ -443,5 +441,30 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.startForegroundService(this, intent)
         tvStatus.text = "✅ Tracking actif"
         Toast.makeText(this, "Tracking démarré", Toast.LENGTH_SHORT).show()
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Cycle de vie
+    // ─────────────────────────────────────────────────────────────
+
+    override fun onResume() {
+        super.onResume()
+        tvStatus.text = if (LocationService.isRunning) "✅ Tracking actif" else tvStatus.text
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        pendingListener?.let {
+            db.child("pending/$deviceId").removeEventListener(it)
+        }
+
+        configListener?.let {
+            val societeId = prefs.getString("companyId", null)
+            if (!societeId.isNullOrEmpty()) {
+                db.child("societes/$societeId/agents/$deviceId/config").removeEventListener(it)
+                Log.d(TAG, "🎧 Listeners détachés")
+            }
+        }
     }
 }

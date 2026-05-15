@@ -11,8 +11,9 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="24dp"
-        android:gravity="center_vertical">
+        android:gravity="center_horizontal">
 
+        <!-- ── En-tête ── -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -20,8 +21,19 @@
             android:textSize="28sp"
             android:textColor="@color/text_primary"
             android:textStyle="bold"
+            android:layout_marginBottom="4dp"/>
+
+        <!-- Infos appareil (modèle, Android, version app) -->
+        <TextView
+            android:id="@+id/tvDeviceInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
             android:layout_marginBottom="8dp"/>
 
+        <!-- Statut du service -->
         <TextView
             android:id="@+id/tvStatus"
             android:layout_width="wrap_content"
@@ -29,73 +41,138 @@
             android:text="Inactif"
             android:textSize="14sp"
             android:textColor="@color/text_secondary"
-            android:layout_marginBottom="32dp"/>
+            android:layout_marginBottom="4dp"/>
 
-        <com.google.android.material.textfield.TextInputLayout
+        <!-- Statut de la configuration -->
+        <TextView
+            android:id="@+id/tvConfigStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="12sp"
+            android:textColor="@color/warning"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp"
+            android:visibility="gone"/>
+
+        <!-- ══════════════════════════════════════════════════
+             Écran 1 : Formulaire d'enregistrement (premier lancement)
+             Visible uniquement si l'agent n'est pas encore enregistré
+             ══════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutRegistration"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:textColorHint="@color/text_secondary"
-            app:boxStrokeColor="@color/primary"
-            app:hintTextColor="@color/primary"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-            
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etDeviceId"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Première connexion"
+                android:textSize="18sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Renseignez vos informations. L'administrateur activera votre compte."
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Nom complet -->
+            <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Device ID (ex: agent_001)"
-                android:inputType="text"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_marginBottom="16dp"
+                android:textColorHint="@color/text_secondary"
+                app:boxStrokeColor="@color/primary"
+                app:hintTextColor="@color/primary"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:textColorHint="@color/text_secondary"
-            app:boxStrokeColor="@color/primary"
-            app:hintTextColor="@color/primary"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-            
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etName"
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Nom complet"
+                    android:inputType="textPersonName"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Téléphone -->
+            <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Nom complet"
-                android:inputType="textPersonName"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_marginBottom="32dp"
+                android:textColorHint="@color/text_secondary"
+                app:boxStrokeColor="@color/primary"
+                app:hintTextColor="@color/primary"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp"
-            android:textColorHint="@color/text_secondary"
-            app:boxStrokeColor="@color/primary"
-            app:hintTextColor="@color/primary"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-            
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etPhone"
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etPhone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Numéro de téléphone"
+                    android:inputType="phone"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Bouton S'enregistrer -->
+            <Button
+                android:id="@+id/btnSave"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Téléphone"
-                android:inputType="phone"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:text="S'enregistrer"
+                android:backgroundTint="@color/primary"
+                android:textColor="@color/background"
+                android:minHeight="48dp"/>
 
-        <Button
-            android:id="@+id/btnSave"
+        </LinearLayout>
+
+        <!-- ══════════════════════════════════════════════════
+             Écran 2 : En attente d'activation par l'admin
+             ══════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutPending"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enregistrer et démarrer"
-            android:backgroundTint="@color/primary"
-            android:textColor="@color/background"
-            android:minHeight="48dp"/>
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⏳"
+                android:textSize="48sp"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="En attente d'activation"
+                android:textSize="20sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Votre demande a été envoyée à l'administrateur.\nLe tracking démarrera automatiquement dès que votre compte sera activé."
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
