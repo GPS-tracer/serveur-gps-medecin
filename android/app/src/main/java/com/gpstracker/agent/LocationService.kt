@@ -419,17 +419,18 @@ class LocationService : Service() {
     }
 
     /**
-     * Appelée quand le type de véhicule change
+     * Appelée quand le type de véhicule change suite à une synchronisation distante.
+     * Déclenche la mise à jour des calculs puis envoie un accusé de réception à Firebase.
      */
     private fun onVehicleTypeChanged(newVehicleType: String?) {
         Log.i(TAG, "🚗 Type de véhicule modifié: $currentVehicleType → $newVehicleType")
         
         // Afficher une notification à l'utilisateur
         val vehicleLabel = when (newVehicleType) {
-            "moto" -> "Moto 🏍️"
+            "moto"    -> "Moto 🏍️"
             "voiture" -> "Voiture 🚗"
-            "camion" -> "Camion 🚚"
-            else -> newVehicleType ?: "Inconnu"
+            "camion"  -> "Camion 🚚"
+            else      -> newVehicleType ?: "Inconnu"
         }
         
         showConfigChangeNotification(
@@ -437,8 +438,60 @@ class LocationService : Service() {
             "Nouveau type: $vehicleLabel"
         )
         
-        // Ajuster les paramètres selon le type de véhicule
+        // Ajuster les paramètres de tracking selon le nouveau type
         adjustTrackingParameters(newVehicleType)
+        
+        // Envoyer l'accusé de réception à Firebase
+        // (confirme que les réglages sont bien appliqués sur l'appareil)
+        sendConfigAck(newVehicleType)
+    }
+
+    /**
+     * Envoie un accusé de réception à Firebase après application du nouveau type de véhicule.
+     *
+     * Chemin: societes/{uid_societe}/agents/{id_agent}/configAck
+     *
+     * Champs écrits:
+     *  - vehicleType     : type appliqué
+     *  - appliedAt       : timestamp Unix (ms) de l'application
+     *  - appliedAtHuman  : date/heure lisible (pour le dashboard)
+     *  - co2Coefficient  : coefficient CO2 résultant (g/km)
+     *  - trackingMode    : mode de tracking actif après mise à jour
+     *  - deviceId        : identifiant de l'appareil
+     *  - status          : "applied" — indique que la config est active
+     */
+    private fun sendConfigAck(vehicleType: String?) {
+        val prefs     = getSharedPreferences("gps_tracker", MODE_PRIVATE)
+        val agentId   = prefs.getString("device_id", null)
+        val societeId = prefs.getString("companyId",  null)
+        
+        if (agentId.isNullOrEmpty() || societeId.isNullOrEmpty()) {
+            Log.w(TAG, "Accusé de réception ignoré: agentId ou societeId manquant")
+            return
+        }
+        
+        val ts        = System.currentTimeMillis()
+        val humanDate = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault())
+                            .format(java.util.Date(ts))
+        
+        val ack = mapOf(
+            "vehicleType"    to (vehicleType ?: "unknown"),
+            "appliedAt"      to ts,
+            "appliedAtHuman" to humanDate,
+            "co2Coefficient" to configManager.getCO2Coefficient(),
+            "trackingMode"   to configManager.getTrackingMode(),
+            "deviceId"       to agentId,
+            "status"         to "applied"
+        )
+        
+        db.child("societes/$societeId/agents/$agentId/configAck")
+            .setValue(ack)
+            .addOnSuccessListener {
+                Log.i(TAG, "✅ Accusé de réception envoyé: vehicleType=$vehicleType, appliedAt=$humanDate")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "❌ Échec envoi accusé de réception: ${e.message}", e)
+            }
     }
 
     /**
