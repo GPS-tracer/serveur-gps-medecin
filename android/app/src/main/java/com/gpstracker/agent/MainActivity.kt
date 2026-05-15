@@ -213,118 +213,177 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Vérifie l'intégrité de la configuration locale vs Firebase
-     * Chemin: societes/{uid_societe}/agents/{id_agent}/config
+     * Vérifie l'intégrité de la configuration locale vs Firebase.
+     * Se déclenche au démarrage ET à chaque modification distante (ValueEventListener permanent).
+     *
+     * Cas 1 — companyId connu : écoute directement societes/{uid}/agents/{id}/config
+     * Cas 2 — premier lancement (pas de companyId) : cherche l'agent dans tous les nœuds
+     *          societes/ pour récupérer son companyId, puis attache le listener.
      */
     private fun checkConfigIntegrity() {
         val deviceId = prefs.getString("device_id", null)
-        val societeId = prefs.getString("companyId", null)
-        
+
         if (deviceId.isNullOrEmpty()) {
-            Log.d(TAG, "Pas de device_id, pas de vérification d'intégrité")
+            Log.d(TAG, "Pas de device_id, vérification d'intégrité ignorée")
             return
         }
-        
-        if (societeId.isNullOrEmpty()) {
-            Log.d(TAG, "Pas de companyId, pas de vérification d'intégrité")
-            return
+
+        val societeId = prefs.getString("companyId", null)
+
+        if (!societeId.isNullOrEmpty()) {
+            // companyId déjà connu → attacher le listener directement
+            attachIntegrityListener(deviceId, societeId)
+        } else {
+            // Premier lancement : rechercher le companyId dans Firebase
+            Log.d(TAG, "🔍 companyId inconnu, recherche de l'agent $deviceId dans Firebase...")
+            resolveCompanyId(deviceId)
         }
-        
-        Log.d(TAG, "🔍 Vérification d'intégrité pour: societes/$societeId/agents/$deviceId/config")
-        
+    }
+
+    /**
+     * Recherche le companyId de l'agent au premier lancement en parcourant
+     * societes/{uid}/agents/{id}/config jusqu'à trouver l'agent correspondant.
+     */
+    private fun resolveCompanyId(deviceId: String) {
+        db.child("societes").get()
+            .addOnSuccessListener { societesSnapshot ->
+                if (!societesSnapshot.exists()) {
+                    Log.w(TAG, "Nœud 'societes' introuvable dans Firebase")
+                    return@addOnSuccessListener
+                }
+
+                for (societeSnap in societesSnapshot.children) {
+                    val agentConfig = societeSnap
+                        .child("agents")
+                        .child(deviceId)
+                        .child("config")
+
+                    if (agentConfig.exists()) {
+                        val foundSocieteId = societeSnap.key ?: continue
+
+                        // Persister le companyId pour les prochains démarrages
+                        prefs.edit().putString("companyId", foundSocieteId).apply()
+                        Log.i(TAG, "✅ companyId résolu: $foundSocieteId")
+
+                        // Appliquer la config immédiatement
+                        val name        = agentConfig.child("name").getValue(String::class.java)
+                        val phone       = agentConfig.child("phone").getValue(String::class.java)
+                        val vehicleType = agentConfig.child("vehicleType").getValue(String::class.java)
+                        val sector      = agentConfig.child("sector").getValue(String::class.java)
+                        forceSyncWithFirebase(name, phone, vehicleType, sector)
+
+                        // Puis attacher le listener permanent
+                        attachIntegrityListener(deviceId, foundSocieteId)
+                        return@addOnSuccessListener
+                    }
+                }
+
+                Log.w(TAG, "Agent $deviceId introuvable dans aucune société Firebase")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Erreur résolution companyId: ${e.message}")
+            }
+    }
+
+    /**
+     * Attache un ValueEventListener permanent sur societes/{uid}/agents/{id}/config.
+     * Vérifie name, phone, vehicleType ET sector à chaque changement.
+     */
+    private fun attachIntegrityListener(deviceId: String, societeId: String) {
+        Log.d(TAG, "🔍 Listener d'intégrité: societes/$societeId/agents/$deviceId/config")
+
         configListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (!snapshot.exists()) {
                     Log.w(TAG, "Config introuvable: societes/$societeId/agents/$deviceId/config")
                     return
                 }
-                
-                // Récupérer les données Firebase
-                val firebaseName = snapshot.child("name").getValue(String::class.java)
-                val firebasePhone = snapshot.child("phone").getValue(String::class.java)
+
+                // Valeurs Firebase (source de vérité)
+                val firebaseName        = snapshot.child("name").getValue(String::class.java)
+                val firebasePhone       = snapshot.child("phone").getValue(String::class.java)
                 val firebaseVehicleType = snapshot.child("vehicleType").getValue(String::class.java)
-                
-                // Récupérer les données locales
-                val localName = prefs.getString("name", "")
-                val localPhone = prefs.getString("phone", "")
+                val firebaseSector      = snapshot.child("sector").getValue(String::class.java)
+
+                // Valeurs locales
+                val localName        = prefs.getString("name", "")
+                val localPhone       = prefs.getString("phone", "")
                 val localVehicleType = prefs.getString("vehicleType", "")
-                
-                // Vérifier l'intégrité
-                var integrityViolation = false
+                val localSector      = prefs.getString("sector", "")
+
+                // Détecter toute divergence
                 val violations = mutableListOf<String>()
-                
-                if (firebaseName != null && firebaseName != localName) {
-                    violations.add("name: '$localName' → '$firebaseName'")
-                    integrityViolation = true
-                }
-                
-                if (firebasePhone != null && firebasePhone != localPhone) {
-                    violations.add("phone: '$localPhone' → '$firebasePhone'")
-                    integrityViolation = true
-                }
-                
-                if (firebaseVehicleType != null && firebaseVehicleType != localVehicleType) {
-                    violations.add("vehicleType: '$localVehicleType' → '$firebaseVehicleType'")
-                    integrityViolation = true
-                }
-                
-                if (integrityViolation) {
-                    Log.w(TAG, "⚠️ Violation d'intégrité détectée!")
+                if (firebaseName        != null && firebaseName        != localName)        violations.add("name: '$localName' → '$firebaseName'")
+                if (firebasePhone       != null && firebasePhone       != localPhone)       violations.add("phone: '$localPhone' → '$firebasePhone'")
+                if (firebaseVehicleType != null && firebaseVehicleType != localVehicleType) violations.add("vehicleType: '$localVehicleType' → '$firebaseVehicleType'")
+                if (firebaseSector      != null && firebaseSector      != localSector)      violations.add("sector: '$localSector' → '$firebaseSector'")
+
+                if (violations.isNotEmpty()) {
+                    Log.w(TAG, "⚠️ Violation d'intégrité détectée (${violations.size} champ(s)):")
                     violations.forEach { Log.w(TAG, "  - $it") }
-                    
-                    // Forcer la resynchronisation
-                    forceSyncWithFirebase(firebaseName, firebasePhone, firebaseVehicleType)
+                    forceSyncWithFirebase(firebaseName, firebasePhone, firebaseVehicleType, firebaseSector)
                 } else {
                     Log.d(TAG, "✅ Intégrité OK")
+                    // Verrouiller l'UI si ce n'est pas encore fait
+                    if (!isConfigLocked) {
+                        isConfigLocked = true
+                        lockConfiguration()
+                        tvConfigStatus.text = "🔒 Configuration verrouillée par l'administrateur"
+                        tvConfigStatus.setTextColor(getColor(R.color.warning))
+                    }
                 }
             }
-            
+
             override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Erreur vérification intégrité: ${error.message}")
+                Log.e(TAG, "Erreur listener intégrité: ${error.message}")
             }
         }
-        
-        // Attacher le listener sur le bon chemin
-        db.child("societes/$societeId/agents/$deviceId/config").addValueEventListener(configListener!!)
+
+        db.child("societes/$societeId/agents/$deviceId/config")
+            .addValueEventListener(configListener!!)
     }
 
     /**
-     * Force la resynchronisation avec Firebase
+     * Force la resynchronisation immédiate avec Firebase (source de vérité).
+     * Écrase les SharedPreferences locales, met à jour l'UI et redémarre le service.
      */
-    private fun forceSyncWithFirebase(name: String?, phone: String?, vehicleType: String?) {
+    private fun forceSyncWithFirebase(
+        name: String?,
+        phone: String?,
+        vehicleType: String?,
+        sector: String?
+    ) {
         Log.i(TAG, "🔄 Resynchronisation forcée avec Firebase...")
-        
-        // Mettre à jour les SharedPreferences
+
+        // Écraser les SharedPreferences avec les valeurs Firebase
         prefs.edit().apply {
-            if (name != null) putString("name", name)
-            if (phone != null) putString("phone", phone)
+            if (name        != null) putString("name",        name)
+            if (phone       != null) putString("phone",       phone)
             if (vehicleType != null) putString("vehicleType", vehicleType)
+            if (sector      != null) putString("sector",      sector)
             apply()
         }
-        
+
         // Mettre à jour l'interface
-        if (name != null) etName.setText(name)
+        if (name  != null) etName.setText(name)
         if (phone != null) etPhone.setText(phone)
-        
-        // Afficher une notification
-        Toast.makeText(
-            this,
-            "⚠️ Configuration resynchronisée avec le serveur",
-            Toast.LENGTH_LONG
-        ).show()
-        
-        // Redémarrer le service si actif
+
+        // Verrouiller l'UI
+        isConfigLocked = true
+        lockConfiguration()
+        tvConfigStatus.text = "🔒 Configuration verrouillée par l'administrateur"
+        tvConfigStatus.setTextColor(getColor(R.color.warning))
+
+        Toast.makeText(this, "⚠️ Configuration resynchronisée avec le serveur", Toast.LENGTH_LONG).show()
+
+        // Redémarrer le service pour appliquer immédiatement les nouveaux calculs
         if (LocationService.isRunning) {
             Log.i(TAG, "🔄 Redémarrage du service pour appliquer la nouvelle config...")
             stopService(Intent(this, LocationService::class.java))
-            
-            // Attendre un peu avant de redémarrer
-            etDeviceId.postDelayed({
-                startTracking()
-            }, 1000)
+            etDeviceId.postDelayed({ startTracking() }, 1000)
         }
-        
-        Log.i(TAG, "✅ Resynchronisation terminée")
+
+        Log.i(TAG, "✅ Resynchronisation terminée: vehicleType=$vehicleType, sector=$sector")
     }
 
     /**
@@ -341,13 +400,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        
-        // Détacher le listener
+
+        // Détacher le listener d'intégrité
         configListener?.let {
-            val deviceId = prefs.getString("device_id", null)
-            val societeId = prefs.getString("companyId", null)
+            val deviceId  = prefs.getString("device_id",  null)
+            val societeId = prefs.getString("companyId",  null)
             if (!deviceId.isNullOrEmpty() && !societeId.isNullOrEmpty()) {
                 db.child("societes/$societeId/agents/$deviceId/config").removeEventListener(it)
+                Log.d(TAG, "🎧 Listener d'intégrité détaché")
             }
         }
     }
