@@ -1,110 +1,164 @@
 /**
  * Email/password sign-in with email verification check.
+ * Une fois l'email vérifié, la boîte d'avertissement disparaît
+ * automatiquement et l'utilisateur est redirigé vers le dashboard.
  */
 
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  reload,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "../shared/firebase.js";
 
-const form = document.getElementById("loginForm");
-const emailEl = document.getElementById("email");
-const passwordEl = document.getElementById("password");
-const errorEl = document.getElementById("loginError");
+const form                = document.getElementById("loginForm");
+const emailEl             = document.getElementById("email");
+const passwordEl          = document.getElementById("password");
+const errorEl             = document.getElementById("loginError");
 const verificationWarning = document.getElementById("verificationWarning");
-const resendBtn = document.getElementById("resendVerification");
-const submitBtn = document.getElementById("submitBtn");
+const resendBtn           = document.getElementById("resendVerification");
+const submitBtn           = document.getElementById("submitBtn");
 
-let currentUser = null;
+let currentUser      = null;
+let pollingInterval  = null; // intervalle de vérification email
 
-// Vérifier si déjà connecté
+// ── Si déjà connecté et vérifié → dashboard directement ──────
 onAuthStateChanged(auth, (user) => {
   if (user && user.emailVerified) {
+    stopPolling();
     window.location.replace("index.html");
   }
 });
 
-// Renvoyer l'email de vérification
+// ── Renvoyer l'email de vérification ─────────────────────────
 if (resendBtn) {
   resendBtn.addEventListener("click", async () => {
     if (!currentUser) return;
-    
-    resendBtn.disabled = true;
+
+    resendBtn.disabled    = true;
     resendBtn.textContent = "Envoi en cours...";
-    
+
     try {
       await sendEmailVerification(currentUser);
-      errorEl.textContent = "";
-      errorEl.className = "success";
-      errorEl.textContent = "✅ Email de vérification renvoyé! Vérifiez votre boîte de réception.";
-      
+      errorEl.className   = "success";
+      errorEl.textContent = "✅ Email de vérification renvoyé ! Vérifiez votre boîte de réception.";
       setTimeout(() => {
         errorEl.textContent = "";
-        errorEl.className = "error";
+        errorEl.className   = "error";
       }, 5000);
     } catch (err) {
-      errorEl.textContent = "Erreur lors de l'envoi: " + (err.message || String(err));
+      errorEl.textContent = "Erreur lors de l'envoi : " + (err.message || String(err));
     } finally {
-      resendBtn.disabled = false;
+      resendBtn.disabled    = false;
       resendBtn.textContent = "Renvoyer l'email";
     }
   });
 }
 
+// ── Soumission du formulaire ──────────────────────────────────
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   errorEl.textContent = "";
-  errorEl.className = "error";
+  errorEl.className   = "error";
   verificationWarning.classList.add("hidden");
-  
-  submitBtn.disabled = true;
+  stopPolling();
+
+  submitBtn.disabled    = true;
   submitBtn.textContent = "Connexion...";
 
   try {
-    const userCredential = await signInWithEmailAndPassword(
+    const credential = await signInWithEmailAndPassword(
       auth,
       emailEl.value.trim(),
       passwordEl.value
     );
-    
-    currentUser = userCredential.user;
-    
-    // Vérifier si l'email est validé
+
+    currentUser = credential.user;
+
     if (!currentUser.emailVerified) {
+      // Afficher la boîte d'avertissement
       verificationWarning.classList.remove("hidden");
-      errorEl.className = "warning";
+      errorEl.className   = "warning";
       errorEl.textContent = "⚠️ Veuillez confirmer votre compte via le lien envoyé à votre adresse email.";
-      submitBtn.disabled = false;
+
+      submitBtn.disabled    = false;
       submitBtn.textContent = "Se connecter";
+
+      // Démarrer le polling : vérifie toutes les 3s si l'email est confirmé
+      startPolling();
       return;
     }
-    
-    // Email vérifié, rediriger vers le dashboard
+
+    // Email déjà vérifié → dashboard
     window.location.replace("index.html");
-    
+
   } catch (err) {
     currentUser = null;
     verificationWarning.classList.add("hidden");
-    
+    stopPolling();
+
     let message = err.message || String(err);
-    
-    // Messages d'erreur personnalisés
-    if (err.code === 'auth/user-not-found') {
-      message = "❌ Aucun compte trouvé avec cet email.";
-    } else if (err.code === 'auth/wrong-password') {
-      message = "❌ Mot de passe incorrect.";
-    } else if (err.code === 'auth/invalid-email') {
-      message = "❌ Adresse email invalide.";
-    } else if (err.code === 'auth/user-disabled') {
-      message = "❌ Ce compte a été désactivé.";
-    } else if (err.code === 'auth/too-many-requests') {
-      message = "❌ Trop de tentatives. Réessayez plus tard.";
-    }
-    
-    errorEl.textContent = message;
-    submitBtn.disabled = false;
+    if (err.code === "auth/user-not-found")      message = "❌ Aucun compte trouvé avec cet email.";
+    else if (err.code === "auth/wrong-password") message = "❌ Mot de passe incorrect.";
+    else if (err.code === "auth/invalid-email")  message = "❌ Adresse email invalide.";
+    else if (err.code === "auth/user-disabled")  message = "❌ Ce compte a été désactivé.";
+    else if (err.code === "auth/too-many-requests") message = "❌ Trop de tentatives. Réessayez plus tard.";
+    else if (err.code === "auth/invalid-credential") message = "❌ Email ou mot de passe incorrect.";
+
+    errorEl.textContent   = message;
+    submitBtn.disabled    = false;
     submitBtn.textContent = "Se connecter";
   }
 });
+
+// ── Polling : recharge le token toutes les 3s ─────────────────
+// Dès que Firebase confirme emailVerified = true :
+//   → masque la boîte d'avertissement
+//   → redirige vers le dashboard
+function startPolling() {
+  if (pollingInterval) return; // déjà actif
+
+  // Mettre à jour le texte du bouton renvoyer pour indiquer l'attente
+  if (resendBtn) {
+    resendBtn.insertAdjacentHTML("afterend",
+      `<p id="pollingHint" style="margin:8px 0 0;font-size:12px;color:#64748b;">
+        ⏳ En attente de confirmation… La page se mettra à jour automatiquement.
+      </p>`
+    );
+  }
+
+  pollingInterval = setInterval(async () => {
+    if (!currentUser) { stopPolling(); return; }
+
+    try {
+      // Recharger le profil Firebase pour obtenir l'état emailVerified à jour
+      await reload(currentUser);
+
+      if (currentUser.emailVerified) {
+        stopPolling();
+
+        // Masquer la boîte d'avertissement avec une transition douce
+        verificationWarning.style.transition = "opacity .4s";
+        verificationWarning.style.opacity    = "0";
+        setTimeout(() => verificationWarning.classList.add("hidden"), 400);
+
+        errorEl.className   = "success";
+        errorEl.textContent = "✅ Email confirmé ! Redirection en cours…";
+
+        // Rediriger après un court délai
+        setTimeout(() => window.location.replace("index.html"), 1200);
+      }
+    } catch {
+      // Ignorer les erreurs réseau temporaires
+    }
+  }, 3000);
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+  document.getElementById("pollingHint")?.remove();
+}
