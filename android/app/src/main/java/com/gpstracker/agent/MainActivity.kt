@@ -86,7 +86,18 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        prefs = getSharedPreferences("gps_tracker", MODE_PRIVATE)
+        prefs    = getSharedPreferences("gps_tracker", MODE_PRIVATE)
+        deviceId = getOrCreateDeviceId()
+
+        // ── Premier lancement : aller vers l'onboarding ──────────
+        // Si aucun type de compte n'est défini, l'utilisateur n'a pas
+        // encore choisi entre Entreprise et Particulier.
+        val accountType = prefs.getString("account_type", null)
+        if (accountType.isNullOrEmpty()) {
+            startActivity(Intent(this, OnboardingActivity::class.java))
+            finish()
+            return
+        }
 
         tvStatus         = findViewById(R.id.tvStatus)
         tvConfigStatus   = findViewById(R.id.tvConfigStatus)
