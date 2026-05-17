@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rapports PDF — GPS Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <h1 class="text-2xl font-bold text-sky-400">GPS Tracker</h1>
+        <span class="text-slate-400">|</span>
+        <h2 class="text-lg text-slate-300">Rapports PDF</h2>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="index.html"  class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors">🗺 Carte</a>
+        <a href="fleet.html"  class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors">🚗 Flotte</a>
+        <a href="licence.html" class="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm transition-colors">🔑 Licences</a>
+        <button id="btnSignOut" class="px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm transition-colors">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="dashboard-root" class="container mx-auto px-4 py-8 max-w-4xl" hidden>
+
+    <!-- Quota restant -->
+    <div id="quotaBanner" class="mb-6 bg-slate-800 border border-slate-700 rounded-xl p-4 flex items-center justify-between gap-4">
+      <div>
+        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Impressions disponibles</p>
+        <p id="quotaLabel" class="text-lg font-bold text-sky-400">Chargement…</p>
+      </div>
+      <a href="licence.html" class="text-xs text-slate-400 hover:text-sky-400 transition-colors">Acheter un pack →</a>
+    </div>
+
+    <!-- Formulaire de génération -->
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 mb-8">
+      <h3 class="text-lg font-bold mb-6 flex items-center gap-2">
+        <span>📄</span> Générer un rapport d'activité
+      </h3>
+
+      <form id="reportForm" class="space-y-5">
+
+        <!-- Agent -->
+        <div>
+          <label class="block text-slate-300 text-sm font-medium mb-2">Agent <span class="text-red-400">*</span></label>
+          <select id="agentSelect" required
+            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="">— Sélectionnez un agent —</option>
+          </select>
+        </div>
+
+        <!-- Secteur -->
+        <div>
+          <label class="block text-slate-300 text-sm font-medium mb-2">Secteur d'activité <span class="text-red-400">*</span></label>
+          <select id="secteurSelect" required
+            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="voiture">🚗 Voiture</option>
+            <option value="moto">🏍️ Moto / Livraison</option>
+            <option value="camion">🚚 Camion / Utilitaire</option>
+            <option value="scolaire">🎓 Scolaire (assiduité)</option>
+          </select>
+        </div>
+
+        <!-- Période -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-slate-300 text-sm font-medium mb-2">Date de début <span class="text-red-400">*</span></label>
+            <input type="date" id="dateDebut" required
+              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 text-sm font-medium mb-2">Date de fin <span class="text-red-400">*</span></label>
+            <input type="date" id="dateFin" required
+              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+        </div>
+
+        <!-- Message d'erreur / quota épuisé -->
+        <div id="formMessage" class="hidden rounded-lg px-4 py-3 text-sm font-medium"></div>
+
+        <!-- Offres si quota épuisé -->
+        <div id="offresBlock" class="hidden"></div>
+
+        <!-- Bouton -->
+        <button type="submit" id="btnGenerer"
+          class="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2">
+          <span id="btnIcon">📄</span>
+          <span id="btnLabel">Générer le rapport PDF</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Historique des rapports générés -->
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+      <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+        <span>🗂</span> Historique des rapports
+      </h3>
+      <div id="historyList" class="space-y-2">
+        <p class="text-slate-500 text-sm">Chargement…</p>
+      </div>
+    </div>
+
+  </div>
+
+  <p id="auth-loading" class="text-center text-slate-400 mt-20">Vérification de la session…</p>
+
+  <script type="module" src="rapport.js"></script>
+</body>
+</html>

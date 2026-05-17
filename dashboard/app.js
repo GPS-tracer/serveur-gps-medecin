@@ -410,7 +410,74 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
   currentCompanyId = user.uid;
+
+  // Écouter les notifications non lues (geofencing + expiration)
+  ecouterNotifications(user.uid);
 });
+
+// ─────────────────────────────────────────────────────────────
+// NOTIFICATIONS RTDB — badge dans la sidebar
+// ─────────────────────────────────────────────────────────────
+function ecouterNotifications(companyId) {
+  const notifRef = ref(db, `companies/${companyId}/notifications`);
+  onValue(notifRef, (snap) => {
+    if (!snap.exists()) { mettreAJourBadgeNotif(0); return; }
+
+    let nonLues = 0;
+    snap.forEach((child) => {
+      if (!child.val().lu) nonLues++;
+    });
+    mettreAJourBadgeNotif(nonLues);
+
+    // Afficher les alertes geofencing récentes (< 2 min) en toast
+    const maintenant = Date.now();
+    snap.forEach((child) => {
+      const n = child.val();
+      if (n.lu) return;
+      if (!n.type?.startsWith('geofence_')) return;
+      const age = maintenant - new Date(n.createdAt).getTime();
+      if (age < 2 * 60 * 1000) {
+        afficherToastGeofence(n.message, n.type === 'geofence_sortie' ? 'warning' : 'info');
+      }
+    });
+  });
+}
+
+function mettreAJourBadgeNotif(count) {
+  let badge = document.getElementById('notifBadge');
+  if (!badge) {
+    // Créer le badge une seule fois dans le header de la sidebar
+    const header = document.querySelector('.sidebar-header__row');
+    if (!header) return;
+    badge = document.createElement('span');
+    badge.id = 'notifBadge';
+    badge.style.cssText = `
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #ef4444; color: white; border-radius: 999px;
+      font-size: 11px; font-weight: 700; min-width: 18px; height: 18px;
+      padding: 0 5px; margin-left: 6px; vertical-align: middle;
+    `;
+    const title = header.querySelector('h1');
+    if (title) title.appendChild(badge);
+  }
+  badge.textContent = count > 0 ? String(count) : '';
+  badge.style.display = count > 0 ? 'inline-flex' : 'none';
+}
+
+function afficherToastGeofence(message, type = 'warning') {
+  const toast = document.createElement('div');
+  const bg    = type === 'warning' ? '#f59e0b' : '#0ea5e9';
+  toast.style.cssText = `
+    position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+    background: ${bg}; color: white; padding: 12px 18px;
+    border-radius: 10px; font-size: 13px; font-weight: 600;
+    max-width: 320px; box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    animation: slideIn .3s ease;
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 6000);
+}
 
 const agentsRef = ref(db, AGENTS_PATH);
 

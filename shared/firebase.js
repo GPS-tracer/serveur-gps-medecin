@@ -27,7 +27,22 @@ export const db = getDatabase(app);
 /** Firebase Auth (email/password on dashboard) */
 export const auth = getAuth(app);
 
-/** Root path for agent nodes */
+/**
+ * Retourne le chemin RTDB des agents d'une société.
+ * Structure alignée avec l'app Android : societes/{companyId}/agents
+ *
+ * @param {string} companyId  UID Firebase Auth de la société
+ * @returns {string}
+ */
+export function agentsPath(companyId) {
+  if (!companyId) throw new Error("agentsPath: companyId requis");
+  return `societes/${companyId}/agents`;
+}
+
+/**
+ * @deprecated Utiliser agentsPath(companyId) à la place.
+ * Conservé pour rétrocompatibilité — pointe vers l'ancienne collection.
+ */
 export const AGENTS_PATH = "agents";
 
 const INVALID_AGENT_ID = /[.#$\[\]/]/;
@@ -54,18 +69,37 @@ function normalizeTimestamp(timestamp) {
   return Date.now();
 }
 
+/**
+ * Envoie une position GPS vers Firebase RTDB.
+ * Chemin : societes/{companyId}/agents/{agentId}
+ *
+ * @param {string} agentId
+ * @param {number} latitude
+ * @param {number} longitude
+ * @param {number} timestamp
+ * @param {{ name?: string, phone?: string, companyId?: string }} meta
+ */
 export async function sendLocation(agentId, latitude, longitude, timestamp, meta = {}) {
-  const id = assertValidAgentId(agentId);
-  const ts = normalizeTimestamp(timestamp);
-  const tsKey = String(ts);
-  const prefix = `${AGENTS_PATH}/${id}`;
+  const id       = assertValidAgentId(agentId);
+  const ts       = normalizeTimestamp(timestamp);
+  const tsKey    = String(ts);
+  const companyId = meta.companyId || null;
+
+  // Chemin principal : societes/{companyId}/agents/{agentId}
+  // Fallback sur l'ancienne structure si companyId absent (rétrocompatibilité)
+  const prefix = companyId
+    ? `societes/${companyId}/agents/${id}`
+    : `agents/${id}`;
+
   const updates = {
     [`${prefix}/lastUpdate`]: ts,
-    [`${prefix}/lat`]: latitude,
-    [`${prefix}/lng`]: longitude,
+    [`${prefix}/lat`]:        latitude,
+    [`${prefix}/lng`]:        longitude,
     [`${prefix}/history/${tsKey}`]: { lat: latitude, lng: longitude },
   };
-  if (meta.name) updates[`${prefix}/name`] = meta.name;
-  if (meta.phone) updates[`${prefix}/phone`] = meta.phone;
+  if (meta.name)      updates[`${prefix}/name`]  = meta.name;
+  if (meta.phone)     updates[`${prefix}/phone`] = meta.phone;
+  if (meta.companyId) updates[`${prefix}/companyId`] = meta.companyId;
+
   await update(ref(db), updates);
 }

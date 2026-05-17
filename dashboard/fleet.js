@@ -198,7 +198,7 @@ form.addEventListener('submit', async (e) => {
         const limitData = await limitRes.json();
 
         if (!limitData.allowed) {
-            showFreemiumBlock(limitData.message);
+            showFreemiumBlock(limitData);
             return;
         }
 
@@ -241,7 +241,7 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-// Avertissement préventif (8 ou 9 agents) — meilleur pour la conversion
+// Avertissement préventif (seuil dynamique) — meilleur pour la conversion
 function showFreemiumWarning(message, count, max) {
     const existing = document.getElementById('freemiumWarning');
     if (existing) return; // afficher une seule fois
@@ -251,11 +251,11 @@ function showFreemiumWarning(message, count, max) {
     div.id = 'freemiumWarning';
     div.className = 'mb-4 bg-orange-500/10 border border-orange-500/40 rounded-lg p-4 text-sm';
     div.innerHTML = `
-        <p class="text-orange-300 font-semibold mb-1">⚠️ Plus que ${remaining} place${remaining > 1 ? 's' : ''} gratuite${remaining > 1 ? 's' : ''}</p>
+        <p class="text-orange-300 font-semibold mb-1">⚠️ Plus que ${remaining} place${remaining > 1 ? 's' : ''} disponible${remaining > 1 ? 's' : ''}</p>
         <p class="text-slate-300 text-xs mb-3">${message}</p>
         <a href="licence.html"
            class="inline-block bg-orange-500 hover:bg-orange-400 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs">
-            ♾️ Passer à l'illimité (23 550 FCFA)
+            🚛 Voir les abonnements
         </a>
         <button onclick="this.parentElement.remove()" class="ml-2 text-slate-500 hover:text-slate-300 text-xs">Ignorer</button>
     `;
@@ -263,21 +263,41 @@ function showFreemiumWarning(message, count, max) {
     form.parentElement.insertBefore(div, form);
 }
 
-// Blocage complet à 10 agents
-function showFreemiumBlock(message) {
+// Blocage complet (limite atteinte)
+function showFreemiumBlock(limitData) {
     const existing = document.getElementById('freemiumBlock');
     if (existing) existing.remove();
 
+    // Construire le contenu du bouton d'upgrade selon le contexte
+    const estAbonnementUnite = limitData.typeAbonnement === 'abonnement_unite';
+    const upgradeHtml = estAbonnementUnite
+      ? `<div class="flex flex-col gap-2 mt-3">
+           <a href="licence.html"
+              class="inline-block bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">
+               👤 Ajuster mon abonnement sur Chariow
+           </a>
+           <a href="licence.html"
+              class="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">
+               🚛 Passer au Forfait Flotte Illimitée — 26 010 FCFA/mois
+           </a>
+         </div>`
+      : `<div class="flex flex-col gap-2 mt-3">
+           <a href="licence.html"
+              class="inline-block bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">
+               👤 Tarif à l'Unité — 31 192 FCFA/mois par agent
+           </a>
+           <a href="licence.html"
+              class="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">
+               🚛 Forfait Flotte Illimitée — 26 010 FCFA/mois
+           </a>
+         </div>`;
+
     const div = document.createElement('div');
     div.id = 'freemiumBlock';
-    div.className = 'mt-4 bg-yellow-500/10 border border-yellow-500/40 rounded-lg p-4 text-sm';
+    div.className = 'mt-4 bg-red-500/10 border border-red-500/40 rounded-lg p-4 text-sm';
     div.innerHTML = `
-        <p class="text-yellow-300 font-semibold mb-2">⚠️ Limite atteinte</p>
-        <p class="text-slate-300 mb-3">${message}</p>
-        <a href="licence.html"
-           class="inline-block bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold px-4 py-2 rounded-lg transition-all text-xs">
-            🔑 Acheter un pack
-        </a>
+        <p class="text-red-300 font-semibold mb-2">🚫 ${limitData.message}</p>
+        ${upgradeHtml}
     `;
     form.appendChild(div);
     submitBtn.disabled = false;
@@ -375,4 +395,68 @@ function escapeHtml(s) {
     const d = document.createElement('div');
     d.textContent = s;
     return d.innerHTML;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Affichage du blocage quota d'impression (rapport PDF)
+// Appelé quand l'API retourne { error: 'quota_epuise' }
+// ─────────────────────────────────────────────────────────────
+/**
+ * Affiche un modal/bannière avec le message exact de quota épuisé
+ * et les 4 offres Chariow avec leurs prix officiels (frais inclus).
+ *
+ * @param {object} errData  Réponse JSON de l'API (champs: message, offres)
+ * @param {HTMLElement} [ancre]  Élément après lequel insérer la bannière
+ */
+export function showQuotaEpuise(errData, ancre = null) {
+    // Supprimer une bannière précédente si elle existe
+    document.getElementById('quotaEpuiseBlock')?.remove();
+
+    // Construire les cartes d'offres depuis les données structurées de l'API
+    const offres = errData.offres || [
+        { label: 'Pack 20 rapports',         prix: '590 FCFA',         url: 'https://erpbbfef.mychariow.shop/prd_59udmg' },
+        { label: 'Pack 40 rapports',         prix: '1 180 FCFA',       url: 'https://erpbbfef.mychariow.shop/prd_ia4imm' },
+        { label: 'Abonnement par Agent',     prix: '31 192 FCFA/mois', url: 'https://erpbbfef.mychariow.shop/prd_unite'  },
+        { label: 'Forfait Flotte Illimitée', prix: '26 010 FCFA/mois', url: 'https://erpbbfef.mychariow.shop/prd_flotte' },
+    ];
+
+    const offresHtml = offres.map((o) => `
+        <a href="${escapeHtml(o.url)}" target="_blank" rel="noopener"
+           class="flex items-center justify-between bg-slate-700/60 hover:bg-slate-700 border border-slate-600 hover:border-sky-500 rounded-lg px-3 py-2 transition-all group">
+            <span class="text-slate-200 text-xs font-medium group-hover:text-white">${escapeHtml(o.label)}</span>
+            <span class="text-sky-400 text-xs font-bold whitespace-nowrap ml-3">${escapeHtml(o.prix)}</span>
+        </a>
+    `).join('');
+
+    const div = document.createElement('div');
+    div.id = 'quotaEpuiseBlock';
+    div.className = 'my-4 bg-amber-500/10 border border-amber-500/40 rounded-xl p-4 text-sm';
+    div.innerHTML = `
+        <div class="flex items-start justify-between gap-2 mb-3">
+            <p class="text-amber-300 font-semibold leading-snug">
+                ⏳ Vous avez épuisé votre impression gratuite pour aujourd'hui.
+            </p>
+            <button onclick="document.getElementById('quotaEpuiseBlock').remove()"
+                    class="text-slate-500 hover:text-slate-300 text-lg leading-none flex-shrink-0">✕</button>
+        </div>
+        <p class="text-slate-400 text-xs mb-3">
+            Pour débloquer ce rapport immédiatement ou faire évoluer votre compte,
+            choisissez l'une de nos offres via Mobile Money :
+        </p>
+        <div class="flex flex-col gap-2">
+            ${offresHtml}
+        </div>
+        <p class="text-slate-500 text-xs mt-3 text-center">
+            Après paiement, activez votre clé dans
+            <a href="licence.html" class="text-sky-400 hover:underline">Licences & Packs</a>.
+        </p>
+    `;
+
+    // Insérer après l'ancre fournie, ou en haut du body en fallback
+    if (ancre && ancre.parentNode) {
+        ancre.parentNode.insertBefore(div, ancre.nextSibling);
+    } else {
+        const container = document.querySelector('.container') || document.body;
+        container.prepend(div);
+    }
 }

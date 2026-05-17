@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — GPS Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen">
+
+  <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <h1 class="text-2xl font-bold text-red-400">GPS Tracker</h1>
+        <span class="text-slate-400">|</span>
+        <h2 class="text-lg text-slate-300">Administration</h2>
+        <span class="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full font-bold">ADMIN</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">← Dashboard</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Authentification admin -->
+  <div id="adminAuth" class="container mx-auto px-4 py-16 max-w-md">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-8">
+      <h3 class="text-xl font-bold mb-2 text-center">🔐 Accès Administration</h3>
+      <p class="text-slate-400 text-sm text-center mb-6">Entrez le secret administrateur pour accéder au panneau.</p>
+      <div class="space-y-4">
+        <input type="password" id="adminSecretInput" placeholder="Secret admin"
+          class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500" />
+        <div id="authError" class="hidden text-red-400 text-sm text-center"></div>
+        <button id="btnAdminAuth"
+          class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition-all">
+          Accéder au panneau admin
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panneau admin (caché jusqu'à auth) -->
+  <div id="adminPanel" class="container mx-auto px-4 py-8 max-w-6xl hidden">
+
+    <!-- Stats globales -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Sociétés actives</p>
+        <p id="statSocietes" class="text-3xl font-bold text-sky-400">—</p>
+      </div>
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Abonnements actifs</p>
+        <p id="statAbonnements" class="text-3xl font-bold text-emerald-400">—</p>
+      </div>
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Clés disponibles</p>
+        <p id="statClesDisponibles" class="text-3xl font-bold text-amber-400">—</p>
+      </div>
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Clés utilisées</p>
+        <p id="statClesUtilisees" class="text-3xl font-bold text-violet-400">—</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Importer des clés Chariow -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">🔑 Importer des clés Chariow</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-slate-300 text-sm font-medium mb-2">Type de pack</label>
+            <select id="importTypePack"
+              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <option value="pack_20">Pack 20 rapports — 590 FCFA</option>
+              <option value="pack_40">Pack 40 rapports — 1 180 FCFA</option>
+              <option value="illimite">Pack Illimité — 23 550 FCFA</option>
+              <option value="abonnement_flotte">Forfait Flotte — 26 010 FCFA/mois</option>
+              <option value="abonnement_unite">Tarif à l'Unité — 31 192 FCFA/agent/mois</option>
+            </select>
+          </div>
+          <div id="quantiteAgentsRow" class="hidden">
+            <label class="block text-slate-300 text-sm font-medium mb-2">Quantité d'agents</label>
+            <input type="number" id="importQuantiteAgents" min="1" value="1"
+              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 text-sm font-medium mb-2">Clés (une par ligne)</label>
+            <textarea id="importKeys" rows="5" placeholder="XXXX-XXXX-XXXX-XXXX&#10;YYYY-YYYY-YYYY-YYYY"
+              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"></textarea>
+          </div>
+          <div id="importMessage" class="hidden rounded-lg px-4 py-3 text-sm"></div>
+          <button id="btnImport"
+            class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 rounded-lg transition-all">
+            Importer les clés
+          </button>
+        </div>
+      </div>
+
+      <!-- Générer des clés de test -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">⚙️ Générer des clés de test</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-slate-300 text-sm font-medium mb-2">Type de pack</label>
+            <select id="genTypePack"
+              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <option value="pack_20">Pack 20 rapports</option>
+              <option value="pack_40">Pack 40 rapports</option>
+              <option value="illimite">Pack Illimité</option>
+              <option value="abonnement_flotte">Forfait Flotte</option>
+              <option value="abonnement_unite">Tarif à l'Unité</option>
+            </select>
+          </div>
+          <div id="genQuantiteRow" class="hidden">
+            <label class="block text-slate-300 text-sm font-medium mb-2">Quantité d'agents</label>
+            <input type="number" id="genQuantiteAgents" min="1" value="1"
+              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 text-sm font-medium mb-2">Nombre de clés à générer</label>
+            <input type="number" id="genCount" min="1" max="100" value="1"
+              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+          <div id="genMessage" class="hidden rounded-lg px-4 py-3 text-sm"></div>
+          <div id="genResult" class="hidden bg-slate-700/30 rounded-lg p-3 font-mono text-xs text-sky-300 space-y-1 max-h-40 overflow-y-auto"></div>
+          <button id="btnGenerate"
+            class="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-lg transition-all">
+            Générer les clés
+          </button>
+        </div>
+      </div>
+
+      <!-- Vérification manuelle des expirations -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+        <h3 class="text-lg font-bold mb-2 flex items-center gap-2">🕐 Cron d'expiration</h3>
+        <p class="text-slate-400 text-sm mb-4">
+          Déclenche manuellement la vérification des abonnements expirés
+          (normalement planifié à 01h00 UTC chaque nuit).
+        </p>
+        <div id="cronMessage" class="hidden rounded-lg px-4 py-3 text-sm mb-4"></div>
+        <button id="btnCron"
+          class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition-all">
+          Lancer la vérification maintenant
+        </button>
+      </div>
+
+      <!-- Notifications d'expiration -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+        <h3 class="text-lg font-bold mb-2 flex items-center gap-2">📧 Notifications d'expiration</h3>
+        <p class="text-slate-400 text-sm mb-4">
+          Envoie les rappels d'expiration aux sociétés dont l'abonnement
+          expire dans les prochains jours (J-7, J-3, J-1).
+        </p>
+        <div id="notifMessage" class="hidden rounded-lg px-4 py-3 text-sm mb-4"></div>
+        <button id="btnNotif"
+          class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-all">
+          Envoyer les rappels d'expiration
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

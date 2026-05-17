@@ -10,6 +10,7 @@
 import { auth, db } from '../shared/firebase.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+import { showQuotaEpuise } from './fleet.js';
 
 // ─── Éléments DOM ───────────────────────────────────────────
 const statusContent   = document.getElementById('statusContent');
@@ -98,26 +99,72 @@ async function loadFreemiumStatus() {
 }
 
 function renderStatus(data) {
+  // ── Labels des packs ──────────────────────────────────────
   const packLabel = {
-    free:      '🆓 Plan gratuit',
-    '20':      '📄 Pack Starter (20 rapports)',
-    '40':      '📋 Pack Pro (40 rapports)',
-    illimite:  '♾️ Pack Illimité',
+    free:               '🆓 Plan gratuit',
+    pack_20:            '📄 Pack Starter (20 rapports)',
+    pack_40:            '📋 Pack Pro (40 rapports)',
+    illimite:           '♾️ Pack Illimité',
+    abonnement_flotte:  '🚛 Forfait Flotte (mensuel)',
+    abonnement_unite:   '👤 Tarif à l\'Unité (mensuel)',
+    // Rétrocompatibilité anciens labels
+    '20': '📄 Pack Starter (20 rapports)',
+    '40': '📋 Pack Pro (40 rapports)',
   }[data.typePack] || data.typePack;
 
-  const rapportsHtml = data.isIllimite
+  // ── Rapports ──────────────────────────────────────────────
+  const rapportsHtml = data.rapportsIllimites
     ? `<span class="text-green-400 font-bold">Illimité</span>`
-    : `<span class="${data.rapportsRestants > 0 ? 'text-sky-400' : 'text-red-400'} font-bold">${data.rapportsRestants}</span> rapport(s) restant(s)`;
+    : data.rapportsRestants > 0
+      ? `<span class="text-sky-400 font-bold">${data.rapportsRestants}</span> rapport(s) restant(s)`
+      : `<span class="text-red-400 font-bold">0</span> rapport(s) restant(s)`;
 
+  // ── Agents ────────────────────────────────────────────────
+  const maxLabel = data.isIllimite ? '∞' : (data.maxAgents ?? data.maxAgentsFree);
   const agentLimitHtml = data.agentLimitReached
-    ? `<span class="text-red-400">⚠️ Limite atteinte (${data.agentCount}/${data.maxAgentsFree})</span>`
-    : `<span class="text-green-400">${data.agentCount} / ${data.isIllimite ? '∞' : data.maxAgentsFree} agents</span>`;
+    ? `<span class="text-red-400">⚠️ Limite atteinte (${data.agentCount}/${maxLabel})</span>`
+    : `<span class="text-green-400">${data.agentCount} / ${maxLabel} agents</span>`;
+
+  // ── Bandeau abonnement actif ──────────────────────────────
+  let abonnementBannerHtml = '';
+  if (data.abonnementActif && data.dateExpiration) {
+    const expDate  = new Date(data.dateExpiration);
+    const diffMs   = expDate.getTime() - Date.now();
+    const diffJours = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    const dateStr  = expDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const urgence  = diffJours <= 5;
+
+    abonnementBannerHtml = `
+      <div class="mt-4 ${urgence
+        ? 'bg-orange-500/10 border border-orange-500/30'
+        : 'bg-emerald-500/10 border border-emerald-500/30'
+      } rounded-lg p-3 flex items-center justify-between gap-3 text-sm">
+        <div>
+          <span class="${urgence ? 'text-orange-300' : 'text-emerald-300'} font-semibold">
+            ${urgence ? '⚠️' : '✅'} Abonnement actif
+          </span>
+          <span class="text-slate-400 ml-2">— expire le <strong class="text-white">${dateStr}</strong></span>
+        </div>
+        <span class="${urgence ? 'text-orange-400' : 'text-emerald-400'} font-bold text-xs whitespace-nowrap">
+          J-${diffJours}
+        </span>
+      </div>
+      ${urgence ? `
+        <div class="mt-2 bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 text-xs text-orange-300">
+          ⚠️ Votre abonnement expire dans ${diffJours} jour(s). Renouvelez dès maintenant pour éviter l'interruption.
+        </div>
+      ` : ''}
+    `;
+  }
 
   statusContent.innerHTML = `
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="bg-slate-700/50 rounded-lg p-4">
         <p class="text-slate-400 text-xs mb-1">Pack actuel</p>
         <p class="font-semibold">${packLabel}</p>
+        ${data.typeAbonnement === 'abonnement_unite' && data.quantiteAgents
+          ? `<p class="text-violet-400 text-xs mt-1">${data.quantiteAgents} agent(s) inclus</p>`
+          : ''}
       </div>
       <div class="bg-slate-700/50 rounded-lg p-4">
         <p class="text-slate-400 text-xs mb-1">Rapports</p>
@@ -129,10 +176,13 @@ function renderStatus(data) {
         <p class="font-semibold">${agentLimitHtml}</p>
       </div>
     </div>
+    ${abonnementBannerHtml}
     ${data.agentLimitReached ? `
       <div class="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-300">
-        ⚠️ Vous avez atteint la limite de ${data.maxAgentsFree} agents du plan gratuit.
-        Passez au <strong>Pack Illimité</strong> pour ajouter plus d'agents.
+        ⚠️ Vous avez atteint votre limite d'agents.
+        ${data.abonnementActif
+          ? 'Renouvelez avec une quantité supérieure ou passez au <strong>Forfait Flotte</strong>.'
+          : 'Passez au <strong>Forfait Flotte</strong> (25 000 FCFA/mois) pour des agents illimités.'}
       </div>
     ` : ''}
   `;
@@ -158,14 +208,34 @@ function listenLicenceHistory() {
       const date = new Date(e.activatedAt).toLocaleString('fr-FR', {
         dateStyle: 'short', timeStyle: 'short',
       });
-      const creditsLabel = e.credits === 'illimite' ? 'Illimité' : `+${e.credits} rapports`;
+      // Labels lisibles pour chaque type de pack
+      const packLabels = {
+        pack_20:            '+20 rapports',
+        pack_40:            '+40 rapports',
+        illimite:           'Illimité permanent',
+        abonnement_flotte:  'Forfait Flotte 30j',
+        abonnement_unite:   `Abonnement ${e.quantiteAgents || '?'} agent(s) 30j`,
+        // rétrocompatibilité
+        '20': '+20 rapports',
+        '40': '+40 rapports',
+      };
+      const creditsLabel = e.credits === 'illimite'
+        ? 'Illimité permanent'
+        : packLabels[e.typePack] || `+${e.credits} rapports`;
+
+      // Badge expiration pour les abonnements
+      const expBadge = e.dateExpiration
+        ? `<span class="text-xs text-slate-500 ml-1">→ exp. ${new Date(e.dateExpiration).toLocaleDateString('fr-FR')}</span>`
+        : '';
+
       return `
         <div class="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-2 text-sm">
-          <div>
+          <div class="min-w-0">
             <code class="text-sky-400 font-mono">${e.key}</code>
             <span class="text-slate-400 ml-2">${creditsLabel}</span>
+            ${expBadge}
           </div>
-          <span class="text-slate-500 text-xs">${date}</span>
+          <span class="text-slate-500 text-xs ml-2 whitespace-nowrap">${date}</span>
         </div>
       `;
     }).join('');

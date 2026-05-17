@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="28dp"
+    android:background="@color/background">
+
+    <!-- Icône expiration -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="⏰"
+        android:textSize="72sp"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Titre -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Période d'essai expirée"
+        android:textSize="24sp"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Message principal -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Votre période d'essai a expiré.\n\nPour continuer à profiter de toutes nos fonctionnalités avancées, veuillez procéder au paiement.\n\nSinon, vous pouvez basculer vers notre version gratuite limitée."
+        android:textSize="15sp"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginBottom="32dp"/>
+
+    <!-- Séparateur -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1e293b"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Carte Premium -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#0f172a"
+        android:padding="16dp"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⭐ Version Premium"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓ Historique illimité (30 jours)\n✓ Intervalle GPS optimal\n✓ Export de rapports\n✓ Toutes les fonctionnalités"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingExtra="3dp"
+            android:layout_marginBottom="14dp"/>
+
+        <!-- ProgressBar chargement -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone"
+            android:indeterminateTint="@color/primary"/>
+
+        <Button
+            android:id="@+id/btnPayer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💳 Payer et continuer"
+            android:backgroundTint="@color/primary"
+            android:textColor="@color/background"
+            android:textStyle="bold"
+            android:minHeight="52dp"/>
+    </LinearLayout>
+
+    <!-- Séparateur "ou" -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="— ou —"
+        android:textSize="13sp"
+        android:textColor="@color/text_secondary"
+        android:layout_gravity="center"
+        android:layout_marginBottom="12dp"/>
+
+    <!-- Carte Gratuite -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#0f172a"
+        android:padding="16dp"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🆓 Version gratuite limitée"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"/>
+
+        <TextView
+            android:id="@+id/tvPlanGratuit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓ Suivi GPS actif\n✗ Historique limité à 24h\n✗ Intervalle GPS réduit (économie)\n✗ Export de rapports désactivé"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingExtra="3dp"
+            android:layout_marginBottom="14dp"/>
+
+        <Button
+            android:id="@+id/btnGratuit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Continuer gratuitement"
+            android:backgroundTint="#1e293b"
+            android:textColor="@color/text_secondary"
+            android:minHeight="48dp"/>
+    </LinearLayout>
+
+</LinearLayout>

@@ -320,8 +320,12 @@ class OnboardingActivity : AppCompatActivity() {
                             apply()
                         }
 
+                        // ── Enregistrer la date d'inscription + démarrer le trial ──
+                        val trialManager = TrialManager(this)
+                        trialManager.enregistrerDateInscription(uid)
+
                         Log.i(TAG, "✅ Particulier enregistré: particuliers/$uid")
-                        Toast.makeText(this, "Compte créé ! Bienvenue $nom 🎉", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, "Compte créé ! Bienvenue $nom 🎉\n30 jours d'essai gratuit activés.", Toast.LENGTH_LONG).show()
                         goToMain()
                     }
                     .addOnFailureListener { e ->
