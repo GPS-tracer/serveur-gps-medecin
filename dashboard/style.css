@@ -1,383 +1,130 @@
 /**
- * Dashboard layout — sidebar + full-height Leaflet map.
+ * style.css — GPS Tracker Dashboard
+ * Tailwind gère le layout principal.
+ * Ce fichier couvre : Leaflet overrides, animations, agent-cards, popups.
  */
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
-:root {
-  --bg: #0f1419;
-  --surface: #1a2332;
-  --border: #2d3a4d;
-  --text: #e8eef4;
-  --muted: #8b9cb3;
-  --accent: #3d9cf9;
-  --radius: 12px;
-  font-family: "Segoe UI", system-ui, sans-serif;
-}
+html, body { margin: 0; height: 100%; font-family: "Inter", "Segoe UI", system-ui, sans-serif; }
 
-html,
-body {
-  margin: 0;
-  height: 100%;
-  background: var(--bg);
-  color: var(--text);
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: minmax(260px, 320px) 1fr;
-  height: 100dvh;
-}
-
-@media (max-width: 768px) {
-  .layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(160px, 38vh) 1fr;
-  }
-}
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border);
-  background: var(--surface);
-  overflow: hidden;
-}
-
+/* ── Auth loading (remplacé par Tailwind dans le HTML, gardé en fallback) ── */
 .auth-loading {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: grid;
-  place-items: center;
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--muted);
-  background: var(--bg);
+  position: fixed; inset: 0; z-index: 9999;
+  display: grid; place-items: center;
+  background: #060d1f; color: #64748b; font-size: .9rem;
 }
 
-.sidebar-header {
-  padding: 1rem 1.1rem;
-  border-bottom: 1px solid var(--border);
+/* ── Sidebar nav items ── */
+.nav-item {
+  color: #64748b;
 }
-
-.sidebar-header__row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
+.nav-item:hover {
+  background: rgba(14, 165, 233, 0.08);
+  color: #e2e8f0;
 }
-
-.btn-signout {
-  flex-shrink: 0;
-  margin-top: 0.15rem;
-  padding: 0.35rem 0.55rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--muted);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-signout:hover {
-  color: var(--text);
-  border-color: var(--accent);
-}
-
-.sidebar-header h1 {
-  margin: 0 0 0.25rem;
-  font-size: 1.2rem;
-  font-weight: 650;
-}
-
-.subtitle {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-.card.trail-card {
-  margin: 0;
-  padding: 0.75rem 1rem 1rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
-}
-
-.trail-title {
-  margin: 0 0 0.35rem;
-  font-size: 0.95rem;
-  font-weight: 650;
-}
-
-.trail-desc {
-  margin: 0 0 0.75rem;
-  font-size: 0.78rem;
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-.trail-desc code,
-.subtitle code {
-  font-size: 0.85em;
-  background: rgba(45, 58, 77, 0.6);
-  padding: 0.1em 0.35em;
-  border-radius: 4px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 0.65rem;
-}
-
-.field span {
-  font-size: 0.72rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.field select,
-.field input[type="date"] {
-  width: 100%;
-  min-height: 42px;
-  padding: 0.45rem 0.6rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 0.95rem;
-}
-
-.field select:focus,
-.field input[type="date"]:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.trail-meta {
-  margin: 0.25rem 0 0;
-  font-size: 0.8rem;
-  color: var(--muted);
-  line-height: 1.35;
-}
-
-/* —— Active agents panel —— */
-.panel.agents-panel {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.panel-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 650;
-}
-
-.panel-count {
-  min-width: 1.5rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 999px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--muted);
-  text-align: center;
-}
-
-.agent-list {
-  list-style: none;
-  margin: 0;
-  padding: 0.5rem;
-  overflow-y: auto;
-  flex: 1;
-  -webkit-overflow-scrolling: touch;
-}
-
-.agent-card {
-  padding: 0.65rem 0.75rem;
-  margin-bottom: 0.4rem;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.agent-card:hover {
-  border-color: rgba(61, 156, 249, 0.55);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-}
-
-.agent-card__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.45rem;
-}
-
-.agent-card__id {
-  font-size: 0.88rem;
-  font-weight: 650;
-  word-break: break-word;
-  line-height: 1.25;
-}
-
-.status {
-  flex-shrink: 0;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  padding: 0.2rem 0.45rem;
-  border-radius: 6px;
-}
-
-.status--online {
-  color: #a7f3d0;
-  background: rgba(52, 211, 153, 0.15);
-  border: 1px solid rgba(52, 211, 153, 0.4);
-}
-
-.status--offline {
-  color: #fca5a5;
-  background: rgba(248, 113, 113, 0.12);
-  border: 1px solid rgba(248, 113, 113, 0.35);
-}
-
-.agent-card__update {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  margin-bottom: 0.35rem;
-}
-
-.agent-card__label {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-}
-
-.agent-card__time {
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
-}
-
-.agent-card__coords {
-  font-size: 0.72rem;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.agent-card__address {
-  font-size: 0.78rem;
-  color: var(--accent, #38bdf8);
-  margin-top: 0.2rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.agent-card__phone {
-  font-size: 0.78rem;
-  color: var(--muted);
-  margin-top: 0.15rem;
-}
-
-.agent-popup__address {
-  font-size: 0.82rem;
+.nav-item--active {
+  background: rgba(14, 165, 233, 0.15);
   color: #38bdf8;
-  margin-top: 0.35rem;
+  border: 1px solid rgba(14, 165, 233, 0.25);
+}
+.nav-item--active:hover {
+  background: rgba(14, 165, 233, 0.2);
+  color: #7dd3fc;
 }
 
-.agent-popup__phone {
-  font-size: 0.82rem;
-  color: #94a3b8;
-  margin-top: 0.2rem;
+/* ── Agent cards dans la sidebar ── */
+.agent-card {
+  padding: .55rem .75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(30, 50, 84, 0.8);
+  background: rgba(11, 22, 40, 0.6);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
 }
+.agent-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(14, 165, 233, 0.06);
+}
+.agent-card__row {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: .4rem;
+  margin-bottom: .35rem;
+}
+.agent-card__id {
+  font-size: .82rem; font-weight: 600;
+  color: #e2e8f0; word-break: break-word; line-height: 1.2;
+}
+.agent-card__update { display: flex; flex-direction: column; gap: .05rem; margin-bottom: .25rem; }
+.agent-card__label  { font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; color: #475569; }
+.agent-card__time   { font-size: .75rem; color: #94a3b8; font-variant-numeric: tabular-nums; }
+.agent-card__coords { font-size: .68rem; color: #475569; font-variant-numeric: tabular-nums; }
+.agent-card__address{ font-size: .72rem; color: #38bdf8; margin-top: .15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-card__phone  { font-size: .72rem; color: #64748b; margin-top: .1rem; }
 
-.agents-empty {
-  padding: 0.75rem 1rem 1rem;
+/* ── Status badges ── */
+.status {
+  flex-shrink: 0; font-size: .62rem; font-weight: 700;
+  letter-spacing: .03em; text-transform: uppercase;
+  padding: .18rem .4rem; border-radius: 5px;
 }
+.status--online  { color: #a7f3d0; background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.35); }
+.status--offline { color: #fca5a5; background: rgba(248,113,113,.1);  border: 1px solid rgba(248,113,113,.3); }
 
-.empty {
-  padding: 1rem 1.1rem;
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.map {
-  min-height: 200px;
-  height: 100%;
-  z-index: 0;
-}
+/* ── Carte Leaflet ── */
+#map { min-height: 200px; }
 
 .leaflet-container {
   font-family: inherit;
-  background: var(--bg);
+  background: #0f172a;
 }
 
-/* Popups: readable on OSM tiles (className set on .leaflet-popup) */
+/* Popups */
 .leaflet-popup.agent-popup .leaflet-popup-content-wrapper {
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  border: 1px solid rgba(56,189,248,.2);
+  background: #0f172a;
+  color: #e2e8f0;
 }
-
+.leaflet-popup.agent-popup .leaflet-popup-tip {
+  background: #0f172a;
+}
 .leaflet-popup.agent-popup .leaflet-popup-content {
-  margin: 0.65rem 0.85rem;
-  line-height: 1.35;
+  margin: .7rem .9rem;
+  line-height: 1.4;
+}
+.agent-popup-inner   { min-width: 11rem; }
+.agent-popup__id     { font-weight: 700; font-size: .9rem; margin-bottom: .3rem; color: #f1f5f9; }
+.agent-popup__label  { font-size: .65rem; text-transform: uppercase; letter-spacing: .04em; color: #475569; margin-bottom: .1rem; }
+.agent-popup__time   { font-size: .8rem; color: #94a3b8; }
+.agent-popup__address{ font-size: .78rem; color: #38bdf8; margin-top: .3rem; }
+.agent-popup__phone  { font-size: .78rem; color: #64748b; margin-top: .15rem; }
+
+/* Leaflet controls — repositionner pour ne pas chevaucher la carte flottante */
+.leaflet-bottom.leaflet-left { bottom: 180px !important; }
+
+/* ── Animations ── */
+@keyframes pulse-green {
+  0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+@keyframes slideIn {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
-.agent-popup-inner {
-  min-width: 12rem;
-}
+/* ── Scrollbar sidebar ── */
+.sidebar-new ::-webkit-scrollbar       { width: 4px; }
+.sidebar-new ::-webkit-scrollbar-track { background: transparent; }
+.sidebar-new ::-webkit-scrollbar-thumb { background: #1e3254; border-radius: 4px; }
 
-.agent-popup__id {
-  font-weight: 650;
-  font-size: 0.95rem;
-  margin-bottom: 0.35rem;
-  word-break: break-word;
-}
-
-.agent-popup__label {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #64748b;
-  margin-bottom: 0.15rem;
-}
-
-.agent-popup__time {
-  font-size: 0.82rem;
-  color: #334155;
-}
-
-/* Dark theme popups when Leaflet default light box — keep contrast */
-.leaflet-popup-content-wrapper {
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+/* ── Responsive mobile ── */
+@media (max-width: 768px) {
+  #dashboard-root { flex-direction: column; }
+  .sidebar-new    { width: 100%; height: auto; flex-direction: row; overflow-x: auto; }
+  .sidebar-new nav { display: flex; flex-direction: row; padding: .5rem; }
+  .sidebar-new nav .nav-item span:not(.ml-auto) { display: none; }
+  #deviceList, #emptyState { display: none; }
 }

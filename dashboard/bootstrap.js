@@ -42,16 +42,24 @@ onAuthStateChanged(auth, async (user) => {
 
   // ── Récupérer le nom de la société depuis Firebase ──────────
   let companyName = null;
+  let companyData = {};
   try {
     const snap = await get(ref(db, `companies/${user.uid}`));
     if (snap.exists()) {
-      companyName = snap.val().companyName || null;
+      companyData = snap.val();
+      companyName = companyData.companyName || null;
     }
   } catch (e) {
     console.warn("[bootstrap] Impossible de charger le nom de la société:", e.message);
   }
 
-  // ── Afficher le bandeau de bienvenue ────────────────────────
+  // ── Injecter logo + nom dans la nouvelle sidebar ────────────
+  injecterIdentiteSidebar(companyName || user.email.split('@')[0], companyData.logoUrl || null);
+
+  // ── Charger le badge de statut du compte ────────────────────
+  chargerBadgeCompte(user.uid);
+
+  // ── Afficher le bandeau de bienvenue (dashboard-root) ───────
   renderWelcomeBanner(user.email, companyName);
 
   if (loadingEl) {
@@ -67,91 +75,72 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /**
- * Injecte dans le header :
- *  - "Bonjour, [Nom société]" (ou email si nom inconnu)
- *  - Badge vert "● Connecté"
+ * renderWelcomeBanner — désactivée dans le nouveau design.
+ * L'identité est maintenant injectée directement dans la sidebar
+ * via injecterIdentiteSidebar().
  */
-function renderWelcomeBanner(email, companyName) {
-  const headerRow = document.querySelector(".sidebar-header__row");
-  if (!headerRow) return;
-
-  // Supprimer un éventuel bandeau existant
-  document.getElementById("welcomeBanner")?.remove();
-
-  const label = companyName
-    ? companyName
-    : email.split("@")[0]; // fallback : partie locale de l'email
-
-  const banner = document.createElement("div");
-  banner.id = "welcomeBanner";
-  banner.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: linear-gradient(135deg, #0f2027, #1a3a4a);
-    border: 1px solid #0ea5e9;
-    border-radius: 10px;
-    padding: 10px 16px;
-    margin: 0 0 12px 0;
-    gap: 12px;
-  `;
-
-  banner.innerHTML = `
-    <!-- Salutation -->
-    <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-      <span style="font-size:22px;">👋</span>
-      <div style="min-width:0;">
-        <p style="margin:0; font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em;">Bienvenue</p>
-        <p style="margin:0; font-size:15px; font-weight:700; color:#f1f5f9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-          Bonjour, <span style="color:#38bdf8;">${escapeHtml(label)}</span>
-        </p>
-      </div>
-    </div>
-
-    <!-- Badge connecté -->
-    <div id="connectionBadge" style="
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: #052e16;
-      border: 1px solid #16a34a;
-      border-radius: 999px;
-      padding: 5px 12px;
-      flex-shrink: 0;
-      cursor: default;
-    " title="Session active">
-      <span id="connectionDot" style="
-        width: 10px; height: 10px;
-        background: #22c55e;
-        border-radius: 50%;
-        display: inline-block;
-        box-shadow: 0 0 0 0 rgba(34,197,94,.6);
-        animation: pulse-green 2s infinite;
-      "></span>
-      <span style="font-size:12px; font-weight:600; color:#4ade80; white-space:nowrap;">Connecté</span>
-    </div>
-  `;
-
-  // Animation pulse CSS injectée une seule fois
-  if (!document.getElementById("pulse-style")) {
-    const style = document.createElement("style");
-    style.id = "pulse-style";
-    style.textContent = `
-      @keyframes pulse-green {
-        0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.6); }
-        70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
-        100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  // Insérer le bandeau en haut de la sidebar, avant le headerRow
-  headerRow.parentElement.insertBefore(banner, headerRow);
+function renderWelcomeBanner(_email, _companyName) {
+  // No-op : remplacé par injecterIdentiteSidebar()
 }
 
 function escapeHtml(s) {
   const d = document.createElement("div");
   d.textContent = s;
   return d.innerHTML;
+}
+
+/**
+ * Injecte le logo et le nom de la société dans la sidebar.
+ */
+function injecterIdentiteSidebar(nom, logoUrl) {
+  const nameEl    = document.getElementById('sidebarCompanyName');
+  const logoImg   = document.getElementById('companyLogoImg');
+  const logoFall  = document.getElementById('companyLogoFallback');
+
+  if (nameEl) nameEl.textContent = nom;
+
+  if (logoUrl && logoImg) {
+    logoImg.src = logoUrl;
+    logoImg.classList.remove('hidden');
+    if (logoFall) logoFall.classList.add('hidden');
+  }
+}
+
+/**
+ * Charge le statut du compte et met à jour le badge dans la sidebar.
+ */
+async function chargerBadgeCompte(uid) {
+  const badgeEl = document.getElementById('accountBadgeText');
+  if (!badgeEl) return;
+
+  try {
+    const snap    = await get(ref(db, `companies/${uid}/licence`));
+    const licence = snap.val() || {};
+    const type    = licence.typePack || 'free';
+
+    let texte, couleur;
+
+    if (licence.est_illimite || type === 'illimite' ||
+        type === 'abonnement_flotte' || type === 'abonnement_unite') {
+      texte   = '✦ Version Pro — Illimité';
+      couleur = 'text-emerald-400';
+    } else if (type === 'suivi_eleve') {
+      texte   = '🎒 Suivi Élève actif';
+      couleur = 'text-cyan-400';
+    } else if (type === 'suivi_etudiant') {
+      texte   = '🎓 Suivi Étudiant actif';
+      couleur = 'text-indigo-400';
+    } else if ((licence.rapportsRestants || 0) > 0) {
+      texte   = `📄 ${licence.rapportsRestants} impression(s) restante(s)`;
+      couleur = 'text-sky-400';
+    } else {
+      texte   = '🆓 Gratuit — 1 impression/jour';
+      couleur = 'text-slate-400';
+    }
+
+    badgeEl.textContent = texte;
+    badgeEl.className   = `truncate text-xs ${couleur}`;
+  } catch {
+    badgeEl.textContent = 'Plan gratuit';
+  }
 }

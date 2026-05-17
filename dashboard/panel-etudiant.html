@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mon Espace Étudiant — GPS Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    @keyframes pulse-green {
+      0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.6); }
+      70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
+    .pulse-dot { animation: pulse-green 2s infinite; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+  <!-- Écran de chargement -->
+  <div id="auth-loading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 gap-4">
+    <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+    <p class="text-slate-400 text-sm">Chargement de votre espace…</p>
+  </div>
+
+  <div id="dashboard-root" class="flex h-screen" hidden>
+
+    <!-- ── Sidebar étudiant ── -->
+    <aside class="flex flex-col w-60 flex-shrink-0 bg-slate-900 border-r border-slate-800 h-screen">
+
+      <!-- Identité -->
+      <div class="px-5 pt-6 pb-4 border-b border-slate-800">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-xl flex-shrink-0">
+            🎓
+          </div>
+          <div class="min-w-0">
+            <p id="etudiantNom" class="text-sm font-bold text-white truncate">Étudiant</p>
+            <p class="text-xs text-slate-500">Espace personnel</p>
+          </div>
+        </div>
+
+        <!-- Badge statut abonnement -->
+        <div id="abonnementBadge"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs">
+          <span class="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0 pulse-dot"></span>
+          <span id="abonnementTexte" class="text-slate-400 truncate">Chargement…</span>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 px-3 py-4 space-y-1">
+        <button data-tab="suivi"
+          class="tab-btn tab-btn--active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left">
+          <svg class="w-4 h-4 flex-shrink-0" data-lucide="map-pin"></svg>
+          <span>Mon suivi</span>
+        </button>
+        <button data-tab="assiduité"
+          class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left">
+          <svg class="w-4 h-4 flex-shrink-0" data-lucide="calendar-check"></svg>
+          <span>Assiduité</span>
+        </button>
+        <button data-tab="rapports"
+          class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left">
+          <svg class="w-4 h-4 flex-shrink-0" data-lucide="file-text"></svg>
+          <span>Rapports</span>
+        </button>
+      </nav>
+
+      <!-- Bas -->
+      <div class="px-3 pb-5 pt-3 border-t border-slate-800">
+        <button id="btnSignOut"
+          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
+          <svg class="w-4 h-4 flex-shrink-0" data-lucide="log-out"></svg>
+          <span>Se déconnecter</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Zone de contenu ── -->
+    <main class="flex-1 overflow-y-auto bg-slate-950">
+
+      <!-- ── Onglet : Mon suivi ── -->
+      <div id="tab-suivi" class="tab-content p-6 max-w-3xl mx-auto">
+
+        <h2 class="text-xl font-bold text-white mb-1">Mon suivi en temps réel</h2>
+        <p class="text-slate-400 text-sm mb-6">Votre position est partagée avec votre parent ou établissement.</p>
+
+        <!-- Carte de statut GPS -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4">
+            <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Statut GPS</p>
+            <div class="flex items-center gap-2">
+              <span id="gpsStatusDot" class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+              <p id="gpsStatusText" class="text-sm font-semibold text-slate-300">Inactif</p>
+            </div>
+          </div>
+          <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4">
+            <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Dernière position</p>
+            <p id="dernierePosition" class="text-sm font-semibold text-slate-300">—</p>
+          </div>
+          <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4">
+            <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Abonnement</p>
+            <p id="abonnementExpire" class="text-sm font-semibold text-slate-300">—</p>
+          </div>
+        </div>
+
+        <!-- Info box -->
+        <div class="bg-indigo-500/10 border border-indigo-500/30 rounded-2xl p-5">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" data-lucide="info"></svg>
+            <div>
+              <p class="text-sm font-semibold text-indigo-300 mb-1">Comment fonctionne le suivi ?</p>
+              <p class="text-xs text-indigo-400 leading-relaxed">
+                L'application GPS Tracker installée sur votre téléphone envoie votre position automatiquement.
+                Votre parent ou établissement peut consulter votre tracé depuis son tableau de bord.
+                Vous pouvez voir ici votre historique et vos rapports d'assiduité.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Onglet : Assiduité ── -->
+      <div id="tab-assiduité" class="tab-content hidden p-6 max-w-3xl mx-auto">
+
+        <h2 class="text-xl font-bold text-white mb-1">Mon assiduité</h2>
+        <p class="text-slate-400 text-sm mb-6">Résumé de votre présence sur les 30 derniers jours.</p>
+
+        <!-- Taux global -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <p class="text-sm font-semibold text-slate-300">Taux d'assiduité global</p>
+            <span id="tauxAssiduite" class="text-2xl font-bold text-indigo-400">—</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2">
+            <div id="barreAssiduite" class="bg-indigo-500 h-2 rounded-full transition-all" style="width:0%"></div>
+          </div>
+          <p id="detailAssiduite" class="text-xs text-slate-500 mt-2">Chargement des données…</p>
+        </div>
+
+        <!-- Calendrier simplifié -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5">
+          <p class="text-sm font-semibold text-slate-300 mb-4">Présences récentes</p>
+          <div id="calendrierAssiduite" class="grid grid-cols-7 gap-1.5">
+            <!-- Généré par JS -->
+          </div>
+          <div class="flex items-center gap-4 mt-4 text-xs text-slate-500">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-indigo-500 inline-block"></span> Présent</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-700 inline-block"></span> Absent</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Onglet : Rapports ── -->
+      <div id="tab-rapports" class="tab-content hidden p-6 max-w-3xl mx-auto">
+
+        <h2 class="text-xl font-bold text-white mb-1">Mes rapports</h2>
+        <p class="text-slate-400 text-sm mb-6">Rapports d'assiduité générés par votre parent ou établissement.</p>
+
+        <div id="rapportsList" class="space-y-3">
+          <p class="text-slate-500 text-sm text-center py-8">Aucun rapport disponible pour le moment.</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script type="module">
+    import { auth, db } from '../shared/firebase.js';
+    import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { ref, get, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+    const authLoading  = document.getElementById('auth-loading');
+    const dashRoot     = document.getElementById('dashboard-root');
+    const btnSignOut   = document.getElementById('btnSignOut');
+
+    // ── Auth ──────────────────────────────────────────────────
+    onAuthStateChanged(auth, async (user) => {
+      if (!user || !user.emailVerified) {
+        window.location.replace('login.html');
+        return;
+      }
+
+      authLoading.hidden = true;
+      dashRoot.hidden    = false;
+      lucide.createIcons();
+
+      await chargerProfil(user.uid);
+      chargerAssiduite(user.uid);
+      chargerRapports(user.uid);
+    });
+
+    btnSignOut?.addEventListener('click', () => {
+      signOut(auth).then(() => window.location.replace('login.html'));
+    });
+
+    // ── Navigation onglets ────────────────────────────────────
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+
+        // Activer le bouton
+        document.querySelectorAll('.tab-btn').forEach((b) => {
+          b.classList.remove('tab-btn--active', 'bg-indigo-500/15', 'text-indigo-300', 'border', 'border-indigo-500/25');
+          b.classList.add('text-slate-500');
+        });
+        btn.classList.add('tab-btn--active', 'bg-indigo-500/15', 'text-indigo-300', 'border', 'border-indigo-500/25');
+        btn.classList.remove('text-slate-500');
+
+        // Afficher le contenu
+        document.querySelectorAll('.tab-content').forEach((c) => c.classList.add('hidden'));
+        document.getElementById(`tab-${tab}`)?.classList.remove('hidden');
+      });
+    });
+
+    // Activer le premier onglet au chargement
+    document.querySelector('.tab-btn--active')?.click();
+
+    // ── Charger le profil étudiant ────────────────────────────
+    async function chargerProfil(uid) {
+      try {
+        const snap = await get(ref(db, `companies/${uid}`));
+        const data = snap.val() || {};
+
+        document.getElementById('etudiantNom').textContent = data.companyName || 'Étudiant';
+
+        // Badge abonnement
+        const licenceSnap = await get(ref(db, `companies/${uid}/licence`));
+        const licence      = licenceSnap.val() || {};
+        const type         = licence.typePack || 'free';
+        const texteEl      = document.getElementById('abonnementTexte');
+
+        if (licence.abonnement_actif && licence.date_expiration) {
+          const exp     = new Date(licence.date_expiration);
+          const jours   = Math.ceil((exp - Date.now()) / 86400000);
+          const dateStr = exp.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+          texteEl.textContent = `Actif — expire le ${dateStr} (J-${jours})`;
+          texteEl.className   = jours <= 5 ? 'truncate text-xs text-orange-400' : 'truncate text-xs text-emerald-400';
+          document.getElementById('abonnementExpire').textContent = dateStr;
+        } else {
+          texteEl.textContent = 'Aucun abonnement actif';
+          texteEl.className   = 'truncate text-xs text-red-400';
+          document.getElementById('abonnementExpire').textContent = 'Expiré';
+        }
+
+        // Dernière position
+        const parentId = data.parentId;
+        if (parentId) {
+          const agentSnap = await get(ref(db, `societes/${parentId}/agents/${uid}`));
+          const agent     = agentSnap.val();
+          if (agent?.lastUpdate) {
+            const d = new Date(agent.lastUpdate);
+            document.getElementById('dernierePosition').textContent =
+              d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+            document.getElementById('gpsStatusDot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot';
+            document.getElementById('gpsStatusText').textContent = 'Actif';
+          }
+        }
+      } catch (err) {
+        console.error('chargerProfil error:', err);
+      }
+    }
+
+    // ── Charger l'assiduité (30 derniers jours) ───────────────
+    async function chargerAssiduite(uid) {
+      try {
+        const snap = await get(ref(db, `companies/${uid}`));
+        const parentId = snap.val()?.parentId;
+        if (!parentId) return;
+
+        const histSnap = await get(ref(db, `societes/${parentId}/agents/${uid}/history`));
+        if (!histSnap.exists()) return;
+
+        const history = histSnap.val();
+        const maintenant = Date.now();
+        const joursPresents = new Set();
+
+        Object.keys(history).forEach((ts) => {
+          const age = maintenant - Number(ts);
+          if (age <= 30 * 86400000) {
+            const date = new Date(Number(ts)).toISOString().slice(0, 10);
+            joursPresents.add(date);
+          }
+        });
+
+        const taux = Math.min(100, Math.round((joursPresents.size / 30) * 100));
+        document.getElementById('tauxAssiduite').textContent = `${taux} %`;
+        document.getElementById('barreAssiduite').style.width = `${taux}%`;
+        document.getElementById('detailAssiduite').textContent =
+          `${joursPresents.size} jour(s) de présence sur les 30 derniers jours`;
+
+        // Calendrier des 30 derniers jours
+        const cal = document.getElementById('calendrierAssiduite');
+        cal.innerHTML = '';
+        for (let i = 29; i >= 0; i--) {
+          const d    = new Date(maintenant - i * 86400000);
+          const key  = d.toISOString().slice(0, 10);
+          const present = joursPresents.has(key);
+          const cell = document.createElement('div');
+          cell.title = key;
+          cell.className = `w-full aspect-square rounded ${present ? 'bg-indigo-500' : 'bg-slate-800'} transition-colors`;
+          cal.appendChild(cell);
+        }
+      } catch (err) {
+        console.error('chargerAssiduite error:', err);
+      }
+    }
+
+    // ── Charger les rapports ──────────────────────────────────
+    async function chargerRapports(uid) {
+      try {
+        const snap = await get(ref(db, `companies/${uid}`));
+        const parentId = snap.val()?.parentId;
+        if (!parentId) return;
+
+        const rapSnap = await get(ref(db, `companies/${parentId}/rapportsHistory`));
+        if (!rapSnap.exists()) return;
+
+        const entries = [];
+        rapSnap.forEach((child) => {
+          const v = child.val();
+          if (v.agentId === uid) entries.push(v);
+        });
+        entries.sort((a, b) => new Date(b.genereAt) - new Date(a.genereAt));
+
+        const list = document.getElementById('rapportsList');
+        if (entries.length === 0) return;
+
+        list.innerHTML = entries.map((e) => {
+          const date  = new Date(e.genereAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+          const debut = e.dateDebut?.slice(0, 10) || '—';
+          const fin   = e.dateFin?.slice(0, 10)   || '—';
+          return `
+            <div class="flex items-center justify-between bg-slate-900 rounded-xl border border-slate-800 px-4 py-3 text-sm gap-3">
+              <div class="min-w-0">
+                <p class="font-medium text-white">🎓 Rapport d'assiduité</p>
+                <p class="text-xs text-slate-500 mt-0.5">${debut} → ${fin} · ${e.nbPoints || 0} points GPS</p>
+              </div>
+              <span class="text-slate-500 text-xs whitespace-nowrap">${date}</span>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('chargerRapports error:', err);
+      }
+    }
+  </script>
+
+  <style>
+    .tab-btn { color: #64748b; }
+    .tab-btn:hover { background: rgba(99,102,241,.08); color: #e2e8f0; }
+    .tab-btn--active { background: rgba(99,102,241,.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,.25); }
+  </style>
+</body>
+</html>

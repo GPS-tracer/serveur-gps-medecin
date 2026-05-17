@@ -344,11 +344,11 @@ function renderAgentPanel(devices) {
       <div class="agent-card__row">
         <span class="agent-card__id">${escapeHtml(d.name || d.id)}</span>
         <span class="status ${online ? "status--online" : "status--offline"}" role="status">
-          ${online ? "Online" : "Offline"}
+          ${online ? "En ligne" : "Hors ligne"}
         </span>
       </div>
       <div class="agent-card__update">
-        <span class="agent-card__label">Last update</span>
+        <span class="agent-card__label">Dernière position</span>
         ${timeEl}
       </div>
       ${d.phone ? `<div class="agent-card__phone">📞 ${escapeHtml(d.phone)}</div>` : ""}
@@ -391,6 +391,18 @@ historyDateInput.addEventListener("change", refreshHistoryTrail);
 
 document.getElementById("btnSignOut")?.addEventListener("click", () => {
   signOut(auth).catch((e) => console.error(e));
+});
+
+// Bouton centrer la carte sur tous les agents visibles
+document.getElementById("btnCenterMap")?.addEventListener("click", () => {
+  const layers = [...markers.values()];
+  if (layers.length === 0) return;
+  if (layers.length === 1) {
+    map.flyTo(layers[0].getLatLng(), 14, { duration: 0.8 });
+  } else {
+    const bounds = L.featureGroup(layers).getBounds();
+    map.flyToBounds(bounds.pad(0.12), { maxZoom: 14, duration: 0.9 });
+  }
 });
 
 /** Recompute Online/Offline as clock advances (no new RTDB event). */
