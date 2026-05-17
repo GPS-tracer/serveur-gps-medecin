@@ -1049,11 +1049,13 @@ app.post('/api/rapport/generer', requireAuth, async (req, res) => {
     const company     = companySnap.val() || {};
     const today       = todayKey(); // format YYYY-MM-DD
 
-    // Abonnement mensuel actif (flotte ou unité) ou pack illimité permanent
-    const aAbonnementActif = droits.abonnementActif &&
-      (droits.typeAbonnement === 'abonnement_flotte' ||
-       droits.typeAbonnement === 'abonnement_unite');
-    const aPackIllimite = droits.typePack === 'illimite' || droits.estIllimite;
+    // Abonnement mensuel actif — tous types (flotte, unité, scolaire)
+    const aAbonnementActif = droits.abonnementActif && (
+      droits.typeAbonnement === 'abonnement_flotte' ||
+      droits.typeAbonnement === 'abonnement_unite'  ||
+      TYPES_SCOLAIRES.includes(droits.typeAbonnement)
+    );
+    const aPackIllimite     = droits.typePack === 'illimite' || droits.estIllimite;
     const rapportsIllimites = aAbonnementActif || aPackIllimite;
 
     // Pack crédits (pack_20 / pack_40) avec solde restant
@@ -1061,40 +1063,60 @@ app.post('/api/rapport/generer', requireAuth, async (req, res) => {
 
     if (!rapportsIllimites && !aSoldePayant) {
       // ── Quota freemium : 1 impression gratuite par jour ─────────
-      // Stocké dans companies/{id}/freemium_quota :
-      //   derniere_impression : "YYYY-MM-DD"
-      //   compteur_jours      : number
       const quota              = company.freemium_quota || {};
       const derniereImpression = quota.derniere_impression || null;
       const compteurJours      = quota.compteur_jours      || 0;
-
-      // Réinitialisation automatique si nouveau jour
-      const quotaActuel = derniereImpression === today ? compteurJours : 0;
+      const quotaActuel        = derniereImpression === today ? compteurJours : 0;
 
       if (quotaActuel >= FREEMIUM.FREE_REPORTS_PER_DAY) {
-        // Quota épuisé → message exact avec tarifs Chariow officiels
         return res.status(402).json({
-          error:    'quota_epuise',
-          message:  [
+          error:   'quota_epuise',
+          message: [
             'Vous avez épuisé votre impression gratuite pour aujourd\'hui.',
             'Pour débloquer ce rapport immédiatement ou faire évoluer votre compte,',
             'choisissez l\'une de nos offres via Mobile Money :',
             '• Pack 20 rapports : 590 FCFA (Paiement unique)',
             '• Pack 40 rapports : 1 180 FCFA (Paiement unique)',
-            '• Abonnement par Agent : 31 192 FCFA / mois par agent (Suivi dédié)',
-            '• Forfait Flotte Illimitée : 26 010 FCFA / mois (Rapports & Agents illimités)',
+            '• Suivi Élève : 311 FCFA / mois',
+            '• Suivi Étudiant : 1 047 FCFA / mois',
+            '• Abonnement par Agent : 31 192 FCFA / mois par agent',
+            '• Forfait Flotte Illimitée : 26 010 FCFA / mois',
           ].join('\n'),
-          // Données structurées pour l'affichage HTML côté client
           offres: [
-            { label: 'Pack 20 rapports',          prix: '590 FCFA',        type: 'pack_20',            url: 'https://erpbbfef.mychariow.shop/prd_59udmg' },
-            { label: 'Pack 40 rapports',          prix: '1 180 FCFA',      type: 'pack_40',            url: 'https://erpbbfef.mychariow.shop/prd_ia4imm' },
-            { label: 'Abonnement par Agent',      prix: '31 192 FCFA/mois', type: 'abonnement_unite',  url: 'https://erpbbfef.mychariow.shop/prd_unite'  },
-            { label: 'Forfait Flotte Illimitée',  prix: '26 010 FCFA/mois', type: 'abonnement_flotte', url: 'https://erpbbfef.mychariow.shop/prd_flotte' },
+            { label: 'Pack 20 rapports',         prix: '590 FCFA',          type: 'pack_20',            url: 'https://erpbbfef.mychariow.shop/prd_59udmg' },
+            { label: 'Pack 40 rapports',         prix: '1 180 FCFA',        type: 'pack_40',            url: 'https://erpbbfef.mychariow.shop/prd_ia4imm' },
+            { label: 'Suivi Élève',              prix: '311 FCFA/mois',     type: 'suivi_eleve',        url: 'https://erpbbfef.mychariow.shop/prd_eleve'  },
+            { label: 'Suivi Étudiant',           prix: '1 047 FCFA/mois',   type: 'suivi_etudiant',     url: 'https://erpbbfef.mychariow.shop/prd_etudiant'},
+            { label: 'Abonnement par Agent',     prix: '31 192 FCFA/mois',  type: 'abonnement_unite',   url: 'https://erpbbfef.mychariow.shop/prd_unite'  },
+            { label: 'Forfait Flotte Illimitée', prix: '26 010 FCFA/mois',  type: 'abonnement_flotte',  url: 'https://erpbbfef.mychariow.shop/prd_flotte' },
           ],
           canBuy: true,
         });
       }
-      // Quota disponible → on laisse passer, la consommation se fera après génération
+    }
+
+    // ── Validation spécifique suivi scolaire ─────────────────────
+    // Si secteur = "scolaire", vérifier l'abonnement ET le lien parent/élève
+    if (secteurNorm === 'scolaire') {
+      if (!droits.estSuiviScolaire) {
+        return res.status(403).json({
+          error:   'abonnement_scolaire_requis',
+          message: 'Les rapports d\'assiduité scolaire nécessitent un abonnement "Suivi Élève" (311 FCFA/mois) ou "Suivi Étudiant" (1 047 FCFA/mois) actif.',
+          offres: [
+            { label: 'Suivi Élève',    prix: '311 FCFA/mois',   url: 'https://erpbbfef.mychariow.shop/prd_eleve'   },
+            { label: 'Suivi Étudiant', prix: '1 047 FCFA/mois', url: 'https://erpbbfef.mychariow.shop/prd_etudiant' },
+          ],
+          canBuy: true,
+        });
+      }
+      // Vérifier que l'élève/étudiant est bien lié à ce compte parent
+      const eleveSnap = await db.ref(`companies/${companyId}/eleves_lies/${agentId}`).get();
+      if (!eleveSnap.exists()) {
+        return res.status(403).json({
+          error:   'eleve_non_lie',
+          message: `L'élève/étudiant "${agentId}" n'est pas lié à votre compte. Demandez-lui de s'inscrire avec votre code.`,
+        });
+      }
     }
 
     // ── Charger les données de l'agent depuis le RTDB ────────────

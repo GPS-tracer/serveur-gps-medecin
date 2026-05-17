@@ -4,7 +4,7 @@
 
 import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { db, AGENTS_PATH, auth } from "../shared/firebase.js";
+import { db, agentsPath, auth } from "../shared/firebase.js";
 
 const DEFAULT_CENTER = [-4.7761, 11.8635];
 const DEFAULT_ZOOM = 12;
@@ -403,7 +403,10 @@ setInterval(() => {
 /** Current company ID for filtering agents */
 let currentCompanyId = null;
 
-/** Load company info and set up agent listener */
+/** Unsubscribe function for the agents listener (pour changer de chemin après auth) */
+let unsubscribeAgents = null;
+
+/** Load company info, set up agent listener on the correct societes/ path */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = 'login.html';
@@ -413,7 +416,96 @@ onAuthStateChanged(auth, async (user) => {
 
   // Écouter les notifications non lues (geofencing + expiration)
   ecouterNotifications(user.uid);
+
+  // Démarrer le listener sur le bon chemin societes/{uid}/agents
+  demarrerListenerAgents(user.uid);
 });
+
+/**
+ * Démarre l'écoute RTDB sur societes/{companyId}/agents.
+ * Annule l'écoute précédente si elle existait.
+ */
+function demarrerListenerAgents(companyId) {
+  if (unsubscribeAgents) {
+    unsubscribeAgents();
+    unsubscribeAgents = null;
+  }
+
+  const agentsRef = ref(db, agentsPath(companyId));
+
+  unsubscribeAgents = onValue(
+    agentsRef,
+    (snapshot) => {
+      const val = snapshot.val();
+      latestAgentsVal = val;
+      const devices = [];
+
+      const allIds = val && typeof val === "object" ? Object.keys(val).sort() : [];
+      syncHistoryAgentOptions(allIds);
+
+      if (val && typeof val === "object") {
+        for (const id of Object.keys(val)) {
+          const row = val[id];
+          const dev = rowToDevice(id, row);
+          if (!dev) continue;
+
+          devices.push(dev);
+
+          const popupHtml = buildPopupHtml(dev.id, dev.lastUpdate, null, dev.name, dev.phone);
+          let marker = markers.get(id);
+
+          if (!marker) {
+            marker = L.marker([dev.lat, dev.lng], { riseOnHover: true }).addTo(map);
+            marker.bindPopup(popupHtml, {
+              className: "agent-popup",
+              maxWidth: 280,
+              autoPanPadding: [16, 16],
+            });
+            markers.set(id, marker);
+          } else {
+            moveMarkerSmooth(id, marker, dev.lat, dev.lng);
+            marker.setPopupContent(popupHtml);
+          }
+
+          reverseGeocode(dev.lat, dev.lng).then((addr) => {
+            const m = markers.get(id);
+            if (m) m.setPopupContent(buildPopupHtml(dev.id, dev.lastUpdate, addr, dev.name, dev.phone));
+          });
+        }
+      }
+
+      const seen = new Set(devices.map((d) => d.id));
+      markers.forEach((marker, id) => {
+        if (!seen.has(id)) {
+          stopMarkerMove(id);
+          map.removeLayer(marker);
+          markers.delete(id);
+        }
+      });
+
+      devices.sort((a, b) => a.id.localeCompare(b.id));
+      cachedPanelDevices = devices;
+      renderAgentPanel(devices);
+
+      const deviceIdsKey = devices.map((d) => d.id).join("|");
+      if (devices.length > 0) {
+        fitMapToMarkersIfNeeded(deviceIdsKey);
+      } else {
+        lastDeviceIdsKey = "";
+        cachedPanelDevices = [];
+        renderAgentPanel([]);
+        map.flyTo(DEFAULT_CENTER, DEFAULT_ZOOM, { duration: 0.8, easeLinearity: 0.25 });
+      }
+
+      refreshHistoryTrail();
+    },
+    (err) => {
+      console.error(err);
+      emptyStateEl.hidden = false;
+      emptyStateEl.textContent = `Error: ${err.message || err}`;
+    }
+  );
+}
 
 // ─────────────────────────────────────────────────────────────
 // NOTIFICATIONS RTDB — badge dans la sidebar
@@ -478,88 +570,3 @@ function afficherToastGeofence(message, type = 'warning') {
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 6000);
 }
-
-const agentsRef = ref(db, AGENTS_PATH);
-
-onValue(
-  agentsRef,
-  (snapshot) => {
-    const val = snapshot.val();
-    latestAgentsVal = val;
-    const devices = [];
-
-    const allIds = val && typeof val === "object" ? Object.keys(val).sort() : [];
-    syncHistoryAgentOptions(allIds);
-
-    if (val && typeof val === "object") {
-      for (const id of Object.keys(val)) {
-        const row = val[id];
-        
-        // Filter: only show agents belonging to current company
-        if (currentCompanyId && row?.companyId !== currentCompanyId) {
-          continue;
-        }
-        
-        const dev = rowToDevice(id, row);
-        if (!dev) continue;
-
-        devices.push(dev);
-
-        const popupHtml = buildPopupHtml(dev.id, dev.lastUpdate, null, dev.name, dev.phone);
-        let marker = markers.get(id);
-
-        if (!marker) {
-          marker = L.marker([dev.lat, dev.lng], {
-            riseOnHover: true,
-          }).addTo(map);
-          marker.bindPopup(popupHtml, {
-            className: "agent-popup",
-            maxWidth: 280,
-            autoPanPadding: [16, 16],
-          });
-          markers.set(id, marker);
-        } else {
-          moveMarkerSmooth(id, marker, dev.lat, dev.lng);
-          marker.setPopupContent(popupHtml);
-        }
-
-        // Update popup with address once geocoded
-        reverseGeocode(dev.lat, dev.lng).then((addr) => {
-          const m = markers.get(id);
-          if (m) m.setPopupContent(buildPopupHtml(dev.id, dev.lastUpdate, addr, dev.name, dev.phone));
-        });
-      }
-    }
-
-    const seen = new Set(devices.map((d) => d.id));
-    markers.forEach((marker, id) => {
-      if (!seen.has(id)) {
-        stopMarkerMove(id);
-        map.removeLayer(marker);
-        markers.delete(id);
-      }
-    });
-
-    devices.sort((a, b) => a.id.localeCompare(b.id));
-
-    cachedPanelDevices = devices;
-    renderAgentPanel(devices);
-
-    const deviceIdsKey = devices.map((d) => d.id).join("|");
-    if (devices.length > 0) {
-      fitMapToMarkersIfNeeded(deviceIdsKey);
-    } else {
-      lastDeviceIdsKey = "";
-      cachedPanelDevices = [];
-      renderAgentPanel([]);
-      map.flyTo(DEFAULT_CENTER, DEFAULT_ZOOM, { duration: 0.8, easeLinearity: 0.25 });
-    }
-
-    refreshHistoryTrail();
-  },
-  (err) => {
-    console.error(err);
-    emptyStateEl.hidden = false;
-    emptyStateEl.textContent = `Error: ${err.message || err}`;
-  }
-);
