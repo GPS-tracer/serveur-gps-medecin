@@ -80,7 +80,7 @@
                 android:orientation="vertical"
                 android:background="#1a1f2e"
                 android:padding="20dp"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="12dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -92,7 +92,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Je suis une Entreprise / Institution"
+                    android:text="Entreprise / Institution"
                     android:textSize="17sp"
                     android:textColor="@color/text_primary"
                     android:textStyle="bold"
@@ -101,7 +101,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Vous avez reçu un code entreprise de votre administrateur. Associez votre téléphone à votre société."
+                    android:text="Vous avez reçu un code entreprise de votre administrateur."
                     android:textSize="13sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginBottom="16dp"/>
@@ -117,17 +117,51 @@
                     android:minHeight="48dp"/>
             </LinearLayout>
 
-            <!-- Séparateur -->
-            <TextView
-                android:layout_width="wrap_content"
+            <!-- Carte Étudiant -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="— ou —"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:layout_gravity="center"
-                android:layout_marginBottom="16dp"/>
+                android:orientation="vertical"
+                android:background="#1a1f2e"
+                android:padding="20dp"
+                android:layout_marginBottom="12dp">
 
-            <!-- Carte Particulier -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎓"
+                    android:textSize="36sp"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Étudiant"
+                    android:textSize="17sp"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Suivi de présence universitaire. Votre établissement ou votre famille suit votre assiduité."
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="16dp"/>
+
+                <Button
+                    android:id="@+id/btnChoixEtudiant"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Je suis étudiant"
+                    android:backgroundTint="#4f46e5"
+                    android:textColor="#ffffff"
+                    android:textStyle="bold"
+                    android:minHeight="48dp"/>
+            </LinearLayout>
+
+            <!-- Carte Élève -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -139,14 +173,14 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="👤"
+                    android:text="🎒"
                     android:textSize="36sp"
                     android:layout_marginBottom="8dp"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Je suis un Particulier"
+                    android:text="Élève (École primaire / Secondaire)"
                     android:textSize="17sp"
                     android:textColor="@color/text_primary"
                     android:textStyle="bold"
@@ -155,18 +189,18 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Créez un compte personnel pour utiliser le GPS Tracker de façon autonome."
+                    android:text="Suivi scolaire activé par un parent ou un tuteur légal. Saisissez le code reçu par email."
                     android:textSize="13sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginBottom="16dp"/>
 
                 <Button
-                    android:id="@+id/btnChoixParticulier"
+                    android:id="@+id/btnChoixEleve"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Créer un compte particulier"
-                    android:backgroundTint="#334155"
-                    android:textColor="@color/text_primary"
+                    android:text="Je suis élève"
+                    android:backgroundTint="#0891b2"
+                    android:textColor="#ffffff"
                     android:textStyle="bold"
                     android:minHeight="48dp"/>
             </LinearLayout>
@@ -389,6 +423,226 @@
             <!-- Retour -->
             <Button
                 android:id="@+id/btnRetourParticulier"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="← Retour"
+                android:backgroundTint="#1e293b"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="32dp"/>
+
+        </LinearLayout>
+
+        <!-- ══════════════════════════════════════════════════
+             ÉCRAN 4 : Formulaire Étudiant
+             ══════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutEtudiant"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎓 Inscription Étudiant"
+                android:textSize="20sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Saisissez le code reçu par votre établissement ou votre famille."
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Code parent/établissement -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilCodeEtudiant"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:hint="Code parent / établissement *"
+                app:boxStrokeColor="#4f46e5"
+                app:hintTextColor="#4f46e5"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etCodeEtudiant"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:imeOptions="actionNext"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Nom complet -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:hint="Nom complet *"
+                app:boxStrokeColor="#4f46e5"
+                app:hintTextColor="#4f46e5"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etNomEtudiant"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:imeOptions="actionNext"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Numéro étudiant (optionnel) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="28dp"
+                android:hint="Numéro étudiant (optionnel)"
+                app:boxStrokeColor="#4f46e5"
+                app:hintTextColor="#4f46e5"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etNumeroEtudiant"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:imeOptions="actionDone"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/btnValiderEtudiant"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="S'enregistrer comme étudiant"
+                android:backgroundTint="#4f46e5"
+                android:textColor="#ffffff"
+                android:textStyle="bold"
+                android:minHeight="52dp"
+                android:layout_marginBottom="12dp"/>
+
+            <Button
+                android:id="@+id/btnRetourEtudiant"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="← Retour"
+                android:backgroundTint="#1e293b"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="32dp"/>
+
+        </LinearLayout>
+
+        <!-- ══════════════════════════════════════════════════
+             ÉCRAN 5 : Formulaire Élève
+             ══════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutEleve"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎒 Inscription Élève"
+                android:textSize="20sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Saisissez le code reçu par email par votre parent ou tuteur légal."
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Code parent -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilCodeEleve"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:hint="Code parent *"
+                app:boxStrokeColor="#0891b2"
+                app:hintTextColor="#0891b2"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etCodeEleve"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:imeOptions="actionNext"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Prénom et nom -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:hint="Prénom et nom de l'élève *"
+                app:boxStrokeColor="#0891b2"
+                app:hintTextColor="#0891b2"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etNomEleve"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:imeOptions="actionNext"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Classe (optionnel) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="28dp"
+                android:hint="Classe (ex: 6ème A, CM2…)"
+                app:boxStrokeColor="#0891b2"
+                app:hintTextColor="#0891b2"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etClasseEleve"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:imeOptions="actionDone"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/btnValiderEleve"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="S'enregistrer comme élève"
+                android:backgroundTint="#0891b2"
+                android:textColor="#ffffff"
+                android:textStyle="bold"
+                android:minHeight="52dp"
+                android:layout_marginBottom="12dp"/>
+
+            <Button
+                android:id="@+id/btnRetourEleve"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="← Retour"
