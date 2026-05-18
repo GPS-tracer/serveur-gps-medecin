@@ -11,6 +11,9 @@ import {
   reload,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "../shared/firebase.js";
+import { verifierSessionGeo } from "./session-geo.js";
+
+verifierSessionGeo();
 
 const form                = document.getElementById("loginForm");
 const emailEl             = document.getElementById("email");

@@ -6,6 +6,9 @@
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { auth, db } from "../shared/firebase.js";
+import { verifierSessionGeo } from "./session-geo.js";
+
+verifierSessionGeo();
 
 const root      = document.getElementById("dashboard-root");
 const loadingEl = document.getElementById("auth-loading");

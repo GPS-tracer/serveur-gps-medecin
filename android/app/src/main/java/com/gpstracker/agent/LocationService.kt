@@ -62,6 +62,12 @@ class LocationService : Service() {
         private const val PREFS_CACHE = "location_cache"
         private const val KEY_CACHED_LOCATIONS = "cached_locations"
         private const val MAX_CACHED_LOCATIONS = 500 // Maximum 500 positions en cache
+
+        // Bounding box Congo (République du Congo) — aligné avec server.js
+        private const val CONGO_LAT_MIN = -5.1
+        private const val CONGO_LAT_MAX =  3.8
+        private const val CONGO_LNG_MIN = 11.0
+        private const val CONGO_LNG_MAX = 18.7
     }
 
     private lateinit var fusedClient: FusedLocationProviderClient
@@ -662,11 +668,24 @@ class LocationService : Service() {
     }
 
     /**
+     * Vérifie si des coordonnées GPS sont dans la bbox Congo.
+     */
+    private fun estDansCongo(lat: Double, lng: Double): Boolean {
+        return lat in CONGO_LAT_MIN..CONGO_LAT_MAX &&
+               lng in CONGO_LNG_MIN..CONGO_LNG_MAX
+    }
+
+    /**
      * Envoie les données vers Firebase Realtime Database
      * Chemin: societes/{uid_societe}/agents/{id_agent}
      * Si pas de réseau, met en cache localement
      */
     private fun sendToFirebase(location: Location) {
+        if (!estDansCongo(location.latitude, location.longitude)) {
+            Log.w(TAG, "Coordonnées hors zone Congo (${location.latitude}, ${location.longitude}) — envoi ignoré")
+            return
+        }
+
         val prefs = getSharedPreferences("gps_tracker", MODE_PRIVATE)
         val agentId = prefs.getString("device_id", null)
         val societeId = prefs.getString("companyId", null)

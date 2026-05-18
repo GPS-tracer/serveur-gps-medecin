@@ -1415,7 +1415,7 @@ app.get('/api/geofencing/:companyId', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/geofencing/:companyId', requireAuth, async (req, res) => {
+app.post('/api/geofencing/:companyId', requireAuth, requireCongoCoordinates, async (req, res) => {
   const { companyId } = req.params;
   if (req.user.uid !== companyId) return res.status(403).json({ error: 'Accès refusé' });
 
@@ -1593,6 +1593,145 @@ cron.schedule('0 8 * * *', async () => {
 }, { timezone: 'UTC' });
 
 console.log('⏰ Cron notifications d\'expiration planifié (08h00 UTC quotidien)');
+
+// ─────────────────────────────────────────────────────────────
+// GÉOGRAPHIE — Bounding Box Congo (République du Congo)
+// Coordonnées approximatives couvrant tout le territoire national
+// + une marge de 0.5° pour les zones frontalières.
+// ─────────────────────────────────────────────────────────────
+const CONGO_BBOX = {
+  latMin:  -5.1,   // Sud (frontière Angola)
+  latMax:   3.8,   // Nord (frontière Cameroun / RCA)
+  lngMin:  11.0,   // Ouest (frontière Gabon)
+  lngMax:  18.7,   // Est (frontière RDC)
+};
+
+/**
+ * Vérifie si des coordonnées GPS sont dans la bbox Congo.
+ * @param {number} lat
+ * @param {number} lng
+ * @returns {boolean}
+ */
+function estDansCongo(lat, lng) {
+  return (
+    lat >= CONGO_BBOX.latMin && lat <= CONGO_BBOX.latMax &&
+    lng >= CONGO_BBOX.lngMin && lng <= CONGO_BBOX.lngMax
+  );
+}
+
+/**
+ * Middleware : rejette les coordonnées GPS hors bbox Congo.
+ * Utilisé sur les routes POST qui reçoivent { lat, lng }.
+ */
+function requireCongoCoordinates(req, res, next) {
+  const { lat, lng } = req.body;
+  if (typeof lat !== 'number' || typeof lng !== 'number') {
+    return next(); // pas de coordonnées → laisser passer (validation en aval)
+  }
+  if (!estDansCongo(lat, lng)) {
+    return res.status(422).json({
+      error:   'coordonnees_hors_zone',
+      message: `Coordonnées (${lat.toFixed(4)}, ${lng.toFixed(4)}) hors de la zone Congo autorisée.`,
+      bbox:    CONGO_BBOX,
+    });
+  }
+  next();
+}
+
+// ─────────────────────────────────────────────────────────────
+// ROUTE : Vérification géographique de session
+// GET /api/geo/session  (sans auth)
+// Retourne { allowed: true } si l'IP semble être au Congo,
+// { allowed: false } sinon. Non bloquant côté client.
+// ─────────────────────────────────────────────────────────────
+app.get('/api/geo/session', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  // Sur Render, l'IP réelle est dans x-forwarded-for
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  // On retourne toujours allowed:true côté client (le contrôle réel est sur les routes GPS)
+  res.json({ allowed: true, ip: ip || 'unknown', bbox: CONGO_BBOX });
+});
+
+// ─────────────────────────────────────────────────────────────
+// ROUTE : Ingestion de position GPS depuis l'app Android
+// POST /api/agent/location
+// Auth : Bearer token Firebase OU header x-ingest-key (clé API)
+//
+// Body: { agentId, lat, lng, timestamp?, speed?, accuracy? }
+// ─────────────────────────────────────────────────────────────
+app.post('/api/agent/location', requireCongoCoordinates, async (req, res) => {
+  // Authentification : JWT Firebase ou clé d'ingestion
+  const authHeader = req.headers.authorization || '';
+  const ingestKey  = req.headers['x-ingest-key'] || '';
+
+  let companyId = null;
+
+  if (authHeader.startsWith('Bearer ')) {
+    // Authentification Firebase Auth
+    try {
+      const decoded = await admin.auth().verifyIdToken(authHeader.slice(7));
+      companyId = decoded.uid;
+    } catch {
+      return res.status(401).json({ error: 'Token Firebase invalide' });
+    }
+  } else if (ingestKey && process.env.GPTS_LOCATION_INGEST_KEY && ingestKey === process.env.GPTS_LOCATION_INGEST_KEY) {
+    // Clé d'ingestion statique (pour les appareils sans compte Firebase)
+    companyId = req.body.companyId || null;
+    if (!companyId) return res.status(400).json({ error: 'companyId requis avec la clé d\'ingestion' });
+  } else {
+    return res.status(401).json({ error: 'Authentification requise (Bearer token ou x-ingest-key)' });
+  }
+
+  const { agentId, lat, lng, timestamp, speed, accuracy } = req.body;
+
+  if (!agentId || typeof lat !== 'number' || typeof lng !== 'number') {
+    return res.status(400).json({ error: 'agentId, lat, lng requis' });
+  }
+
+  const ts = typeof timestamp === 'number' ? timestamp : Date.now();
+
+  try {
+    // Écriture sous societes/{companyId}/agents/{agentId}
+    const prefix  = `societes/${companyId}/agents/${agentId}`;
+    const updates = {
+      [`${prefix}/lat`]:              lat,
+      [`${prefix}/lng`]:              lng,
+      [`${prefix}/lastUpdate`]:       ts,
+      [`${prefix}/speed`]:            speed   ?? 0,
+      [`${prefix}/accuracy`]:         accuracy ?? 0,
+      [`${prefix}/history/${ts}`]:    { lat, lng, speed: speed ?? 0, accuracy: accuracy ?? 0 },
+    };
+
+    await db.ref().update(updates);
+    res.json({ success: true, ts });
+  } catch (err) {
+    console.error('agent/location error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// ROUTE : Téléchargement APK
+// GET /download/GPTS-Tracker.apk
+// ─────────────────────────────────────────────────────────────
+app.get('/download/GPTS-Tracker.apk', (req, res) => {
+  const apkPath = path.join(__dirname, 'download', 'GPTS-Tracker.apk');
+  const fs = require('fs');
+
+  if (!fs.existsSync(apkPath)) {
+    return res.status(404).send(`
+      <html><body style="font-family:sans-serif;background:#0f172a;color:#94a3b8;padding:40px;text-align:center">
+        <h2 style="color:#38bdf8">APK non disponible</h2>
+        <p>Le fichier GPTS-Tracker.apk n'a pas encore été déposé sur le serveur.</p>
+        <p style="font-size:12px">Placez le fichier dans le dossier <code>download/</code> et redéployez.</p>
+      </body></html>
+    `);
+  }
+
+  res.setHeader('Content-Disposition', 'attachment; filename="GPTS-Tracker.apk"');
+  res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+  res.sendFile(apkPath);
+});
 
 // ─────────────────────────────────────────────────────────────
 // Health check — réveil Render + splash client

@@ -1,79 +1,260 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPS Tracker - Redirection</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-        .container {
-            text-align: center;
-            padding: 40px;
-        }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(56, 189, 248, 0.2);
-            border-top-color: #38bdf8;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        h1 {
-            font-size: 24px;
-            margin: 0 0 10px 0;
-        }
-        p {
-            color: #94a3b8;
-            font-size: 14px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="GPS Tracker Congo — Suivi de flotte, élèves et étudiants en temps réel. Paiement Mobile Money (Airtel / MTN)." />
+  <title>GPS Tracker Congo — Suivi GPS en temps réel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 1s linear infinite; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+    .fade-in { animation: fadeIn .5s ease both; }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <div class="spinner"></div>
-        <h1>GPS Tracker</h1>
-        <p id="splash-status">Démarrage…</p>
-    </div>
+<body class="bg-slate-950 text-white min-h-screen">
 
-    <script type="module">
-      const statusEl = document.getElementById("splash-status");
+  <!-- ── Splash de réveil Render (masqué après ping) ── -->
+  <div id="splash" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 gap-4">
+    <div class="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full spinner"></div>
+    <p class="text-white font-semibold text-lg">GPS Tracker</p>
+    <p id="splash-status" class="text-slate-400 text-sm">Connexion au serveur…</p>
+  </div>
 
-      async function pingHealth(maxAttempts = 25, intervalMs = 2000) {
-        for (let i = 1; i <= maxAttempts; i++) {
-          statusEl.textContent =
-            i === 1 ? "Connexion au serveur…" : `Réveil du serveur… (${i}/${maxAttempts})`;
-          try {
-            const ctrl = new AbortController();
-            const t    = setTimeout(() => ctrl.abort(), 12000);
-            const res  = await fetch("/api/health", { cache: "no-store", signal: ctrl.signal });
-            clearTimeout(t);
-            if (res.ok) {
-              statusEl.textContent = "Redirection…";
-              window.location.replace("/dashboard/");
-              return;
-            }
-          } catch { /* Render endormi — on réessaie */ }
-          if (i < maxAttempts) await new Promise((r) => setTimeout(r, intervalMs));
-        }
-        statusEl.textContent = "Redirection (serveur lent)…";
-        window.location.replace("/dashboard/");
+  <!-- ════════════════════════════════════════════════════════
+       VITRINE PRINCIPALE
+       ════════════════════════════════════════════════════════ -->
+  <div id="vitrine" class="hidden">
+
+    <!-- ── Header ── -->
+    <header class="bg-slate-900/80 backdrop-blur-sm border-b border-slate-800 sticky top-0 z-40">
+      <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🛰️</span>
+          <span class="text-xl font-bold text-sky-400">GPS Tracker Congo</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="/download/GPTS-Tracker.apk"
+             class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-all flex items-center gap-2">
+            📱 Télécharger l'APK
+          </a>
+          <a href="/dashboard/login.html"
+             class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-all">
+            Tableau de bord →
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Hero ── -->
+    <section class="max-w-6xl mx-auto px-4 py-20 text-center fade-in">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-sky-500/10 border border-sky-500/30 rounded-full text-sky-400 text-xs font-semibold mb-6 uppercase tracking-widest">
+        🇨🇬 Conçu pour le Congo — Paiement Airtel &amp; MTN
+      </div>
+      <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
+        Suivez votre flotte<br/>
+        <span class="text-sky-400">en temps réel</span>
+      </h1>
+      <p class="text-slate-400 text-lg max-w-2xl mx-auto mb-10">
+        GPS Tracker Congo permet aux entreprises, écoles et familles de suivre
+        leurs véhicules, agents, élèves et étudiants depuis un tableau de bord
+        web ou une application Android — sans abonnement international.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/dashboard/register.html"
+           class="px-8 py-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-lg transition-all shadow-lg shadow-sky-500/20">
+          Créer un compte gratuit
+        </a>
+        <a href="/download/GPTS-Tracker.apk"
+           class="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-lg transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+          📱 Télécharger l'APK Android
+        </a>
+      </div>
+      <p class="text-slate-600 text-xs mt-4">Version gratuite disponible · Aucune carte bancaire requise</p>
+    </section>
+
+    <!-- ── Catalogue des offres ── -->
+    <section class="max-w-6xl mx-auto px-4 py-16">
+      <h2 class="text-3xl font-bold text-center text-white mb-3">Nos offres</h2>
+      <p class="text-slate-400 text-center mb-12">Paiement sécurisé via Chariow (Airtel Money / MTN Mobile Money)</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Gratuit -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 flex flex-col">
+          <div class="text-3xl mb-3">🆓</div>
+          <h3 class="text-lg font-bold text-white mb-1">Plan Gratuit</h3>
+          <p class="text-slate-400 text-sm mb-4">Pour découvrir le service</p>
+          <div class="text-3xl font-extrabold text-white mb-4">0 <span class="text-slate-500 text-base font-normal">FCFA</span></div>
+          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
+            <li class="flex gap-2"><span class="text-green-400">✓</span> 1 appareil à suivre</li>
+            <li class="flex gap-2"><span class="text-green-400">✓</span> 1 rapport gratuit/jour</li>
+            <li class="flex gap-2"><span class="text-slate-500">✗</span> Rapports avancés</li>
+          </ul>
+          <a href="/dashboard/register.html" class="w-full text-center py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl transition-all">Commencer gratuitement</a>
+        </div>
+
+        <!-- Pack 20 -->
+        <div class="bg-slate-900 rounded-2xl border border-sky-500/50 p-6 flex flex-col">
+          <div class="text-3xl mb-3">📄</div>
+          <h3 class="text-lg font-bold text-white mb-1">Pack Starter</h3>
+          <p class="text-slate-400 text-sm mb-4">20 rapports d'impression</p>
+          <div class="text-3xl font-extrabold text-sky-400 mb-1">500 <span class="text-slate-500 text-base font-normal">FCFA</span></div>
+          <p class="text-slate-500 text-xs mb-4">590 FCFA frais Chariow inclus</p>
+          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
+            <li class="flex gap-2"><span class="text-green-400">✓</span> 20 impressions PDF</li>
+            <li class="flex gap-2"><span class="text-green-400">✓</span> Jusqu'à 10 appareils</li>
+            <li class="flex gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
+          </ul>
+          <a href="https://erpbbfef.mychariow.shop/prd_59udmg" target="_blank" rel="noopener" class="w-full text-center py-3 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-xl transition-all">Payer via Chariow →</a>
+        </div>
+
+        <!-- Pack 40 -->
+        <div class="bg-slate-900 rounded-2xl border border-sky-500 p-6 flex flex-col relative">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-full">⭐ POPULAIRE</div>
+          <div class="text-3xl mb-3 mt-2">📋</div>
+          <h3 class="text-lg font-bold text-white mb-1">Pack Pro</h3>
+          <p class="text-slate-400 text-sm mb-4">40 rapports d'impression</p>
+          <div class="text-3xl font-extrabold text-sky-400 mb-1">1 000 <span class="text-slate-500 text-base font-normal">FCFA</span></div>
+          <p class="text-slate-500 text-xs mb-4">1 180 FCFA frais Chariow inclus</p>
+          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
+            <li class="flex gap-2"><span class="text-green-400">✓</span> 40 impressions PDF</li>
+            <li class="flex gap-2"><span class="text-green-400">✓</span> Jusqu'à 10 appareils</li>
+            <li class="flex gap-2"><span class="text-sky-400 font-bold">✓</span> Meilleur rapport qualité/prix</li>
+          </ul>
+          <a href="https://erpbbfef.mychariow.shop/prd_ia4imm" target="_blank" rel="noopener" class="w-full text-center py-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-semibold rounded-xl transition-all">Payer via Chariow →</a>
+        </div>
+
+        <!-- Forfait Flotte -->
+        <div class="bg-gradient-to-b from-slate-900 to-emerald-950/30 rounded-2xl border border-emerald-500/50 p-6 flex flex-col">
+          <div class="text-3xl mb-3">🚛</div>
+          <h3 class="text-lg font-bold text-emerald-300 mb-1">Forfait Flotte</h3>
+          <p class="text-slate-400 text-sm mb-4">Abonnement mensuel B2B</p>
+          <div class="text-3xl font-extrabold text-emerald-400 mb-1">25 000 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
+          <p class="text-slate-500 text-xs mb-4">26 010 FCFA frais Chariow inclus</p>
+          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
+            <li class="flex gap-2"><span class="text-emerald-400">✓</span> Agents illimités</li>
+            <li class="flex gap-2"><span class="text-emerald-400">✓</span> Rapports illimités</li>
+            <li class="flex gap-2"><span class="text-green-400">✓</span> Support prioritaire</li>
+          </ul>
+          <a href="https://erpbbfef.mychariow.shop/prd_flotte" target="_blank" rel="noopener" class="w-full text-center py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all">S'abonner via Chariow →</a>
+        </div>
+
+        <!-- Suivi Élève -->
+        <div class="bg-gradient-to-b from-slate-900 to-cyan-950/30 rounded-2xl border border-cyan-500/50 p-6 flex flex-col">
+          <div class="text-3xl mb-3">🎒</div>
+          <h3 class="text-lg font-bold text-cyan-300 mb-1">Suivi Élève</h3>
+          <p class="text-slate-400 text-sm mb-4">Suivi scolaire — par parent</p>
+          <div class="text-3xl font-extrabold text-cyan-400 mb-1">311 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
+          <p class="text-slate-500 text-xs mb-4">Frais Chariow inclus</p>
+          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
+            <li class="flex gap-2"><span class="text-cyan-400">✓</span> Suivi présence scolaire</li>
+            <li class="flex gap-2"><span class="text-cyan-400">✓</span> Rapport d'assiduité PDF</li>
+            <li class="flex gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
+          </ul>
+          <a href="https://erpbbfef.mychariow.shop/prd_eleve" target="_blank" rel="noopener" class="w-full text-center py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all">S'abonner via Chariow →</a>
+        </div>
+
+        <!-- Suivi Étudiant -->
+        <div class="bg-gradient-to-b from-slate-900 to-indigo-950/30 rounded-2xl border border-indigo-500/50 p-6 flex flex-col">
+          <div class="text-3xl mb-3">🎓</div>
+          <h3 class="text-lg font-bold text-indigo-300 mb-1">Suivi Étudiant</h3>
+          <p class="text-slate-400 text-sm mb-4">Suivi universitaire</p>
+          <div class="text-3xl font-extrabold text-indigo-400 mb-1">1 047 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
+          <p class="text-slate-500 text-xs mb-4">Frais Chariow inclus</p>
+          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
+            <li class="flex gap-2"><span class="text-indigo-400">✓</span> Suivi présence université</li>
+            <li class="flex gap-2"><span class="text-indigo-400">✓</span> Rapport d'assiduité PDF</li>
+            <li class="flex gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
+          </ul>
+          <a href="https://erpbbfef.mychariow.shop/prd_etudiant" target="_blank" rel="noopener" class="w-full text-center py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all">S'abonner via Chariow →</a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── Guide d'installation APK ── -->
+    <section class="max-w-4xl mx-auto px-4 py-16">
+      <h2 class="text-3xl font-bold text-center text-white mb-3">📱 Installer l'application Android</h2>
+      <p class="text-slate-400 text-center mb-10">L'APK GPS Tracker s'installe directement sur votre téléphone Android — sans passer par le Play Store.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 text-center">
+          <div class="text-3xl mb-3">1️⃣</div>
+          <h4 class="font-semibold text-white mb-2">Télécharger</h4>
+          <p class="text-slate-400 text-xs">Cliquez sur "Télécharger l'APK" ci-dessus ou sur le bouton en haut de page.</p>
+        </div>
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 text-center">
+          <div class="text-3xl mb-3">2️⃣</div>
+          <h4 class="font-semibold text-white mb-2">Autoriser</h4>
+          <p class="text-slate-400 text-xs">Dans Paramètres → Sécurité, activez "Sources inconnues" ou "Installer des apps inconnues".</p>
+        </div>
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 text-center">
+          <div class="text-3xl mb-3">3️⃣</div>
+          <h4 class="font-semibold text-white mb-2">Installer</h4>
+          <p class="text-slate-400 text-xs">Ouvrez le fichier .apk téléchargé et suivez les instructions d'installation.</p>
+        </div>
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5 text-center">
+          <div class="text-3xl mb-3">4️⃣</div>
+          <h4 class="font-semibold text-white mb-2">Configurer</h4>
+          <p class="text-slate-400 text-xs">Choisissez votre profil (Entreprise / Étudiant / Élève) et saisissez votre code.</p>
+        </div>
+      </div>
+
+      <div class="text-center mt-8">
+        <a href="/download/GPTS-Tracker.apk"
+           class="inline-flex items-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-lg transition-all shadow-lg shadow-emerald-500/20">
+          📱 Télécharger GPTS-Tracker.apk
+        </a>
+        <p class="text-slate-600 text-xs mt-3">Compatible Android 8.0+ · Taille : ~8 Mo</p>
+      </div>
+    </section>
+
+    <!-- ── CTA final ── -->
+    <section class="max-w-4xl mx-auto px-4 py-16 text-center">
+      <div class="bg-gradient-to-r from-sky-900/40 to-blue-900/40 border border-sky-500/30 rounded-2xl p-10">
+        <h2 class="text-3xl font-bold text-white mb-4">Prêt à démarrer ?</h2>
+        <p class="text-slate-400 mb-8">Créez votre compte en 2 minutes. Aucune carte bancaire requise pour commencer.</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="/dashboard/register.html" class="px-8 py-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all">Créer un compte →</a>
+          <a href="/dashboard/login.html" class="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl transition-all">Se connecter</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Footer ── -->
+    <footer class="border-t border-slate-800 py-8 text-center text-slate-600 text-sm">
+      <p>© 2026 GPS Tracker Congo — Tous droits réservés</p>
+      <p class="mt-1">Paiement sécurisé via <a href="https://chariow.com" target="_blank" rel="noopener" class="text-sky-600 hover:text-sky-400">Chariow</a> · Airtel Money · MTN Mobile Money</p>
+    </footer>
+
+  </div><!-- /vitrine -->
+
+  <script type="module">
+    // Ping le serveur avant d'afficher la vitrine
+    const splash   = document.getElementById('splash');
+    const vitrine  = document.getElementById('vitrine');
+    const statusEl = document.getElementById('splash-status');
+
+    async function pingHealth(maxAttempts = 25, intervalMs = 2000) {
+      for (let i = 1; i <= maxAttempts; i++) {
+        statusEl.textContent = i === 1 ? 'Connexion au serveur…' : `Réveil du serveur… (${i}/${maxAttempts})`;
+        try {
+          const ctrl = new AbortController();
+          const t    = setTimeout(() => ctrl.abort(), 12000);
+          const res  = await fetch('/api/health', { cache: 'no-store', signal: ctrl.signal });
+          clearTimeout(t);
+          if (res.ok) break;
+        } catch { /* retry */ }
+        if (i < maxAttempts) await new Promise(r => setTimeout(r, intervalMs));
       }
+      // Afficher la vitrine
+      splash.style.display  = 'none';
+      vitrine.classList.remove('hidden');
+    }
 
-      pingHealth();
-    </script>
+    pingHealth();
+  </script>
 </body>
 </html>
