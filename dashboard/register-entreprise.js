@@ -155,15 +155,24 @@ form.addEventListener('submit', async (e) => {
         
         console.log('Enregistrement des données...');
         // Sauvegarder les infos dans Realtime Database
+        const createdAt = Date.now();
+        const bonusExpiresAt = createdAt + 14 * 24 * 60 * 60 * 1000;
+
         await set(ref(db, `companies/${user.uid}`), {
             companyName,
             sector,
             address,
             email,
             logoUrl,
-            createdAt: Date.now(),
+            createdAt,
             role: 'company',
-            status: 'active'
+            status: 'active',
+            user_status: 'FREE_BONUS',
+            bonus_demarrage: {
+                date_debut: new Date(createdAt).toISOString(),
+                credits_freemium: 14,
+                expires_at: new Date(bonusExpiresAt).toISOString(),
+            },
         });
         
         console.log('Envoi de l\'email de vérification...');

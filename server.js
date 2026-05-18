@@ -62,11 +62,20 @@ async function requireAuth(req, res, next) {
 // ─────────────────────────────────────────────────────────────
 // CONSTANTES FREEMIUM & ABONNEMENTS
 // ─────────────────────────────────────────────────────────────
+const USER_STATUS = {
+  FREE_BONUS:  'FREE_BONUS',
+  FREE_STRICT: 'FREE_STRICT',
+  PREMIUM:     'PREMIUM',
+};
+
 const FREEMIUM = {
-  MAX_AGENTS_FREE:        1,    // plan gratuit : 1 seul appareil à suivre
-  MAX_AGENTS_PACK:        10,   // pack_20 / pack_40 : jusqu'à 10 appareils
+  MAX_AGENTS_FREE:        1,    // plan gratuit strict : 1 seul appareil à suivre
+  MAX_AGENTS_PACK:        10,   // pack_20 / pack_40 / bonus démarrage : jusqu'à 10 appareils
   WARN_AGENTS_THRESHOLD:   8,   // avertissement préventif pour les packs (8/10)
-  FREE_REPORTS_PER_DAY:    1,   // 1 impression gratuite/jour
+  FREE_REPORTS_PER_DAY:    1,   // 1 impression gratuite/jour (FREE_STRICT)
+  BONUS_DAYS:             14,   // durée du bonus de démarrage
+  INITIAL_CREDITS:        14,   // crédits consommés à chaque visite dashboard
+  BONUS_DAYS_MS:          14 * 24 * 60 * 60 * 1000,
   PACK_PRICES: {
     pack_20:              590,   // FCFA frais Chariow inclus (net ~490)
     pack_40:             1180,   // FCFA frais Chariow inclus (net ~1 000)
@@ -119,6 +128,44 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Compte payant (pack, abonnement ou crédits restants) — hors bonus gratuit */
+function estComptePremium(droits) {
+  return droits.estIllimite ||
+    droits.abonnementActif ||
+    droits.typePack === 'illimite' ||
+    droits.typePack === 'pack_20' ||
+    droits.typePack === 'pack_40' ||
+    droits.rapportsRestants > 0;
+}
+
+/** Initialise ou migre le bonus de démarrage pour les comptes existants */
+async function initialiserBonusDemarrage(companyId, company) {
+  const createdAt  = company.createdAt || Date.now();
+  const dateDebut  = new Date(createdAt).toISOString();
+  const expiresAt  = createdAt + FREEMIUM.BONUS_DAYS_MS;
+  const ageDays    = Math.floor((Date.now() - createdAt) / (24 * 60 * 60 * 1000));
+  let credits      = Math.max(0, FREEMIUM.INITIAL_CREDITS - ageDays);
+  let userStatus   = USER_STATUS.FREE_BONUS;
+
+  if (Date.now() >= expiresAt || credits <= 0) {
+    credits    = 0;
+    userStatus = USER_STATUS.FREE_STRICT;
+  }
+
+  const bonus = {
+    date_debut:         dateDebut,
+    credits_freemium:   credits,
+    expires_at:         new Date(expiresAt).toISOString(),
+  };
+
+  await db.ref(`companies/${companyId}`).update({
+    bonus_demarrage: bonus,
+    user_status:     userStatus,
+  });
+
+  return bonus;
+}
+
 // ─────────────────────────────────────────────────────────────
 // HELPER : Résoudre les droits effectifs d'une société
 // Lit le nœud RTDB companies/{id}/licence et retourne un objet
@@ -132,7 +179,8 @@ function todayKey() {
  * │ typePack /          │ Rapports │ Agents max   │ Notes                    │
  * │ type_abonnement     │          │              │                          │
  * ├─────────────────────┼──────────┼──────────────┼──────────────────────────┤
- * │ free                │ 1/jour   │ 10           │ Freemium                 │
+ * │ free (FREE_STRICT)  │ 1/jour   │ 1            │ Plan gratuit limité      │
+ * │ free (FREE_BONUS)   │ illimité │ 10           │ Bonus de démarrage 14j   │
  * │ pack_20 / pack_40   │ solde    │ 10           │ Crédits ponctuels        │
  * │ illimite (typePack) │ ∞        │ ∞            │ Pack permanent           │
  * │ abonnement_flotte   │ ∞        │ ∞            │ Mensuel B2B flotte       │
@@ -195,7 +243,7 @@ async function resoudreDroits(companyId) {
 
   // ── Calcul de la limite d'agents effective ──────────────────
   // Ordre de priorité : abonnement actif > pack illimité > pack crédits > freemium
-  let maxAgents = FREEMIUM.MAX_AGENTS_FREE; // défaut : 10 (freemium)
+  let maxAgents = FREEMIUM.MAX_AGENTS_FREE; // défaut plan gratuit strict
 
   if (estIllimite || (abonnementValide && typeAbonnement === 'abonnement_flotte')) {
     // Pack illimité permanent OU abonnement flotte actif → agents illimités
@@ -207,10 +255,15 @@ async function resoudreDroits(companyId) {
     // Suivi scolaire → limite = nombre d'élèves/étudiants souscrits
     maxAgents = quantiteAgents;
   } else if (typePack === 'pack_20' || typePack === 'pack_40') {
-    // Packs crédits ponctuels → même limite que le freemium (10 agents)
     maxAgents = FREEMIUM.MAX_AGENTS_PACK;
+  } else if (typePack === 'free') {
+    // Bonus de démarrage actif → jusqu'à 10 appareils ; sinon 1 (FREE_STRICT)
+    const statusSnap = await db.ref(`companies/${companyId}/user_status`).get();
+    const userStatus = statusSnap.val();
+    if (userStatus === USER_STATUS.FREE_BONUS) {
+      maxAgents = FREEMIUM.MAX_AGENTS_PACK;
+    }
   }
-  // Cas 'free' → maxAgents reste FREEMIUM.MAX_AGENTS_FREE (10)
 
   return {
     typePack,
@@ -248,6 +301,104 @@ async function appliquerFreemiumRestreint(companyId) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ROUTE : Statut utilisateur (bonus démarrage → plan gratuit strict)
+// GET /api/user/check-status
+// Appelée au chargement du dashboard : décrémente 1 crédit bonus par visite
+// ─────────────────────────────────────────────────────────────
+app.get('/api/user/check-status', requireAuth, async (req, res) => {
+  const companyId = req.user.uid;
+
+  try {
+    const [droits, companySnap] = await Promise.all([
+      resoudreDroits(companyId),
+      db.ref(`companies/${companyId}`).get(),
+    ]);
+
+    const company    = companySnap.val() || {};
+    const companyRef = db.ref(`companies/${companyId}`);
+
+    if (estComptePremium(droits)) {
+      return res.json({
+        status:           USER_STATUS.PREMIUM,
+        typePack:         droits.typePack,
+        creditsRemaining: null,
+        daysRemaining:    null,
+        maxAgents:        droits.maxAgents === Infinity ? null : droits.maxAgents,
+        reportsPerDay:    null,
+        showStrictBanner: false,
+      });
+    }
+
+    let bonus = company.bonus_demarrage;
+    if (!bonus?.date_debut) {
+      bonus = await initialiserBonusDemarrage(companyId, company);
+    }
+
+    const dateDebut   = new Date(bonus.date_debut).getTime();
+    const expiresAt   = dateDebut + FREEMIUM.BONUS_DAYS_MS;
+    const tempsEcoule = Date.now() >= expiresAt;
+    let credits       = bonus.credits_freemium ?? 0;
+
+    if (tempsEcoule || credits <= 0) {
+      await companyRef.update({ user_status: USER_STATUS.FREE_STRICT });
+      return res.json({
+        status:           USER_STATUS.FREE_STRICT,
+        creditsRemaining: 0,
+        daysRemaining:    0,
+        maxAgents:        FREEMIUM.MAX_AGENTS_FREE,
+        reportsPerDay:    FREEMIUM.FREE_REPORTS_PER_DAY,
+        showStrictBanner: true,
+      });
+    }
+
+    const txResult = await companyRef.transaction((data) => {
+      if (!data) return data;
+      const b = data.bonus_demarrage || bonus;
+      let c   = typeof b.credits_freemium === 'number' ? b.credits_freemium : FREEMIUM.INITIAL_CREDITS;
+      if (c <= 0) {
+        data.user_status = USER_STATUS.FREE_STRICT;
+        return data;
+      }
+      c -= 1;
+      data.bonus_demarrage = { ...b, credits_freemium: c };
+      data.user_status     = c > 0 ? USER_STATUS.FREE_BONUS : USER_STATUS.FREE_STRICT;
+      return data;
+    });
+
+    const updated    = txResult.committed ? txResult.snapshot.val() : company;
+    const finalBonus = updated.bonus_demarrage || bonus;
+    credits          = finalBonus.credits_freemium ?? 0;
+    const status     = updated.user_status ||
+      (credits > 0 ? USER_STATUS.FREE_BONUS : USER_STATUS.FREE_STRICT);
+
+    if (status === USER_STATUS.FREE_STRICT) {
+      return res.json({
+        status:           USER_STATUS.FREE_STRICT,
+        creditsRemaining: 0,
+        daysRemaining:    0,
+        maxAgents:        FREEMIUM.MAX_AGENTS_FREE,
+        reportsPerDay:    FREEMIUM.FREE_REPORTS_PER_DAY,
+        showStrictBanner: true,
+      });
+    }
+
+    const daysRemaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
+
+    res.json({
+      status:           USER_STATUS.FREE_BONUS,
+      creditsRemaining: credits,
+      daysRemaining,
+      maxAgents:        FREEMIUM.MAX_AGENTS_PACK,
+      reportsPerDay:    null,
+      showStrictBanner: false,
+    });
+  } catch (err) {
+    console.error('check-status error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
 // ROUTE : Vérifier le statut freemium d'une société
 // GET /api/freemium/:companyId
 // ─────────────────────────────────────────────────────────────
@@ -270,12 +421,17 @@ app.get('/api/freemium/:companyId', requireAuth, async (req, res) => {
     const today      = todayKey();
 
     // Quota freemium : basé sur freemium_quota.derniere_impression + compteur_jours
+    const userStatus         = company.user_status || USER_STATUS.FREE_STRICT;
     const quota              = company.freemium_quota || {};
     const derniereImpression = quota.derniere_impression || null;
     const compteurJours      = quota.compteur_jours      || 0;
-    // Réinitialisation automatique si nouveau jour
+    const dernierRapport     = company.dernier_rapport_date || null;
     const quotaActuel        = derniereImpression === today ? compteurJours : 0;
-    const freeRemaining      = Math.max(0, FREEMIUM.FREE_REPORTS_PER_DAY - quotaActuel);
+    const strictQuotaUsed    = userStatus === USER_STATUS.FREE_STRICT &&
+      (dernierRapport === today || quotaActuel >= FREEMIUM.FREE_REPORTS_PER_DAY);
+    const freeRemaining      = userStatus === USER_STATUS.FREE_BONUS
+      ? FREEMIUM.FREE_REPORTS_PER_DAY
+      : Math.max(0, FREEMIUM.FREE_REPORTS_PER_DAY - (strictQuotaUsed ? FREEMIUM.FREE_REPORTS_PER_DAY : quotaActuel));
     const agentCount = agentsSnap.exists() ? Object.keys(agentsSnap.val()).length : 0;
 
     // Rapports disponibles : illimité si abonnement flotte ou pack illimité
@@ -285,6 +441,7 @@ app.get('/api/freemium/:companyId', requireAuth, async (req, res) => {
 
     res.json({
       typePack:               droits.typePack,
+      userStatus,
       isIllimite:             droits.estIllimite,
       abonnementActif:        droits.abonnementActif,
       typeAbonnement:         droits.typeAbonnement,
@@ -297,7 +454,9 @@ app.get('/api/freemium/:companyId', requireAuth, async (req, res) => {
       agentLimitReached:      droits.maxAgents !== Infinity && agentCount >= droits.maxAgents,
       maxAgentsFree:          FREEMIUM.MAX_AGENTS_FREE,
       freeReportsRemainingToday: freeRemaining,
-      canPrint: rapportsIllimites || droits.rapportsRestants > 0 || freeRemaining > 0,
+      creditsFreemium:        company.bonus_demarrage?.credits_freemium ?? 0,
+      canPrint: rapportsIllimites || droits.rapportsRestants > 0 ||
+        userStatus === USER_STATUS.FREE_BONUS || freeRemaining > 0,
     });
   } catch (err) {
     console.error('freemium error:', err);
@@ -555,12 +714,15 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
   }
 
   try {
-    const [droits, agentsSnap] = await Promise.all([
+    const [droits, agentsSnap, companySnap] = await Promise.all([
       resoudreDroits(companyId),
       db.ref(`societes/${companyId}/agents`).get(),
+      db.ref(`companies/${companyId}`).get(),
     ]);
 
-    const count = agentsSnap.exists() ? Object.keys(agentsSnap.val()).length : 0;
+    const company    = companySnap.val() || {};
+    const userStatus = company.user_status || USER_STATUS.FREE_STRICT;
+    const count      = agentsSnap.exists() ? Object.keys(agentsSnap.val()).length : 0;
 
     // ── Étape A : Illimité (pack illimité ou abonnement flotte actif) ──
     if (droits.estIllimite) {
@@ -573,7 +735,12 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
       });
     }
 
-    const maxAgents = droits.maxAgents; // dynamique selon le type de droits
+    let maxAgents = droits.maxAgents;
+    if (droits.typePack === 'free' && !droits.abonnementActif && !droits.estIllimite) {
+      maxAgents = userStatus === USER_STATUS.FREE_BONUS
+        ? FREEMIUM.MAX_AGENTS_PACK
+        : FREEMIUM.MAX_AGENTS_FREE;
+    }
 
     // ── Étape B : Limite atteinte ──────────────────────────────
     if (count >= maxAgents) {
@@ -581,11 +748,11 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
       if (droits.abonnementActif && droits.typeAbonnement === 'abonnement_unite') {
         message = `Limite atteinte. Vous avez atteint le nombre maximal d'agents inclus dans votre abonnement actuel (${droits.quantiteAgents} agents). Veuillez ajuster votre quantité sur Chariow ou passer au Forfait Flotte Illimitée pour ajouter de nouveaux agents.`;
       } else if (droits.typePack === 'pack_20' || droits.typePack === 'pack_40') {
-        // Pack crédits : même limite de 10 agents que le freemium
         message = `Limite atteinte. Les packs de rapports (Pack 20 / Pack 40) sont limités à ${FREEMIUM.MAX_AGENTS_PACK} agents maximum. Passez au Forfait Flotte (25 000 FCFA/mois) ou au Tarif à l'Unité pour gérer plus d'agents.`;
+      } else if (userStatus === USER_STATUS.FREE_STRICT) {
+        message = `Limite atteinte. Plan gratuit : ${FREEMIUM.MAX_AGENTS_FREE} seul appareil suivi. Activez votre licence sur Chariow pour lever les limites.`;
       } else {
-        // Plan gratuit (freemium) — 1 seul appareil
-        message = `Limite atteinte. La version gratuite autorise ${FREEMIUM.MAX_AGENTS_FREE} seul appareil à suivre. Passez à un pack, au Tarif à l'Unité ou au Forfait Flotte pour en ajouter d'autres.`;
+        message = `Limite atteinte. Le bonus de démarrage autorise ${FREEMIUM.MAX_AGENTS_PACK} appareils maximum. Passez à un pack ou abonnement pour en ajouter d'autres.`;
       }
       return res.json({
         allowed:         false,
@@ -595,6 +762,8 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
         typeAbonnement:  droits.typeAbonnement,
         quantiteAgents:  droits.quantiteAgents,
         abonnementActif: droits.abonnementActif,
+        userStatus,
+        planGratuit:     droits.typePack === 'free' && !droits.abonnementActif,
         message,
         upgradeUrl:      '/dashboard/licence.html',
       });
@@ -623,6 +792,7 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
       abonnementActif: droits.abonnementActif,
       typeAbonnement:  droits.typeAbonnement,
       dateExpiration:  droits.dateExpiration,
+      userStatus,
       planGratuit:     droits.typePack === 'free' && !droits.abonnementActif,
       warning,
     });
@@ -1082,37 +1252,33 @@ app.post('/api/rapport/generer', requireAuth, async (req, res) => {
     // Pack crédits (pack_20 / pack_40) avec solde restant
     const aSoldePayant = !rapportsIllimites && (droits.rapportsRestants > 0);
 
-    if (!rapportsIllimites && !aSoldePayant) {
-      // ── Quota freemium : 1 impression gratuite par jour ─────────
-      const quota              = company.freemium_quota || {};
-      const derniereImpression = quota.derniere_impression || null;
-      const compteurJours      = quota.compteur_jours      || 0;
-      const quotaActuel        = derniereImpression === today ? compteurJours : 0;
+    const userStatus = company.user_status || USER_STATUS.FREE_STRICT;
 
-      if (quotaActuel >= FREEMIUM.FREE_REPORTS_PER_DAY) {
-        return res.status(402).json({
-          error:   'quota_epuise',
-          message: [
-            'Vous avez épuisé votre impression gratuite pour aujourd\'hui.',
-            'Pour débloquer ce rapport immédiatement ou faire évoluer votre compte,',
-            'choisissez l\'une de nos offres via Mobile Money :',
-            '• Pack 20 rapports : 590 FCFA (Paiement unique)',
-            '• Pack 40 rapports : 1 180 FCFA (Paiement unique)',
-            '• Suivi Élève : 311 FCFA / mois',
-            '• Suivi Étudiant : 1 047 FCFA / mois',
-            '• Abonnement par Agent : 31 192 FCFA / mois par agent',
-            '• Forfait Flotte Illimitée : 26 010 FCFA / mois',
-          ].join('\n'),
-          offres: [
-            { label: 'Pack 20 rapports',         prix: '590 FCFA',          type: 'pack_20',            url: 'https://erpbbfef.mychariow.shop/prd_59udmg' },
-            { label: 'Pack 40 rapports',         prix: '1 180 FCFA',        type: 'pack_40',            url: 'https://erpbbfef.mychariow.shop/prd_ia4imm' },
-            { label: 'Suivi Élève',              prix: '311 FCFA/mois',     type: 'suivi_eleve',        url: 'https://erpbbfef.mychariow.shop/prd_eleve'  },
-            { label: 'Suivi Étudiant',           prix: '1 047 FCFA/mois',   type: 'suivi_etudiant',     url: 'https://erpbbfef.mychariow.shop/prd_etudiant'},
-            { label: 'Abonnement par Agent',     prix: '31 192 FCFA/mois',  type: 'abonnement_unite',   url: 'https://erpbbfef.mychariow.shop/prd_unite'  },
-            { label: 'Forfait Flotte Illimitée', prix: '26 010 FCFA/mois',  type: 'abonnement_flotte',  url: 'https://erpbbfef.mychariow.shop/prd_flotte' },
-          ],
-          canBuy: true,
-        });
+    if (!rapportsIllimites && !aSoldePayant) {
+      // FREE_STRICT : 1 rapport/jour via dernier_rapport_date
+      if (userStatus === USER_STATUS.FREE_STRICT) {
+        const dernierRapport = company.dernier_rapport_date || null;
+        if (dernierRapport === today) {
+          return res.status(402).json({
+            error:   'quota_epuise',
+            message: 'Limite quotidienne atteinte. Plan gratuit : 1 seule impression par jour. Activez votre licence sur Chariow pour des rapports illimités.',
+            canBuy:  true,
+          });
+        }
+      } else if (userStatus !== USER_STATUS.FREE_BONUS) {
+        // Fallback legacy freemium_quota
+        const quota              = company.freemium_quota || {};
+        const derniereImpression = quota.derniere_impression || null;
+        const compteurJours      = quota.compteur_jours      || 0;
+        const quotaActuel        = derniereImpression === today ? compteurJours : 0;
+
+        if (quotaActuel >= FREEMIUM.FREE_REPORTS_PER_DAY) {
+          return res.status(402).json({
+            error:   'quota_epuise',
+            message: 'Limite quotidienne atteinte. Plan gratuit : 1 seule impression par jour. Activez votre licence sur Chariow pour des rapports illimités.',
+            canBuy:  true,
+          });
+        }
       }
     }
 
@@ -1236,17 +1402,32 @@ app.post('/api/rapport/generer', requireAuth, async (req, res) => {
       console.log(`📊 Rapport débité (source="${sourceUtilisee}") → société ${companyId}`);
 
     } else {
-      // Freemium : consommer l'impression gratuite du jour
-      // Mise à jour atomique de freemium_quota (derniere_impression + compteur_jours)
-      await companyRef.child('freemium_quota').transaction((quota) => {
-        const q = quota || {};
-        const memeJour = q.derniere_impression === today;
-        return {
-          derniere_impression: today,
-          compteur_jours:      memeJour ? (q.compteur_jours || 0) + 1 : 1,
-        };
-      });
-      console.log(`📊 Impression gratuite consommée → société ${companyId}`);
+      const updates = {
+        dernier_rapport_date: today,
+      };
+
+      if (userStatus === USER_STATUS.FREE_STRICT) {
+        await companyRef.update(updates);
+        await companyRef.child('freemium_quota').transaction((quota) => {
+          const q = quota || {};
+          const memeJour = q.derniere_impression === today;
+          return {
+            derniere_impression: today,
+            compteur_jours:      memeJour ? (q.compteur_jours || 0) + 1 : 1,
+          };
+        });
+      } else if (userStatus !== USER_STATUS.FREE_BONUS) {
+        await companyRef.child('freemium_quota').transaction((quota) => {
+          const q = quota || {};
+          const memeJour = q.derniere_impression === today;
+          return {
+            derniere_impression: today,
+            compteur_jours:      memeJour ? (q.compteur_jours || 0) + 1 : 1,
+          };
+        });
+      }
+
+      console.log(`📊 Impression gratuite consommée (${userStatus}) → société ${companyId}`);
     }
 
     // ── Enregistrer dans l'historique des rapports ───────────────

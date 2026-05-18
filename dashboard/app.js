@@ -427,12 +427,47 @@ onAuthStateChanged(auth, async (user) => {
   }
   currentCompanyId = user.uid;
 
+  afficherBandeauPlanGratuit();
+
   // Écouter les notifications non lues (geofencing + expiration)
   ecouterNotifications(user.uid);
 
   // Démarrer le listener sur le bon chemin societes/{uid}/agents
   demarrerListenerAgents(user.uid);
 });
+
+/**
+ * Bandeau orange permanent en FREE_STRICT (plan gratuit limité).
+ * Le statut est fourni par bootstrap.js via /api/user/check-status.
+ */
+function afficherBandeauPlanGratuit() {
+  const status = window.__userAccountStatus;
+  if (!status?.showStrictBanner && status?.status !== 'FREE_STRICT') return;
+
+  const mapZone = document.querySelector('#dashboard-root .relative.flex-1');
+  if (!mapZone || document.getElementById('freemiumStrictBanner')) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'freemiumStrictBanner';
+  banner.className = [
+    'absolute top-0 left-0 right-0 z-20 mx-4 mt-4',
+    'flex items-center justify-between gap-3',
+    'bg-orange-500/15 border border-orange-500/50 rounded-xl px-4 py-2.5',
+    'text-sm text-orange-100 shadow-lg backdrop-blur-sm',
+  ].join(' ');
+
+  banner.innerHTML = `
+    <p class="leading-snug">
+      <span class="font-semibold text-orange-200">Plan Gratuit actif :</span>
+      1 appareil suivi, 1 impression/jour. Passez au Premium pour lever les limites.
+    </p>
+    <a href="licence.html"
+       class="flex-shrink-0 whitespace-nowrap bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+      Voir les offres
+    </a>`;
+
+  mapZone.insertBefore(banner, mapZone.firstChild);
+}
 
 /**
  * Démarre l'écoute RTDB sur societes/{companyId}/agents.

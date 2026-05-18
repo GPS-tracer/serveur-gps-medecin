@@ -118,11 +118,15 @@ async function chargerQuota() {
     } else if (data.rapportsRestants > 0) {
       quotaLabel.textContent = `${data.rapportsRestants} rapport(s) payant(s) restant(s)`;
       quotaLabel.className   = 'text-lg font-bold text-sky-400';
+    } else if (data.userStatus === 'FREE_BONUS') {
+      const credits = data.creditsFreemium ?? '—';
+      quotaLabel.textContent = `🎁 Bonus actif — ${credits} visite(s) restante(s), impressions illimitées`;
+      quotaLabel.className   = 'text-lg font-bold text-amber-400';
     } else if (data.freeReportsRemainingToday > 0) {
       quotaLabel.textContent = `${data.freeReportsRemainingToday} impression(s) gratuite(s) aujourd'hui`;
       quotaLabel.className   = 'text-lg font-bold text-amber-400';
     } else {
-      quotaLabel.textContent = '⛔ Quota épuisé pour aujourd\'hui';
+      quotaLabel.textContent = '⛔ Quota épuisé pour aujourd\'hui (plan gratuit)';
       quotaLabel.className   = 'text-lg font-bold text-red-400';
     }
   } catch (err) {
@@ -235,7 +239,7 @@ reportForm.addEventListener('submit', async (e) => {
       const data = await res.json();
 
       if (data.error === 'quota_epuise') {
-        // Afficher le bloc d'offres Chariow
+        showMessage(data.message || 'Limite quotidienne atteinte.', 'error');
         afficherOffres(data);
       } else {
         showMessage(data.error || data.message || 'Erreur lors de la génération.', 'error');
@@ -261,12 +265,15 @@ function afficherOffres(data) {
     { label: 'Forfait Flotte Illimitée', prix: '26 010 FCFA/mois', url: 'https://erpbbfef.mychariow.shop/prd_flotte' },
   ];
 
+  const titre = data.message
+    ? escapeHtml(data.message)
+    : '⏳ Limite quotidienne atteinte. Plan gratuit : 1 seule impression par jour.';
+
   offresBlock.innerHTML = `
     <div class="bg-amber-500/10 border border-amber-500/40 rounded-xl p-4">
-      <p class="text-amber-300 font-semibold mb-1">⏳ Quota d'impression épuisé pour aujourd'hui</p>
+      <p class="text-amber-300 font-semibold mb-1">${titre}</p>
       <p class="text-slate-400 text-xs mb-3">
-        Pour débloquer ce rapport immédiatement ou faire évoluer votre compte,
-        choisissez l'une de nos offres via Mobile Money :
+        Activez votre licence sur Chariow pour des rapports illimités :
       </p>
       <div class="flex flex-col gap-2">
         ${offres.map((o) => `

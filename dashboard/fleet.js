@@ -153,14 +153,11 @@ async function syncAddAgentUi() {
     }
 
     if (atLimit || !agentLimitState.allowed) {
-        // Limite atteinte — désactiver les champs, bouton → voir offres
+        // Limite atteinte — désactiver les champs (popup Chariow uniquement à la soumission)
         submitBtn.textContent = 'Limite atteinte — Voir les offres';
         submitBtn.disabled = false;
         inputs.forEach(el => { el.disabled = true; });
-        // Afficher le bloc d'upgrade si pas déjà visible
-        if (!document.getElementById('freemiumBlock')) {
-            showFreemiumBlock(agentLimitState);
-        }
+        document.getElementById('freemiumBlock')?.remove();
         return;
     }
 

@@ -62,6 +62,9 @@ onAuthStateChanged(auth, async (user) => {
   // ── Injecter logo + nom dans la nouvelle sidebar ────────────
   injecterIdentiteSidebar(companyName || user.email.split('@')[0], companyData.logoUrl || null);
 
+  // ── Statut bonus / plan gratuit (décrémente 1 crédit bonus par visite) ──
+  await chargerStatutUtilisateur(user);
+
   // ── Charger le badge de statut du compte ────────────────────
   chargerBadgeCompte(user.uid);
 
@@ -113,6 +116,25 @@ function injecterIdentiteSidebar(nom, logoUrl) {
 }
 
 /**
+ * Appelle /api/user/check-status et expose le résultat à app.js.
+ */
+async function chargerStatutUtilisateur(user) {
+  try {
+    const token = await user.getIdToken();
+    const res   = await fetch('/api/user/check-status', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data  = await res.json();
+    if (!res.ok) throw new Error(data.error || 'check-status failed');
+
+    window.__userAccountStatus = data;
+  } catch (e) {
+    console.warn('[bootstrap] check-status:', e.message);
+    window.__userAccountStatus = { status: 'FREE_STRICT', showStrictBanner: true };
+  }
+}
+
+/**
  * Charge le statut du compte et met à jour le badge dans la sidebar.
  */
 async function chargerBadgeCompte(uid) {
@@ -120,9 +142,11 @@ async function chargerBadgeCompte(uid) {
   if (!badgeEl) return;
 
   try {
-    const snap    = await get(ref(db, `companies/${uid}/licence`));
-    const licence = snap.val() || {};
+    const snap    = await get(ref(db, `companies/${uid}`));
+    const company = snap.val() || {};
+    const licence = company.licence || {};
     const type    = licence.typePack || 'free';
+    const userStatus = company.user_status || window.__userAccountStatus?.status;
 
     let texte, couleur;
 
@@ -139,8 +163,15 @@ async function chargerBadgeCompte(uid) {
     } else if ((licence.rapportsRestants || 0) > 0) {
       texte   = `📄 ${licence.rapportsRestants} impression(s) restante(s)`;
       couleur = 'text-sky-400';
+    } else if (userStatus === 'FREE_BONUS') {
+      const credits = company.bonus_demarrage?.credits_freemium ??
+        window.__userAccountStatus?.creditsRemaining;
+      texte   = credits != null
+        ? `🎁 Bonus — ${credits} visite(s) restante(s)`
+        : '🎁 Bonus de démarrage actif';
+      couleur = 'text-amber-400';
     } else {
-      texte   = '🆓 Gratuit — 1 impression/jour';
+      texte   = '🆓 Plan gratuit — 1 appareil, 1 impression/jour';
       couleur = 'text-slate-400';
     }
 
