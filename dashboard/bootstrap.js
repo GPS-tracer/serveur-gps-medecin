@@ -1,5 +1,6 @@
 /**
- * Loads the dashboard only when Firebase Auth has a signed-in user with verified email.
+ * Charge le tableau de bord uniquement lorsqu’un utilisateur est connecté
+ * avec une adresse email vérifiée.
  * Affiche : "Bonjour [Nom société]" + indicateur vert "Connecté"
  */
 
@@ -76,7 +77,7 @@ onAuthStateChanged(auth, async (user) => {
   await import("./app.js");
   log("Dashboard chargé.");
 }, (err) => {
-  log("Erreur Auth : " + (err.message || err));
+  log("Erreur d’authentification : " + (err.message || err));
 });
 
 /**

@@ -1,6 +1,6 @@
 /**
  * splash-wake.js — Attend que le serveur Express (Render) soit réveillé
- * avant de lancer Firebase Auth.
+ * avant le chargement du tableau de bord (authentification).
  *
  * Render Free Tier endort le service après ~15 min d'inactivité.
  * Le cold start peut prendre 30–50 secondes.

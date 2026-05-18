@@ -214,7 +214,7 @@
       await waitForServerWake({
         onStatus: (msg) => { if (statusEl) statusEl.textContent = msg; },
       });
-      if (statusEl) statusEl.textContent = "Vérification de la session…";
+      if (statusEl) statusEl.textContent = "Connexion sécurisée établie, vérification de votre session...";
       await import("./bootstrap.js");
     })();
   </script>
