@@ -74,7 +74,7 @@ function showSuccess(message) {
     }, 3000);
 }
 
-// Upload logo vers Firebase Storage
+// Upload logo vers le stockage sécurisé GPTS
 async function uploadLogo(file, userId) {
     if (!file) return null;
     
@@ -141,7 +141,7 @@ form.addEventListener('submit', async (e) => {
         validateForm(companyName, sector, address, email, password);
         
         console.log('Création de l\'utilisateur...');
-        // Créer l'utilisateur Firebase Auth
+        // Créer le compte sur le serveur sécurisé
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         console.log('Utilisateur créé:', user.uid);
@@ -154,9 +154,8 @@ form.addEventListener('submit', async (e) => {
         }
         
         console.log('Enregistrement des données...');
-        // Sauvegarder les infos dans Realtime Database
+        // Sauvegarder les infos dans la base de données GPTS
         const createdAt = Date.now();
-        const bonusExpiresAt = createdAt + 14 * 24 * 60 * 60 * 1000;
 
         await set(ref(db, `companies/${user.uid}`), {
             companyName,
@@ -167,13 +166,18 @@ form.addEventListener('submit', async (e) => {
             createdAt,
             role: 'company',
             status: 'active',
-            user_status: 'FREE_BONUS',
-            bonus_demarrage: {
-                date_debut: new Date(createdAt).toISOString(),
-                credits_freemium: 14,
-                expires_at: new Date(bonusExpiresAt).toISOString(),
-            },
         });
+
+        // Initialisation serveur : date_creation, expiration_essai J+14, 50 crédits
+        try {
+            const token = await user.getIdToken();
+            await fetch('/api/user/init-account', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+        } catch (initErr) {
+            console.warn('Init bonus freemium (sera fait au 1er login):', initErr);
+        }
         
         console.log('Envoi de l\'email de vérification...');
         // Envoyer l'email de vérification
@@ -192,7 +196,7 @@ form.addEventListener('submit', async (e) => {
         
         let message = 'Une erreur est survenue. Veuillez réessayer.';
         
-        // Messages d'erreur Firebase Auth
+        // Messages d'erreur d'authentification
         if (error.code === 'auth/email-already-in-use') {
             message = '❌ Cet email est déjà utilisé. Veuillez vous connecter ou utiliser un autre email.';
         } else if (error.code === 'auth/weak-password') {

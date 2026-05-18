@@ -169,7 +169,8 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script type="module">
     import { auth, db } from '../shared/firebase.js';
-    import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { brancherBoutonDeconnexion } from './deconnexion.js';
     import { ref, get, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
     const authLoading  = document.getElementById('auth-loading');
@@ -192,9 +193,7 @@
       chargerRapports(user.uid);
     });
 
-    btnSignOut?.addEventListener('click', () => {
-      signOut(auth).then(() => window.location.replace('login.html'));
-    });
+    brancherBoutonDeconnexion('#btnSignOut');
 
     // ── Navigation onglets ────────────────────────────────────
     document.querySelectorAll('.tab-btn').forEach((btn) => {

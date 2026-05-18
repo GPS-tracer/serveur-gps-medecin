@@ -116,7 +116,7 @@ form.addEventListener("submit", async (e) => {
 });
 
 // ── Polling : recharge le token toutes les 3s ─────────────────
-// Dès que Firebase confirme emailVerified = true :
+// Dès que le serveur sécurisé confirme emailVerified = true :
 //   → masque la boîte d'avertissement
 //   → redirige vers le dashboard
 function startPolling() {
@@ -135,7 +135,7 @@ function startPolling() {
     if (!currentUser) { stopPolling(); return; }
 
     try {
-      // Recharger le profil Firebase pour obtenir l'état emailVerified à jour
+      // Recharger le profil utilisateur pour obtenir l'état emailVerified à jour
       await reload(currentUser);
 
       if (currentUser.emailVerified) {

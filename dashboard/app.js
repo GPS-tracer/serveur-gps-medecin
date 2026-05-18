@@ -3,15 +3,16 @@
  */
 
 import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { db, agentsPath, auth } from "../shared/firebase.js";
+import { brancherBoutonDeconnexion } from "./deconnexion.js";
 
 const DEFAULT_CENTER = [-4.7761, 11.8635];
 const DEFAULT_ZOOM = 12;
 const MOVE_DURATION_MS = 450;
 const POSITION_EPS = 1e-6;
 
-/** If last Firebase update is older than this, agent is shown as Offline (no new RTDB tick). */
+/** Si la dernière mise à jour serveur GPTS est trop ancienne, l'agent est affiché hors ligne. */
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 
 const deviceListEl = document.getElementById("deviceList");
@@ -390,9 +391,7 @@ function rowToDevice(id, row) {
 historyAgentSelect.addEventListener("change", refreshHistoryTrail);
 historyDateInput.addEventListener("change", refreshHistoryTrail);
 
-document.getElementById("btnSignOut")?.addEventListener("click", () => {
-  signOut(auth).catch((e) => console.error(e));
-});
+brancherBoutonDeconnexion("#btnSignOut");
 
 // Bouton centrer la carte sur tous les agents visibles
 document.getElementById("btnCenterMap")?.addEventListener("click", () => {

@@ -1,8 +1,6 @@
 /**
- * Shared Firebase — Realtime Database + Authentication (modular SDK).
- *
- * Console: enable Realtime Database, Authentication → Email/Password.
- * Add `authDomain` (already in config) and your web app keys.
+ * Connexion GPTS — base de données temps réel + authentification (SDK modulaire).
+ * Configuration serveur sécurisé (domaine auth + clés application web).
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -24,14 +22,14 @@ const app = initializeApp(firebaseConfig);
 
 export const db = getDatabase(app);
 
-/** Firebase Auth (email/password on dashboard) */
+/** Authentification serveur sécurisé (email / mot de passe) */
 export const auth = getAuth(app);
 
 /**
  * Retourne le chemin RTDB des agents d'une société.
  * Structure alignée avec l'app Android : societes/{companyId}/agents
  *
- * @param {string} companyId  UID Firebase Auth de la société
+ * @param {string} companyId  Identifiant société (session sécurisée)
  * @returns {string}
  */
 export function agentsPath(companyId) {

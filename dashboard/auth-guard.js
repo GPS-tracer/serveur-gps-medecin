@@ -5,6 +5,7 @@
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "../shared/firebase.js";
+import { deconnecter } from "./deconnexion.js";
 
 const loadingEl = document.getElementById("auth-loading");
 const dashboardRoot = document.getElementById("dashboard-root");
@@ -29,9 +30,7 @@ onAuthStateChanged(auth, (user) => {
   // Si utilisateur connecté mais email non vérifié et page protégée → rediriger vers login
   if (user && !user.emailVerified && !isPublicPage) {
     // Déconnecter l'utilisateur pour forcer la vérification
-    auth.signOut().then(() => {
-      window.location.replace('login.html');
-    });
+    deconnecter('login.html');
     return;
   }
   

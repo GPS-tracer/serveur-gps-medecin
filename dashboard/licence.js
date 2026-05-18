@@ -8,7 +8,8 @@
  */
 
 import { auth, db } from '../shared/firebase.js';
-import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { brancherBoutonDeconnexion } from './deconnexion.js';
 import { ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 import { showQuotaEpuise } from './fleet.js';
 
@@ -36,9 +37,7 @@ onAuthStateChanged(auth, (user) => {
   listenLicenceHistory();
 });
 
-btnSignOut?.addEventListener('click', () => {
-  signOut(auth).then(() => { window.location.href = 'login.html'; });
-});
+brancherBoutonDeconnexion('#btnSignOut');
 
 // ─── Auto-formatage : XXXX-XXXX-XXXX-XXXX ───────────────────
 // Force majuscules, supprime espaces, insère tirets automatiquement

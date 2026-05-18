@@ -10,7 +10,8 @@
  */
 
 import { auth, db } from '../shared/firebase.js';
-import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { brancherBoutonDeconnexion } from './deconnexion.js';
 import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
 // ─── Éléments DOM ────────────────────────────────────────────
@@ -61,9 +62,7 @@ onAuthStateChanged(auth, async (user) => {
   ]);
 });
 
-btnSignOut?.addEventListener('click', () => {
-  signOut(auth).then(() => window.location.replace('login.html'));
-});
+brancherBoutonDeconnexion('#btnSignOut');
 
 // ─── Charger les agents de la société ────────────────────────
 async function chargerAgents() {

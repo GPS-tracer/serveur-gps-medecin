@@ -36,8 +36,8 @@ onAuthStateChanged(auth, async (user) => {
   if (!user.emailVerified) {
     log("Email non vérifié → redirection vers login.html");
     appStarted = false;
-    await auth.signOut();
-    window.location.replace("login.html");
+    const { deconnecter } = await import("./deconnexion.js");
+    await deconnecter("login.html");
     return;
   }
 
@@ -46,7 +46,7 @@ onAuthStateChanged(auth, async (user) => {
   if (appStarted) return;
   appStarted = true;
 
-  // ── Récupérer le nom de la société depuis Firebase ──────────
+  // ── Récupérer le nom de la société depuis la base GPTS ──────
   let companyName = null;
   let companyData = {};
   try {
@@ -164,7 +164,7 @@ async function chargerBadgeCompte(uid) {
       texte   = `📄 ${licence.rapportsRestants} impression(s) restante(s)`;
       couleur = 'text-sky-400';
     } else if (userStatus === 'FREE_BONUS') {
-      const credits = company.bonus_demarrage?.credits_freemium ??
+      const credits = company.credits_freemium ??
         window.__userAccountStatus?.creditsRemaining;
       texte   = credits != null
         ? `🎁 Bonus — ${credits} visite(s) restante(s)`

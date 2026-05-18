@@ -1,5 +1,6 @@
 ﻿import { auth, db, agentsPath } from "../shared/firebase.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { brancherBoutonDeconnexion, deconnecter } from "./deconnexion.js";
 import { ref, set, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // Éléments DOM
@@ -29,7 +30,7 @@ const vehicleLabels = { moto: 'Moto (Livraison/Taxi-moto)', voiture: 'Voiture', 
 // ─── Auth ─────────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = 'login.html'; return; }
-    if (!user.emailVerified) { await auth.signOut(); window.location.href = 'login.html'; return; }
+    if (!user.emailVerified) { await deconnecter('login.html'); return; }
 
     currentUser = user;
 
@@ -46,9 +47,7 @@ onAuthStateChanged(auth, async (user) => {
     await syncAddAgentUi();
 });
 
-btnSignOut.addEventListener('click', () => {
-    signOut(auth).then(() => { window.location.href = 'login.html'; });
-});
+brancherBoutonDeconnexion('#btnSignOut');
 
 // ─── Helpers UI ───────────────────────────────────────────────
 function showError(message) {

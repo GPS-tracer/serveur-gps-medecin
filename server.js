@@ -73,8 +73,8 @@ const FREEMIUM = {
   MAX_AGENTS_PACK:        10,   // pack_20 / pack_40 / bonus démarrage : jusqu'à 10 appareils
   WARN_AGENTS_THRESHOLD:   8,   // avertissement préventif pour les packs (8/10)
   FREE_REPORTS_PER_DAY:    1,   // 1 impression gratuite/jour (FREE_STRICT)
-  BONUS_DAYS:             14,   // durée du bonus de démarrage
-  INITIAL_CREDITS:        14,   // crédits consommés à chaque visite dashboard
+  BONUS_DAYS:             14,   // durée du bonus d'entrée (essai)
+  INITIAL_CREDITS:        50,   // crédits bonus à la création du compte
   BONUS_DAYS_MS:          14 * 24 * 60 * 60 * 1000,
   PACK_PRICES: {
     pack_20:              590,   // FCFA frais Chariow inclus (net ~490)
@@ -138,33 +138,59 @@ function estComptePremium(droits) {
     droits.rapportsRestants > 0;
 }
 
-/** Initialise ou migre le bonus de démarrage pour les comptes existants */
-async function initialiserBonusDemarrage(companyId, company) {
-  const createdAt  = company.createdAt || Date.now();
-  const dateDebut  = new Date(createdAt).toISOString();
-  const expiresAt  = createdAt + FREEMIUM.BONUS_DAYS_MS;
-  const ageDays    = Math.floor((Date.now() - createdAt) / (24 * 60 * 60 * 1000));
-  let credits      = Math.max(0, FREEMIUM.INITIAL_CREDITS - ageDays);
-  let userStatus   = USER_STATUS.FREE_BONUS;
-
-  if (Date.now() >= expiresAt || credits <= 0) {
-    credits    = 0;
-    userStatus = USER_STATUS.FREE_STRICT;
+/**
+ * Lit l'état freemium (champs plats ou ancien schéma bonus_demarrage).
+ * @returns {{ dateCreation: number, expirationEssai: number, credits: number|null }}
+ */
+function lireEtatFreemium(company) {
+  const dateCreation = company.date_creation || company.createdAt || Date.now();
+  let expirationEssai = company.expiration_essai;
+  if (expirationEssai == null && company.bonus_demarrage?.expires_at) {
+    expirationEssai = new Date(company.bonus_demarrage.expires_at).getTime();
+  }
+  if (expirationEssai == null) {
+    expirationEssai = dateCreation + FREEMIUM.BONUS_DAYS_MS;
   }
 
-  const bonus = {
-    date_debut:         dateDebut,
-    credits_freemium:   credits,
-    expires_at:         new Date(expiresAt).toISOString(),
+  let credits = company.credits_freemium;
+  if (typeof credits !== 'number' && company.bonus_demarrage) {
+    credits = company.bonus_demarrage.credits_freemium;
+  }
+  if (typeof credits !== 'number') credits = null;
+
+  return { dateCreation, expirationEssai, credits };
+}
+
+/**
+ * Crée ou migre le profil freemium d'un compte gratuit.
+ * Champs RTDB : date_creation, expiration_essai (J+14), credits_freemium (50).
+ */
+async function creerProfilFreemiumGratuit(companyId, company = {}) {
+  const { dateCreation, expirationEssai, credits: existingCredits } = lireEtatFreemium(company);
+  let credits = existingCredits;
+
+  if (credits == null) {
+    credits = Date.now() >= expirationEssai ? 0 : FREEMIUM.INITIAL_CREDITS;
+  }
+
+  const userStatus = (Date.now() >= expirationEssai || credits <= 0)
+    ? USER_STATUS.FREE_STRICT
+    : USER_STATUS.FREE_BONUS;
+
+  const patch = {
+    date_creation:     dateCreation,
+    expiration_essai:  expirationEssai,
+    credits_freemium:  credits,
+    user_status:       userStatus,
+    createdAt:         company.createdAt || dateCreation,
   };
 
-  await db.ref(`companies/${companyId}`).update({
-    bonus_demarrage: bonus,
-    user_status:     userStatus,
-  });
-
-  return bonus;
+  await db.ref(`companies/${companyId}`).update(patch);
+  return patch;
 }
+
+/** @deprecated alias interne */
+const initialiserBonusDemarrage = creerProfilFreemiumGratuit;
 
 // ─────────────────────────────────────────────────────────────
 // HELPER : Résoudre les droits effectifs d'une société
@@ -301,9 +327,60 @@ async function appliquerFreemiumRestreint(companyId) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ROUTE : Statut utilisateur (bonus démarrage → plan gratuit strict)
+// ROUTE : Initialiser un compte gratuit (bonus d'entrée)
+// POST /api/user/init-account
+// À appeler à la création du compte : date_creation, expiration_essai J+14, 50 crédits
+// ─────────────────────────────────────────────────────────────
+app.post('/api/user/init-account', requireAuth, async (req, res) => {
+  const companyId = req.user.uid;
+
+  try {
+    const droits = await resoudreDroits(companyId);
+    if (estComptePremium(droits)) {
+      return res.json({ status: USER_STATUS.PREMIUM, initialized: false });
+    }
+
+    const snap    = await db.ref(`companies/${companyId}`).get();
+    const company = snap.val() || {};
+
+    if (company.date_creation != null && typeof company.credits_freemium === 'number') {
+      const etat = lireEtatFreemium(company);
+      return res.json({
+        status:           company.user_status || USER_STATUS.FREE_BONUS,
+        alreadyInitialized: true,
+        creditsRemaining: etat.credits,
+        expirationEssai:  etat.expirationEssai,
+      });
+    }
+
+    const dateCreation = company.date_creation || company.createdAt || Date.now();
+    const patch = {
+      date_creation:    dateCreation,
+      expiration_essai: company.expiration_essai || (dateCreation + FREEMIUM.BONUS_DAYS_MS),
+      credits_freemium: FREEMIUM.INITIAL_CREDITS,
+      user_status:      USER_STATUS.FREE_BONUS,
+      createdAt:        company.createdAt || dateCreation,
+    };
+
+    await db.ref(`companies/${companyId}`).update(patch);
+
+    res.json({
+      status:           USER_STATUS.FREE_BONUS,
+      initialized:      true,
+      creditsRemaining: FREEMIUM.INITIAL_CREDITS,
+      expirationEssai:  patch.expiration_essai,
+      daysRemaining:    FREEMIUM.BONUS_DAYS,
+    });
+  } catch (err) {
+    console.error('init-account error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// ROUTE : Statut utilisateur (bonus d'entrée → freemium strict permanent)
 // GET /api/user/check-status
-// Appelée au chargement du dashboard : décrémente 1 crédit bonus par visite
+// Vérifie crédits + 14 j ; décrémente 1 crédit par visite dashboard
 // ─────────────────────────────────────────────────────────────
 app.get('/api/user/check-status', requireAuth, async (req, res) => {
   const companyId = req.user.uid;
@@ -314,7 +391,7 @@ app.get('/api/user/check-status', requireAuth, async (req, res) => {
       db.ref(`companies/${companyId}`).get(),
     ]);
 
-    const company    = companySnap.val() || {};
+    let company    = companySnap.val() || {};
     const companyRef = db.ref(`companies/${companyId}`);
 
     if (estComptePremium(droits)) {
@@ -329,18 +406,19 @@ app.get('/api/user/check-status', requireAuth, async (req, res) => {
       });
     }
 
-    let bonus = company.bonus_demarrage;
-    if (!bonus?.date_debut) {
-      bonus = await initialiserBonusDemarrage(companyId, company);
+    if (company.date_creation == null || typeof company.credits_freemium !== 'number') {
+      company = await creerProfilFreemiumGratuit(companyId, company);
     }
 
-    const dateDebut   = new Date(bonus.date_debut).getTime();
-    const expiresAt   = dateDebut + FREEMIUM.BONUS_DAYS_MS;
-    const tempsEcoule = Date.now() >= expiresAt;
-    let credits       = bonus.credits_freemium ?? 0;
+    const { expirationEssai } = lireEtatFreemium(company);
+    let credits               = company.credits_freemium ?? 0;
+    const tempsEcoule         = Date.now() >= expirationEssai;
 
     if (tempsEcoule || credits <= 0) {
-      await companyRef.update({ user_status: USER_STATUS.FREE_STRICT });
+      await companyRef.update({
+        user_status:      USER_STATUS.FREE_STRICT,
+        credits_freemium: 0,
+      });
       return res.json({
         status:           USER_STATUS.FREE_STRICT,
         creditsRemaining: 0,
@@ -353,22 +431,22 @@ app.get('/api/user/check-status', requireAuth, async (req, res) => {
 
     const txResult = await companyRef.transaction((data) => {
       if (!data) return data;
-      const b = data.bonus_demarrage || bonus;
-      let c   = typeof b.credits_freemium === 'number' ? b.credits_freemium : FREEMIUM.INITIAL_CREDITS;
-      if (c <= 0) {
-        data.user_status = USER_STATUS.FREE_STRICT;
+      let c = typeof data.credits_freemium === 'number' ? data.credits_freemium : FREEMIUM.INITIAL_CREDITS;
+      const exp = data.expiration_essai || (data.date_creation || Date.now()) + FREEMIUM.BONUS_DAYS_MS;
+      if (Date.now() >= exp || c <= 0) {
+        data.credits_freemium = 0;
+        data.user_status       = USER_STATUS.FREE_STRICT;
         return data;
       }
       c -= 1;
-      data.bonus_demarrage = { ...b, credits_freemium: c };
-      data.user_status     = c > 0 ? USER_STATUS.FREE_BONUS : USER_STATUS.FREE_STRICT;
+      data.credits_freemium = c;
+      data.user_status      = c > 0 ? USER_STATUS.FREE_BONUS : USER_STATUS.FREE_STRICT;
       return data;
     });
 
-    const updated    = txResult.committed ? txResult.snapshot.val() : company;
-    const finalBonus = updated.bonus_demarrage || bonus;
-    credits          = finalBonus.credits_freemium ?? 0;
-    const status     = updated.user_status ||
+    const updated = txResult.committed ? txResult.snapshot.val() : company;
+    credits       = updated.credits_freemium ?? 0;
+    const status  = updated.user_status ||
       (credits > 0 ? USER_STATUS.FREE_BONUS : USER_STATUS.FREE_STRICT);
 
     if (status === USER_STATUS.FREE_STRICT) {
@@ -382,7 +460,8 @@ app.get('/api/user/check-status', requireAuth, async (req, res) => {
       });
     }
 
-    const daysRemaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
+    const exp           = updated.expiration_essai || expirationEssai;
+    const daysRemaining = Math.max(0, Math.ceil((exp - Date.now()) / (24 * 60 * 60 * 1000)));
 
     res.json({
       status:           USER_STATUS.FREE_BONUS,
@@ -454,7 +533,8 @@ app.get('/api/freemium/:companyId', requireAuth, async (req, res) => {
       agentLimitReached:      droits.maxAgents !== Infinity && agentCount >= droits.maxAgents,
       maxAgentsFree:          FREEMIUM.MAX_AGENTS_FREE,
       freeReportsRemainingToday: freeRemaining,
-      creditsFreemium:        company.bonus_demarrage?.credits_freemium ?? 0,
+      creditsFreemium:        company.credits_freemium ?? 0,
+      expirationEssai:        company.expiration_essai ?? null,
       canPrint: rapportsIllimites || droits.rapportsRestants > 0 ||
         userStatus === USER_STATUS.FREE_BONUS || freeRemaining > 0,
     });
@@ -1943,6 +2023,11 @@ app.use(express.static('.', {
     }
   },
 }));
+
+// Liens morts / routes inexistantes → page vitrine racine
+app.use((req, res) => {
+  res.status(404).redirect('/');
+});
 
 app.listen(PORT, () => {
   console.log(`GPS Tracker server running on port ${PORT}`);

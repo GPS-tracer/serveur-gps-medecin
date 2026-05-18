@@ -74,7 +74,7 @@ function showSuccess(message) {
     }, 3000);
 }
 
-// Upload logo vers Firebase Storage
+// Upload logo vers le stockage sécurisé GPTS
 async function uploadLogo(file, userId) {
     if (!file) return null;
     
@@ -141,7 +141,7 @@ form.addEventListener('submit', async (e) => {
         validateForm(companyName, sector, address, email, password);
         
         console.log('Création de l\'utilisateur...');
-        // Créer l'utilisateur Firebase Auth
+        // Créer le compte sur le serveur sécurisé
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         console.log('Utilisateur créé:', user.uid);
@@ -183,7 +183,7 @@ form.addEventListener('submit', async (e) => {
         
         let message = 'Une erreur est survenue. Veuillez réessayer.';
         
-        // Messages d'erreur Firebase Auth
+        // Messages d'erreur d'authentification
         if (error.code === 'auth/email-already-in-use') {
             message = '❌ Cet email est déjà utilisé. Veuillez vous connecter ou utiliser un autre email.';
         } else if (error.code === 'auth/weak-password') {

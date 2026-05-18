@@ -4,7 +4,7 @@
  * Flux :
  * 1. L'élève (ou son parent) saisit le code parent (= companyId du compte parent)
  * 2. Vérification que ce code existe dans companies/{code}
- * 3. Création d'un compte Firebase Auth (email + mot de passe)
+ * 3. Création d'un compte sur le serveur sécurisé (email + mot de passe)
  * 4. Enregistrement sous :
  *    - companies/{parentId}/eleves_lies/{uid}  ← lien parent/élève
  *    - companies/{uid}                          ← profil propre de l'élève
@@ -61,7 +61,7 @@ form.addEventListener('submit', async (e) => {
       return;
     }
 
-    // 2. Créer le compte Firebase Auth
+    // 2. Créer le compte sur le serveur sécurisé
     const credential = await createUserWithEmailAndPassword(auth, email, mdp);
     const uid        = credential.user.uid;
 
