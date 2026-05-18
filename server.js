@@ -63,8 +63,9 @@ async function requireAuth(req, res, next) {
 // CONSTANTES FREEMIUM & ABONNEMENTS
 // ─────────────────────────────────────────────────────────────
 const FREEMIUM = {
-  MAX_AGENTS_FREE:        10,   // blocage au-delà de 10 agents (plan gratuit)
-  WARN_AGENTS_THRESHOLD:   8,   // avertissement préventif à partir de 8
+  MAX_AGENTS_FREE:        10,   // blocage freemium (plan gratuit)
+  MAX_AGENTS_PACK:        10,   // même limite pour pack_20 / pack_40 (crédits ponctuels)
+  WARN_AGENTS_THRESHOLD:   8,   // avertissement préventif à partir de 8 (freemium & packs)
   FREE_REPORTS_PER_DAY:    1,   // 1 impression gratuite/jour
   PACK_PRICES: {
     pack_20:              590,   // FCFA frais Chariow inclus (net ~490)
@@ -128,16 +129,23 @@ function todayKey() {
  *
  * Matrice des droits :
  * ┌─────────────────────┬──────────┬──────────────┬──────────────────────────┐
- * │ typePack            │ Rapports │ Agents max   │ Notes                    │
+ * │ typePack /          │ Rapports │ Agents max   │ Notes                    │
+ * │ type_abonnement     │          │              │                          │
  * ├─────────────────────┼──────────┼──────────────┼──────────────────────────┤
  * │ free                │ 1/jour   │ 10           │ Freemium                 │
  * │ pack_20 / pack_40   │ solde    │ 10           │ Crédits ponctuels        │
- * │ illimite            │ ∞        │ ∞            │ Pack permanent           │
- * │ abonnement_flotte   │ ∞        │ ∞            │ Mensuel B2B              │
+ * │ illimite (typePack) │ ∞        │ ∞            │ Pack permanent           │
+ * │ abonnement_flotte   │ ∞        │ ∞            │ Mensuel B2B flotte       │
  * │ abonnement_unite    │ ∞        │ quantite     │ Mensuel B2B par agent    │
  * │ suivi_eleve         │ ∞        │ quantite     │ 311 FCFA/mois — élève    │
  * │ suivi_etudiant      │ ∞        │ quantite     │ 1 047 FCFA/mois — étud.  │
  * └─────────────────────┴──────────┴──────────────┴──────────────────────────┘
+ *
+ * Convention RTDB (inchangée) :
+ *  - typePack       → packs crédits : 'free' | 'pack_20' | 'pack_40' | 'illimite'
+ *  - type_abonnement → abonnements mensuels : 'abonnement_flotte' | 'abonnement_unite'
+ *                      | 'suivi_eleve' | 'suivi_etudiant'
+ *  Les deux champs coexistent sans conflit.
  *
  * @param {string} companyId
  * @returns {Promise<{
@@ -186,16 +194,23 @@ async function resoudreDroits(companyId) {
   }
 
   // ── Calcul de la limite d'agents effective ──────────────────
-  let maxAgents = FREEMIUM.MAX_AGENTS_FREE; // défaut freemium : 10
+  // Ordre de priorité : abonnement actif > pack illimité > pack crédits > freemium
+  let maxAgents = FREEMIUM.MAX_AGENTS_FREE; // défaut : 10 (freemium)
 
   if (estIllimite || (abonnementValide && typeAbonnement === 'abonnement_flotte')) {
+    // Pack illimité permanent OU abonnement flotte actif → agents illimités
     maxAgents = Infinity;
   } else if (abonnementValide && typeAbonnement === 'abonnement_unite') {
+    // Abonnement à l'unité → limite = quantité achetée
     maxAgents = quantiteAgents;
   } else if (estSuiviScolaire) {
-    // Le compte parent peut suivre autant d'élèves/étudiants que sa quantite_agents
+    // Suivi scolaire → limite = nombre d'élèves/étudiants souscrits
     maxAgents = quantiteAgents;
+  } else if (typePack === 'pack_20' || typePack === 'pack_40') {
+    // Packs crédits ponctuels → même limite que le freemium (10 agents)
+    maxAgents = FREEMIUM.MAX_AGENTS_PACK;
   }
+  // Cas 'free' → maxAgents reste FREEMIUM.MAX_AGENTS_FREE (10)
 
   return {
     typePack,
@@ -562,14 +577,15 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
 
     // ── Étape B : Limite atteinte ──────────────────────────────
     if (count >= maxAgents) {
-      // Message exact selon le type de restriction (textes officiels)
       let message;
       if (droits.abonnementActif && droits.typeAbonnement === 'abonnement_unite') {
-        // Abonnement à l'unité : injecter la quantité dynamique
         message = `Limite atteinte. Vous avez atteint le nombre maximal d'agents inclus dans votre abonnement actuel (${droits.quantiteAgents} agents). Veuillez ajuster votre quantité sur Chariow ou passer au Forfait Flotte Illimitée pour ajouter de nouveaux agents.`;
+      } else if (droits.typePack === 'pack_20' || droits.typePack === 'pack_40') {
+        // Pack crédits : même limite de 10 agents que le freemium
+        message = `Limite atteinte. Les packs de rapports (Pack 20 / Pack 40) sont limités à ${FREEMIUM.MAX_AGENTS_PACK} agents maximum. Passez au Forfait Flotte (25 000 FCFA/mois) ou au Tarif à l'Unité pour gérer plus d'agents.`;
       } else {
         // Plan gratuit (freemium)
-        message = `Limite atteinte. La version gratuite est limitée à 10 agents maximum. Veuillez passer à nos offres d'abonnements pour gérer plus d'agents (Tarif à l'Unité ou Forfait Flotte).`;
+        message = `Limite atteinte. La version gratuite est limitée à ${FREEMIUM.MAX_AGENTS_FREE} agents maximum. Veuillez passer à nos offres d'abonnements pour gérer plus d'agents (Tarif à l'Unité ou Forfait Flotte).`;
       }
       return res.json({
         allowed:         false,
@@ -585,10 +601,10 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
     }
 
     // ── Étape C : Avertissement préventif ─────────────────────
-    // Seuil à 80% de la limite ou à partir de 8 pour le freemium
-    const seuilAvertissement = maxAgents <= FREEMIUM.MAX_AGENTS_FREE
-      ? FREEMIUM.WARN_AGENTS_THRESHOLD
-      : Math.floor(maxAgents * 0.8);
+    // Seuil : 80% de la limite pour les abonnements, WARN_AGENTS_THRESHOLD pour freemium/packs
+    const seuilAvertissement = (maxAgents === Infinity || maxAgents > FREEMIUM.MAX_AGENTS_FREE)
+      ? Math.floor(maxAgents * 0.8)
+      : FREEMIUM.WARN_AGENTS_THRESHOLD;
 
     const warning = count >= seuilAvertissement
       ? `⚠️ Il ne vous reste que ${maxAgents - count} place(s). Pensez à renouveler ou upgrader votre abonnement.`
