@@ -40,11 +40,15 @@
 </head>
 <body class="bg-navy-950 text-slate-100 h-screen overflow-hidden">
 
-  <!-- ── Écran de chargement ── -->
+  <!-- ── Splash : réveil serveur puis auth ── -->
   <div id="auth-loading"
-    class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-navy-950 gap-4">
-    <div class="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-    <p class="text-slate-400 text-sm tracking-wide">Vérification de la session…</p>
+    class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-navy-950 gap-4 px-6">
+    <div class="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-2xl"
+      aria-hidden="true">🛰️</div>
+    <div class="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"
+      aria-hidden="true"></div>
+    <p class="text-white text-base font-semibold tracking-wide">GPS Tracker</p>
+    <p id="splash-status" class="text-slate-400 text-sm text-center max-w-xs">Démarrage…</p>
   </div>
 
   <!-- ── Dashboard principal ── -->
@@ -202,6 +206,16 @@
     document.addEventListener('DOMContentLoaded', () => lucide.createIcons());
   </script>
 
-  <script type="module" src="bootstrap.js"></script>
+  <script type="module">
+    import { waitForServerWake } from "./splash-wake.js";
+    const statusEl = document.getElementById("splash-status");
+    (async () => {
+      await waitForServerWake({
+        onStatus: (msg) => { if (statusEl) statusEl.textContent = msg; },
+      });
+      if (statusEl) statusEl.textContent = "Vérification de la session…";
+      await import("./bootstrap.js");
+    })();
+  </script>
 </body>
 </html>

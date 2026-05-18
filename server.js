@@ -1590,6 +1590,19 @@ cron.schedule('0 8 * * *', async () => {
 console.log('⏰ Cron notifications d\'expiration planifié (08h00 UTC quotidien)');
 
 // ─────────────────────────────────────────────────────────────
+// Health check — réveil Render + splash client
+// GET /api/health  (sans auth)
+// ─────────────────────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    ok:     true,
+    uptime: process.uptime(),
+    ts:     Date.now(),
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
 // Fichiers statiques
 // ─────────────────────────────────────────────────────────────
 app.get('/sw.js', (req, res) => {

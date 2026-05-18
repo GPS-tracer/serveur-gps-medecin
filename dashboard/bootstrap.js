@@ -12,7 +12,9 @@ const loadingEl = document.getElementById("auth-loading");
 
 function log(msg) {
   console.log("[bootstrap]", msg);
-  if (loadingEl) loadingEl.textContent = msg;
+  // Mettre à jour le texte de statut du splash sans toucher au spinner
+  const statusEl = document.getElementById("splash-status");
+  if (statusEl) statusEl.textContent = msg;
 }
 
 log("Firebase auth initialisé, en attente de session...");

@@ -46,12 +46,34 @@
     <div class="container">
         <div class="spinner"></div>
         <h1>GPS Tracker</h1>
-        <p>Redirection en cours...</p>
+        <p id="splash-status">Démarrage…</p>
     </div>
-    
+
     <script type="module">
-        // Rediriger automatiquement vers le dashboard
-        window.location.replace('/dashboard/');
+      const statusEl = document.getElementById("splash-status");
+
+      async function pingHealth(maxAttempts = 25, intervalMs = 2000) {
+        for (let i = 1; i <= maxAttempts; i++) {
+          statusEl.textContent =
+            i === 1 ? "Connexion au serveur…" : `Réveil du serveur… (${i}/${maxAttempts})`;
+          try {
+            const ctrl = new AbortController();
+            const t    = setTimeout(() => ctrl.abort(), 12000);
+            const res  = await fetch("/api/health", { cache: "no-store", signal: ctrl.signal });
+            clearTimeout(t);
+            if (res.ok) {
+              statusEl.textContent = "Redirection…";
+              window.location.replace("/dashboard/");
+              return;
+            }
+          } catch { /* Render endormi — on réessaie */ }
+          if (i < maxAttempts) await new Promise((r) => setTimeout(r, intervalMs));
+        }
+        statusEl.textContent = "Redirection (serveur lent)…";
+        window.location.replace("/dashboard/");
+      }
+
+      pingHealth();
     </script>
 </body>
 </html>
