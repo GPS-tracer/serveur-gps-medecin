@@ -324,7 +324,8 @@ function renderAgentPanel(devices) {
   deviceListEl.innerHTML = "";
   const n = devices.length;
   if (agentCountEl) agentCountEl.textContent = String(n);
-  emptyStateEl.hidden = n > 0;
+  // Masquer/afficher l'état vide sans écraser son innerHTML (il contient un lien CTA)
+  if (emptyStateEl) emptyStateEl.hidden = n > 0;
 
   const now = Date.now();
 

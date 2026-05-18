@@ -63,9 +63,9 @@ async function requireAuth(req, res, next) {
 // CONSTANTES FREEMIUM & ABONNEMENTS
 // ─────────────────────────────────────────────────────────────
 const FREEMIUM = {
-  MAX_AGENTS_FREE:        10,   // blocage freemium (plan gratuit)
-  MAX_AGENTS_PACK:        10,   // même limite pour pack_20 / pack_40 (crédits ponctuels)
-  WARN_AGENTS_THRESHOLD:   8,   // avertissement préventif à partir de 8 (freemium & packs)
+  MAX_AGENTS_FREE:        1,    // plan gratuit : 1 seul appareil à suivre
+  MAX_AGENTS_PACK:        10,   // pack_20 / pack_40 : jusqu'à 10 appareils
+  WARN_AGENTS_THRESHOLD:   8,   // avertissement préventif pour les packs (8/10)
   FREE_REPORTS_PER_DAY:    1,   // 1 impression gratuite/jour
   PACK_PRICES: {
     pack_20:              590,   // FCFA frais Chariow inclus (net ~490)
@@ -584,8 +584,8 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
         // Pack crédits : même limite de 10 agents que le freemium
         message = `Limite atteinte. Les packs de rapports (Pack 20 / Pack 40) sont limités à ${FREEMIUM.MAX_AGENTS_PACK} agents maximum. Passez au Forfait Flotte (25 000 FCFA/mois) ou au Tarif à l'Unité pour gérer plus d'agents.`;
       } else {
-        // Plan gratuit (freemium)
-        message = `Limite atteinte. La version gratuite est limitée à ${FREEMIUM.MAX_AGENTS_FREE} agents maximum. Veuillez passer à nos offres d'abonnements pour gérer plus d'agents (Tarif à l'Unité ou Forfait Flotte).`;
+        // Plan gratuit (freemium) — 1 seul appareil
+        message = `Limite atteinte. La version gratuite autorise ${FREEMIUM.MAX_AGENTS_FREE} seul appareil à suivre. Passez à un pack, au Tarif à l'Unité ou au Forfait Flotte pour en ajouter d'autres.`;
       }
       return res.json({
         allowed:         false,
@@ -601,12 +601,16 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
     }
 
     // ── Étape C : Avertissement préventif ─────────────────────
-    // Seuil : 80% de la limite pour les abonnements, WARN_AGENTS_THRESHOLD pour freemium/packs
-    const seuilAvertissement = (maxAgents === Infinity || maxAgents > FREEMIUM.MAX_AGENTS_FREE)
-      ? Math.floor(maxAgents * 0.8)
-      : FREEMIUM.WARN_AGENTS_THRESHOLD;
+    // Pas d'avertissement pour le plan gratuit (limite = 1, pas de zone grise)
+    // Avertissement à WARN_AGENTS_THRESHOLD pour les packs (8/10)
+    // 80% de la limite pour les abonnements dynamiques
+    const seuilAvertissement = maxAgents === Infinity
+      ? Infinity                              // illimité → jamais d'avertissement
+      : maxAgents >= FREEMIUM.MAX_AGENTS_PACK
+        ? FREEMIUM.WARN_AGENTS_THRESHOLD      // packs 10 agents → alerte à 8
+        : maxAgents;                          // gratuit (1) → pas d'alerte intermédiaire
 
-    const warning = count >= seuilAvertissement
+    const warning = (seuilAvertissement !== Infinity && count >= seuilAvertissement && count < maxAgents)
       ? `⚠️ Il ne vous reste que ${maxAgents - count} place(s). Pensez à renouveler ou upgrader votre abonnement.`
       : null;
 
@@ -619,6 +623,7 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
       abonnementActif: droits.abonnementActif,
       typeAbonnement:  droits.typeAbonnement,
       dateExpiration:  droits.dateExpiration,
+      planGratuit:     droits.typePack === 'free' && !droits.abonnementActif,
       warning,
     });
 
