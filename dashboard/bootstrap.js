@@ -20,7 +20,7 @@ function log(msg) {
   if (statusEl) statusEl.textContent = msg;
 }
 
-log("Firebase auth initialisé, en attente de session...");
+log("Connexion sécurisée établie, vérification de votre session...");
 
 let appStarted = false;
 
