@@ -1,6 +1,7 @@
 ﻿import { auth, db, agentsPath } from "../shared/firebase.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { brancherBoutonDeconnexion, deconnecter } from "./deconnexion.js";
+import { construireUrlChariow } from "./chariow-paiement.js";
 import { ref, set, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // Éléments DOM
@@ -319,12 +320,14 @@ function escapeHtml(s) { const d = document.createElement('div'); d.textContent 
 // ─── showQuotaEpuise (export pour licence.js) ─────────────────
 export function showQuotaEpuise(errData, ancre = null) {
     document.getElementById('quotaEpuiseBlock')?.remove();
-    const offres = errData.offres || [
-        { label: 'Pack 20 rapports',         prix: '590 FCFA',         url: 'https://erpbbfef.mychariow.shop/prd_59udmg' },
-        { label: 'Pack 40 rapports',         prix: '1 180 FCFA',       url: 'https://erpbbfef.mychariow.shop/prd_ia4imm' },
-        { label: 'Abonnement par Agent',     prix: '31 192 FCFA/mois', url: 'https://erpbbfef.mychariow.shop/prd_unite'  },
-        { label: 'Forfait Flotte Illimitée', prix: '26 010 FCFA/mois', url: 'https://erpbbfef.mychariow.shop/prd_flotte' },
-    ];
+    const uid = currentUser?.uid;
+    const offres = errData.offres || (uid ? [
+        { label: 'Particulier Premium',  prix: '10 000 FCFA/mois', url: construireUrlChariow('particulier', 'mensuel', uid) },
+        { label: 'Forfait Flotte',       prix: 'B2B',              url: construireUrlChariow('flotte', 'mensuel', uid) },
+        { label: 'Accès Illimité',       prix: 'Premium',          url: construireUrlChariow('illimite', 'mensuel', uid) },
+    ] : [
+        { label: 'Voir les offres', prix: 'Licences', url: 'licence.html' },
+    ]);
     const offresHtml = offres.map(o => `
         <a href="${escapeHtml(o.url)}" target="_blank" rel="noopener"
            class="flex items-center justify-between bg-slate-700/60 hover:bg-slate-700 border border-slate-600 hover:border-sky-500 rounded-lg px-3 py-2 transition-all group">

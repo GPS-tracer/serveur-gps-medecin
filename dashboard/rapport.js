@@ -12,6 +12,7 @@
 import { auth, db } from '../shared/firebase.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { brancherBoutonDeconnexion } from './deconnexion.js';
+import { construireUrlChariow } from './chariow-paiement.js';
 import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
 // ─── Éléments DOM ────────────────────────────────────────────
@@ -257,12 +258,15 @@ reportForm.addEventListener('submit', async (e) => {
 
 // ─── Afficher le bloc d'offres Chariow ───────────────────────
 function afficherOffres(data) {
-  const offres = data.offres || [
-    { label: 'Pack 20 rapports',         prix: '590 FCFA',         url: 'https://erpbbfef.mychariow.shop/prd_59udmg' },
-    { label: 'Pack 40 rapports',         prix: '1 180 FCFA',       url: 'https://erpbbfef.mychariow.shop/prd_ia4imm' },
-    { label: 'Abonnement par Agent',     prix: '31 192 FCFA/mois', url: 'https://erpbbfef.mychariow.shop/prd_unite'  },
-    { label: 'Forfait Flotte Illimitée', prix: '26 010 FCFA/mois', url: 'https://erpbbfef.mychariow.shop/prd_flotte' },
-  ];
+  const uid = currentUser?.uid;
+  const offres = data.offres || (uid ? [
+    { label: 'Particulier Premium', prix: '10 000 FCFA/mois', url: construireUrlChariow('particulier', 'mensuel', uid) },
+    { label: 'Forfait Flotte',      prix: 'B2B',              url: construireUrlChariow('flotte', 'mensuel', uid) },
+    { label: 'Suivi Élève',         prix: '3 000 FCFA/mois',  url: construireUrlChariow('eleve', 'mensuel', uid) },
+    { label: 'Suivi Étudiant',      prix: '3 000 FCFA/mois',  url: construireUrlChariow('etudiant', 'mensuel', uid) },
+  ] : [
+    { label: 'Catalogue complet', prix: '—', url: 'licence.html' },
+  ]);
 
   const titre = data.message
     ? escapeHtml(data.message)

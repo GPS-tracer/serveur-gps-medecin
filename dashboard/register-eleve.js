@@ -23,6 +23,7 @@ const form         = document.getElementById('registerForm');
 const codeParentEl = document.getElementById('codeParent');
 const nomEl        = document.getElementById('nomEleve');
 const emailEl      = document.getElementById('emailEleve');
+const dateNaissanceEl = document.getElementById('dateNaissance');
 const classeEl     = document.getElementById('classeEleve');
 const mdpEl        = document.getElementById('motDePasse');
 const errorEl      = document.getElementById('errorMessage');
@@ -43,12 +44,19 @@ form.addEventListener('submit', async (e) => {
   const nom        = nomEl.value.trim();
   const email      = emailEl.value.trim();
   const classe     = classeEl.value.trim();
+  const dateNaissance = dateNaissanceEl?.value || '';
   const mdp        = mdpEl.value;
 
   // Validation
   if (!codeParent) { showError('Le code parent est obligatoire.'); return; }
   if (!nom)        { showError('Le nom de l\'élève est obligatoire.'); return; }
   if (!email || !email.includes('@')) { showError('Email invalide.'); return; }
+  if (!dateNaissance) { showError('La date de naissance est obligatoire.'); return; }
+  const age = calculerAge(dateNaissance);
+  if (age > 15) {
+    showError('L\'offre Suivi Élève est réservée aux élèves de 15 ans et moins. Utilisez l\'inscription Étudiant si vous avez plus de 15 ans.');
+    return;
+  }
   if (mdp.length < 6) { showError('Le mot de passe doit contenir au moins 6 caractères.'); return; }
 
   setLoading(true);
@@ -72,8 +80,10 @@ form.addEventListener('submit', async (e) => {
       sector:      'scolaire',
       accountType: 'eleve',
       parentId:    codeParent,
-      classe:      classe || null,
-      createdAt:   Date.now(),
+      classe:         classe || null,
+      dateNaissance,
+      age,
+      createdAt:      Date.now(),
       role:        'eleve',
       status:      'active',
     });
@@ -104,6 +114,17 @@ form.addEventListener('submit', async (e) => {
     setLoading(false);
   }
 });
+
+/** Âge en années complètes à partir d'une date YYYY-MM-DD */
+function calculerAge(ymd) {
+  const d = new Date(ymd);
+  if (Number.isNaN(d.getTime())) return 99;
+  const t = new Date();
+  let age = t.getFullYear() - d.getFullYear();
+  const m = t.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && t.getDate() < d.getDate())) age -= 1;
+  return age;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────
 function showError(msg) {

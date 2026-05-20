@@ -25,6 +25,31 @@ export const db = getDatabase(app);
 /** Authentification serveur sécurisé (email / mot de passe) */
 export const auth = getAuth(app);
 
+/** Boutique Chariow GPTS (URLs de paiement) */
+export const CHARIOW_SHOP_BASE = 'https://erpbbfef.mychariow.shop';
+
+/**
+ * Catalogue officiel Chariow — détection stricte par ID produit (webhook + frontend).
+ */
+export const CHARIOW_PRODUCTS = {
+  WIFI_MENSUEL:         'prd_ggudpxa3',
+  WIFI_ANNUEL:          'prd_ldq33m9h',
+  PARTICULIER_MENSUEL:  'prd_raupzm8z',
+  PARTICULIER_ANNUEL:   'prd_3iklqt66',
+  ELEVE_MENSUEL:        'prd_aotwqf',
+  ELEVE_ANNUEL:         'prd_ci4t10',
+  ETUDIANT_MENSUEL:     'prd_tv5t2h',
+  ETUDIANT_ANNUEL:      'prd_zaxkdc',
+  FORFAIT_FLOTTE:       'prd_zvj2cv',
+  ACCES_ILLIMITE:       'prd_7hj1hc',
+};
+
+/** Jours ajoutés selon la période (mensuel / annuel) */
+export const CHARIOW_PERIODE_JOURS = {
+  mensuel: 30,
+  annuel:  365,
+};
+
 /**
  * Retourne le chemin RTDB des agents d'une société.
  * Structure alignée avec l'app Android : societes/{companyId}/agents

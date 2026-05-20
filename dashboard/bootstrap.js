@@ -150,7 +150,11 @@ async function chargerBadgeCompte(uid) {
 
     let texte, couleur;
 
-    if (licence.est_illimite || type === 'illimite' ||
+    const partExp = company.abonnement_particulier_expire;
+    if (company.user_status === 'premium' || (partExp && Number(partExp) > Date.now())) {
+      texte   = '⭐ Particulier Premium';
+      couleur = 'text-amber-400';
+    } else if (licence.est_illimite || type === 'illimite' ||
         type === 'abonnement_flotte' || type === 'abonnement_unite') {
       texte   = '✦ Version Pro — Illimité';
       couleur = 'text-emerald-400';

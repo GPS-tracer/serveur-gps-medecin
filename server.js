@@ -108,6 +108,22 @@ const TYPES_ABONNEMENTS = [
 // Types de suivi scolaire (sous-ensemble de TYPES_ABONNEMENTS)
 const TYPES_SCOLAIRES = ['suivi_eleve', 'suivi_etudiant'];
 
+// Catalogue Chariow officiel (aligné sur shared/firebase.js)
+const CHARIOW_PRODUCTS = {
+  WIFI_MENSUEL:         'prd_ggudpxa3',
+  WIFI_ANNUEL:          'prd_ldq33m9h',
+  PARTICULIER_MENSUEL:  'prd_raupzm8z',
+  PARTICULIER_ANNUEL:   'prd_3iklqt66',
+  ELEVE_MENSUEL:        'prd_aotwqf',
+  ELEVE_ANNUEL:         'prd_ci4t10',
+  ETUDIANT_MENSUEL:     'prd_tv5t2h',
+  ETUDIANT_ANNUEL:      'prd_zaxkdc',
+  FORFAIT_FLOTTE:       'prd_zvj2cv',
+  ACCES_ILLIMITE:       'prd_7hj1hc',
+};
+
+const MS_PAR_JOUR = 24 * 60 * 60 * 1000;
+
 // ─────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────
@@ -128,10 +144,84 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Prolonge une expiration : base = max(now, date actuelle si future) + jours */
+function prolongerExpirationMs(expirationActuelle, jours) {
+  const actuelle = typeof expirationActuelle === 'number'
+    ? expirationActuelle
+    : (expirationActuelle ? new Date(expirationActuelle).getTime() : 0);
+  const base = actuelle > Date.now() ? actuelle : Date.now();
+  return base + jours * MS_PAR_JOUR;
+}
+
+/** Lit le profil unifié (societes prioritaire, fallback companies) */
+async function lireProfilSociete(companyId) {
+  const [socSnap, compSnap] = await Promise.all([
+    db.ref(`societes/${companyId}`).get(),
+    db.ref(`companies/${companyId}`).get(),
+  ]);
+  const societe = socSnap.val() || {};
+  const company = compSnap.val() || {};
+  return {
+    ...company,
+    ...societe,
+    licence: { ...(company.licence || {}), ...(societe.licence || {}) },
+  };
+}
+
+/** Double écriture champs racine societes + companies */
+async function ecrireProfilSociete(companyId, patch) {
+  await Promise.all([
+    db.ref(`societes/${companyId}`).update(patch),
+    db.ref(`companies/${companyId}`).update(patch),
+  ]);
+}
+
+/** Double écriture sous-nœud licence */
+async function ecrireLicenceDual(companyId, patch) {
+  await Promise.all([
+    db.ref(`societes/${companyId}/licence`).update(patch),
+    db.ref(`companies/${companyId}/licence`).update(patch),
+  ]);
+}
+
+/** UID acheteur depuis le payload Chariow */
+async function resoudreCompanyIdDepuisPayload(payload) {
+  const direct = payload.uid || payload.metadata?.uid || payload.customer_uid
+    || payload.custom_fields?.uid || payload.query?.uid;
+  if (direct) return String(direct);
+
+  const email = payload.customer_email || payload.email;
+  if (!email) return null;
+
+  const snap = await db.ref('companies').orderByChild('email').equalTo(email).limitToFirst(1).get();
+  if (!snap.exists()) return null;
+  return Object.keys(snap.val())[0];
+}
+
+/** ID produit normalisé depuis le payload Chariow */
+function extraireProductIdChariow(payload) {
+  const raw = payload.product?.id || payload.product_id || payload.productId || '';
+  return String(raw).toLowerCase().trim();
+}
+
+/** Jours à créditer selon l'ID produit (mensuel 30 / annuel 365) */
+function joursPourProduitChariow(productId) {
+  const annuels = new Set([
+    CHARIOW_PRODUCTS.WIFI_ANNUEL,
+    CHARIOW_PRODUCTS.PARTICULIER_ANNUEL,
+    CHARIOW_PRODUCTS.ELEVE_ANNUEL,
+    CHARIOW_PRODUCTS.ETUDIANT_ANNUEL,
+  ]);
+  return annuels.has(productId) ? 365 : 30;
+}
+
 /** Compte payant (pack, abonnement ou crédits restants) — hors bonus gratuit */
 function estComptePremium(droits) {
   return droits.estIllimite ||
     droits.abonnementActif ||
+    droits.particulierActif ||
+    droits.rapportsIllimitesParticulier ||
+    droits.userStatus === 'premium' ||
     droits.typePack === 'illimite' ||
     droits.typePack === 'pack_20' ||
     droits.typePack === 'pack_40' ||
@@ -236,65 +326,73 @@ const initialiserBonusDemarrage = creerProfilFreemiumGratuit;
  * }>}
  */
 async function resoudreDroits(companyId) {
-  const snap    = await db.ref(`companies/${companyId}/licence`).get();
-  const licence = snap.val() || {};
+  const profil = await lireProfilSociete(companyId);
+  const licence = profil.licence || {};
 
   const typePack         = licence.typePack         || 'free';
   const estIllimite      = licence.est_illimite === true || typePack === 'illimite';
-  const abonnementActif  = licence.abonnement_actif === true;
-  const typeAbonnement   = licence.type_abonnement  || null;
+  const abonnementActifLicence = licence.abonnement_actif === true;
+  const typeAbonnement   = licence.type_abonnement  || profil.abonnement_scolaire_type || null;
   const dateExpiration   = licence.date_expiration  || null;
   const quantiteAgents   = licence.quantite_agents  || 1;
   const rapportsRestants = licence.rapportsRestants ?? 0;
 
-  // Vérifier la validité temporelle de l'abonnement
+  const particulierExpire = profil.abonnement_particulier_expire;
+  const particulierActif  = particulierExpire
+    && Number(particulierExpire) > Date.now();
+
+  const scolaireExpire = profil.abonnement_scolaire_expire;
+  const scolaireActif  = scolaireExpire
+    && Number(scolaireExpire) > Date.now();
+
+  const wifiExpire = profil.option_tracking_wifi_expire;
+  const wifiActif  = wifiExpire && Number(wifiExpire) > Date.now();
+
   let abonnementValide = false;
-  if (abonnementActif && dateExpiration) {
+  if (abonnementActifLicence && dateExpiration) {
     abonnementValide = new Date(dateExpiration).getTime() > Date.now();
   }
-
-  // ── Suivi scolaire ──────────────────────────────────────────
-  // Un compte parent avec suivi_eleve ou suivi_etudiant actif peut
-  // générer des rapports d'assiduité pour les élèves/étudiants liés.
-  const estSuiviScolaire = abonnementValide && TYPES_SCOLAIRES.includes(typeAbonnement);
-
-  // Charger les élèves liés (uniquement si suivi scolaire actif)
-  let elevesLies = [];
-  if (estSuiviScolaire) {
-    const elevesSnap = await db.ref(`companies/${companyId}/eleves_lies`).get();
-    if (elevesSnap.exists()) {
-      elevesLies = Object.keys(elevesSnap.val());
-    }
+  if (scolaireActif) {
+    abonnementValide = true;
   }
 
-  // ── Calcul de la limite d'agents effective ──────────────────
-  // Ordre de priorité : abonnement actif > pack illimité > pack crédits > freemium
-  let maxAgents = FREEMIUM.MAX_AGENTS_FREE; // défaut plan gratuit strict
+  const estSuiviScolaire = scolaireActif && TYPES_SCOLAIRES.includes(typeAbonnement);
+
+  let elevesLies = [];
+  if (estSuiviScolaire) {
+    const [socEleves, compEleves] = await Promise.all([
+      db.ref(`societes/${companyId}/eleves_lies`).get(),
+      db.ref(`companies/${companyId}/eleves_lies`).get(),
+    ]);
+    const merged = { ...(compEleves.val() || {}), ...(socEleves.val() || {}) };
+    elevesLies = Object.keys(merged);
+  }
+
+  let maxAgents = FREEMIUM.MAX_AGENTS_FREE;
 
   if (estIllimite || (abonnementValide && typeAbonnement === 'abonnement_flotte')) {
-    // Pack illimité permanent OU abonnement flotte actif → agents illimités
     maxAgents = Infinity;
+  } else if (particulierActif || profil.user_status === 'premium') {
+    maxAgents = 1;
   } else if (abonnementValide && typeAbonnement === 'abonnement_unite') {
-    // Abonnement à l'unité → limite = quantité achetée
     maxAgents = quantiteAgents;
   } else if (estSuiviScolaire) {
-    // Suivi scolaire → limite = nombre d'élèves/étudiants souscrits
     maxAgents = quantiteAgents;
   } else if (typePack === 'pack_20' || typePack === 'pack_40') {
     maxAgents = FREEMIUM.MAX_AGENTS_PACK;
   } else if (typePack === 'free') {
-    // Bonus de démarrage actif → jusqu'à 10 appareils ; sinon 1 (FREE_STRICT)
-    const statusSnap = await db.ref(`companies/${companyId}/user_status`).get();
-    const userStatus = statusSnap.val();
+    const userStatus = profil.user_status;
     if (userStatus === USER_STATUS.FREE_BONUS) {
       maxAgents = FREEMIUM.MAX_AGENTS_PACK;
     }
   }
 
+  const rapportsIllimitesParticulier = particulierActif || profil.user_status === 'premium';
+
   return {
     typePack,
     estIllimite:      estIllimite || (abonnementValide && typeAbonnement === 'abonnement_flotte'),
-    abonnementActif:  abonnementValide,
+    abonnementActif:  abonnementValide || particulierActif,
     typeAbonnement,
     maxAgents,
     rapportsRestants,
@@ -302,6 +400,11 @@ async function resoudreDroits(companyId) {
     quantiteAgents,
     estSuiviScolaire,
     elevesLies,
+    particulierActif,
+    scolaireActif,
+    wifiActif,
+    rapportsIllimitesParticulier,
+    userStatus: profil.user_status || null,
   };
 }
 
@@ -315,13 +418,11 @@ async function resoudreDroits(companyId) {
 //  - Ne touche PAS aux données eleves_lies (lien parent/élève permanent)
 // ─────────────────────────────────────────────────────────────
 async function appliquerFreemiumRestreint(companyId) {
-  await db.ref(`companies/${companyId}/licence`).update({
+  await ecrireLicenceDual(companyId, {
     abonnement_actif: false,
     type_abonnement:  null,
     est_illimite:     false,
     quantite_agents:  null,
-    // Conserver les crédits payants restants (pack_20 / pack_40)
-    // Ne PAS modifier : eleves_lies, rapportsRestants
   });
   console.log(`🔒 Freemium restreint appliqué → société ${companyId}`);
 }
@@ -515,8 +616,10 @@ app.get('/api/freemium/:companyId', requireAuth, async (req, res) => {
 
     // Rapports disponibles : illimité si abonnement flotte ou pack illimité
     const rapportsIllimites = droits.estIllimite ||
+      droits.rapportsIllimitesParticulier ||
       (droits.abonnementActif && droits.typeAbonnement === 'abonnement_flotte') ||
-      (droits.abonnementActif && droits.typeAbonnement === 'abonnement_unite');
+      (droits.abonnementActif && droits.typeAbonnement === 'abonnement_unite') ||
+      droits.scolaireActif;
 
     res.json({
       typePack:               droits.typePack,
@@ -535,6 +638,9 @@ app.get('/api/freemium/:companyId', requireAuth, async (req, res) => {
       freeReportsRemainingToday: freeRemaining,
       creditsFreemium:        company.credits_freemium ?? 0,
       expirationEssai:        company.expiration_essai ?? null,
+      particulierActif:        droits.particulierActif || false,
+      scolaireActif:           droits.scolaireActif || false,
+      wifiActif:               droits.wifiActif || false,
       canPrint: rapportsIllimites || droits.rapportsRestants > 0 ||
         userStatus === USER_STATUS.FREE_BONUS || freeRemaining > 0,
     });
@@ -615,9 +721,11 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
     }
 
     // ── Créditer le compte dans Realtime Database ─────────────
-    const companyRef     = db.ref(`companies/${companyId}/licence`);
-    const companySnap    = await companyRef.get();
-    const currentLicence = companySnap.val() || {};
+    const [socLicSnap, compLicSnap] = await Promise.all([
+      db.ref(`societes/${companyId}/licence`).get(),
+      db.ref(`companies/${companyId}/licence`).get(),
+    ]);
+    const currentLicence = { ...(compLicSnap.val() || {}), ...(socLicSnap.val() || {}) };
 
     const now            = new Date();
     const nowISO         = now.toISOString();
@@ -683,9 +791,9 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
       messageReponse = `${credits} rapports crédités sur votre compte (total : ${newTotal}).`;
     }
 
-    // Écriture RTDB + historique en parallèle
+    // Écriture RTDB (societes + companies) + historique
     await Promise.all([
-      companyRef.update(updateRTDB),
+      ecrireLicenceDual(companyId, updateRTDB),
       db.ref(`companies/${companyId}/licenceHistory`).push({
         key,
         typePack,
@@ -1043,22 +1151,135 @@ app.post('/api/admin/licence/generate', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// ROUTE WEBHOOK : Chariow Pulse (automatisation post-paiement)
+// ROUTE WEBHOOK : Chariow Pulse (catalogue unifié — détection par ID produit)
 // POST /api/webhook/chariow-pulse
 // Header: x-chariow-secret: <CHARIOW_WEBHOOK_SECRET>
 //
-// Payload Chariow attendu (exemple) :
+// Payload (exemple) :
 // {
+//   "status": "paid",
+//   "uid": "<firebase uid société>",
+//   "product": { "id": "prd_raupzm8z" },
 //   "order_id": "ORD-123",
-//   "customer_email": "client@example.com",
-//   "product": { "name": "Forfait Flotte GPS", "id": "prd_xxx" },
-//   "quantity": 14,          ← nombre d'agents pour abonnement_unite
-//   "licence_key": "ABCD-EFGH-IJKL-MNOP",
-//   "status": "paid"
+//   "customer_email": "client@example.com"
 // }
 // ─────────────────────────────────────────────────────────────
+async function traiterPaiementChariowParId(companyId, productId, payload) {
+  const profil = await lireProfilSociete(companyId);
+  const jours  = joursPourProduitChariow(productId);
+  const nowISO = new Date().toISOString();
+  const meta   = {
+    chariow_order_id: payload.order_id || null,
+    chariow_product_id: productId,
+    chariow_paid_at:    nowISO,
+  };
+
+  switch (productId) {
+    case CHARIOW_PRODUCTS.WIFI_MENSUEL:
+    case CHARIOW_PRODUCTS.WIFI_ANNUEL: {
+      const exp = prolongerExpirationMs(profil.option_tracking_wifi_expire, jours);
+      await ecrireProfilSociete(companyId, {
+        option_tracking_wifi_expire: exp,
+        ...meta,
+      });
+      return { effect: 'wifi', expiration: exp };
+    }
+
+    case CHARIOW_PRODUCTS.PARTICULIER_MENSUEL:
+    case CHARIOW_PRODUCTS.PARTICULIER_ANNUEL: {
+      const exp = prolongerExpirationMs(profil.abonnement_particulier_expire, jours);
+      await ecrireProfilSociete(companyId, {
+        abonnement_particulier_expire: exp,
+        user_status:                  'premium',
+        ...meta,
+      });
+      await ecrireLicenceDual(companyId, {
+        typePack:         'particulier_premium',
+        abonnement_actif: true,
+        date_expiration:  new Date(exp).toISOString(),
+        quantite_agents:  1,
+        est_illimite:     false,
+      });
+      return { effect: 'particulier_premium', expiration: exp, maxAgents: 1 };
+    }
+
+    case CHARIOW_PRODUCTS.ELEVE_MENSUEL:
+    case CHARIOW_PRODUCTS.ELEVE_ANNUEL: {
+      const exp = prolongerExpirationMs(profil.abonnement_scolaire_expire, jours);
+      const quantite = parseInt(payload.quantity || payload.product?.quantity || 1, 10) || 1;
+      await ecrireProfilSociete(companyId, {
+        abonnement_scolaire_expire: exp,
+        abonnement_scolaire_type:   'suivi_eleve',
+        ...meta,
+      });
+      await ecrireLicenceDual(companyId, {
+        typePack:          'free',
+        abonnement_actif:  true,
+        type_abonnement:   'suivi_eleve',
+        date_expiration:   new Date(exp).toISOString(),
+        quantite_agents:   quantite,
+        est_illimite:      false,
+      });
+      return { effect: 'suivi_eleve', expiration: exp };
+    }
+
+    case CHARIOW_PRODUCTS.ETUDIANT_MENSUEL:
+    case CHARIOW_PRODUCTS.ETUDIANT_ANNUEL: {
+      const exp = prolongerExpirationMs(profil.abonnement_scolaire_expire, jours);
+      const quantite = parseInt(payload.quantity || payload.product?.quantity || 1, 10) || 1;
+      await ecrireProfilSociete(companyId, {
+        abonnement_scolaire_expire: exp,
+        abonnement_scolaire_type:   'suivi_etudiant',
+        ...meta,
+      });
+      await ecrireLicenceDual(companyId, {
+        typePack:          'free',
+        abonnement_actif:  true,
+        type_abonnement:   'suivi_etudiant',
+        date_expiration:   new Date(exp).toISOString(),
+        quantite_agents:   quantite,
+        est_illimite:      false,
+      });
+      return { effect: 'suivi_etudiant', expiration: exp };
+    }
+
+    case CHARIOW_PRODUCTS.FORFAIT_FLOTTE: {
+      const expLicence = prolongerExpirationMs(
+        profil.licence?.date_expiration ? new Date(profil.licence.date_expiration).getTime() : 0,
+        jours,
+      );
+      await ecrireLicenceDual(companyId, {
+        typePack:          'abonnement_flotte',
+        abonnement_actif:  true,
+        type_abonnement:   'abonnement_flotte',
+        date_expiration:   new Date(expLicence).toISOString(),
+        est_illimite:      true,
+        quantite_agents:   null,
+        lastActivation:    nowISO,
+      });
+      await ecrireProfilSociete(companyId, { user_status: 'premium', ...meta });
+      return { effect: 'abonnement_flotte', expiration: expLicence };
+    }
+
+    case CHARIOW_PRODUCTS.ACCES_ILLIMITE: {
+      await ecrireLicenceDual(companyId, {
+        typePack:         'illimite',
+        est_illimite:     true,
+        abonnement_actif: false,
+        type_abonnement:  null,
+        rapportsRestants: null,
+        lastActivation:   nowISO,
+      });
+      await ecrireProfilSociete(companyId, { user_status: 'premium', ...meta });
+      return { effect: 'acces_illimite' };
+    }
+
+    default:
+      return null;
+  }
+}
+
 app.post('/api/webhook/chariow-pulse', async (req, res) => {
-  // Vérification du secret webhook Chariow
   const secret = req.headers['x-chariow-secret'];
   if (!secret || secret !== process.env.CHARIOW_WEBHOOK_SECRET) {
     console.warn('⚠️ Webhook Chariow : secret invalide');
@@ -1067,95 +1288,41 @@ app.post('/api/webhook/chariow-pulse', async (req, res) => {
 
   const payload = req.body;
 
-  // Vérifier que le paiement est bien confirmé
   if (payload.status !== 'paid') {
     console.log(`ℹ️ Webhook Chariow ignoré (statut: ${payload.status})`);
     return res.json({ ignored: true, reason: `statut non payé: ${payload.status}` });
   }
 
-  // ── Détecter le type de produit à partir du nom ────────────
-  const productName = (payload.product?.name || payload.product_name || '').toLowerCase();
-  let type_pack;
-  let quantite_agents = 1;
-
-  if (productName.includes('flotte')) {
-    // Forfait Flotte : illimité total
-    type_pack = 'abonnement_flotte';
-
-  } else if (productName.includes('scolaire') || productName.includes('eleve') || productName.includes('élève')) {
-    // Suivi élève scolaire — 311 FCFA/mois
-    type_pack       = 'suivi_eleve';
-    quantite_agents = parseInt(payload.quantity || payload.product?.quantity || 1, 10);
-    if (!Number.isFinite(quantite_agents) || quantite_agents < 1) quantite_agents = 1;
-
-  } else if (productName.includes('etudiant') || productName.includes('étudiant') || productName.includes('universite') || productName.includes('université')) {
-    // Suivi étudiant — 1 047 FCFA/mois
-    type_pack       = 'suivi_etudiant';
-    quantite_agents = parseInt(payload.quantity || payload.product?.quantity || 1, 10);
-    if (!Number.isFinite(quantite_agents) || quantite_agents < 1) quantite_agents = 1;
-
-  } else if (productName.includes('agent') || productName.includes('unité') || productName.includes('unite')) {
-    // Tarif à l'Unité : quantité extraite du payload
-    type_pack       = 'abonnement_unite';
-    quantite_agents = parseInt(payload.quantity || payload.product?.quantity || 1, 10);
-    if (!Number.isFinite(quantite_agents) || quantite_agents < 1) quantite_agents = 1;
-
-  } else if (productName.includes('illimité') || productName.includes('illimite')) {
-    type_pack = 'illimite';
-
-  } else if (productName.includes('pro') || productName.includes('40')) {
-    type_pack = 'pack_40';
-
-  } else if (productName.includes('starter') || productName.includes('20')) {
-    type_pack = 'pack_20';
-
-  } else {
-    // Produit non reconnu — on log et on répond 200 pour éviter les retries Chariow
-    console.warn(`⚠️ Webhook Chariow : produit non reconnu → "${productName}"`);
-    return res.json({ ignored: true, reason: `produit non reconnu: ${productName}` });
+  const productId = extraireProductIdChariow(payload);
+  if (!productId) {
+    return res.status(400).json({ error: 'product.id manquant dans le payload' });
   }
-
-  // ── Normaliser la clé de licence fournie par Chariow ──────
-  const rawKey    = payload.licence_key || payload.licenceKey || '';
-  const alphaOnly = rawKey.toUpperCase().replace(/[\s-]/g, '');
-
-  if (alphaOnly.length !== 16 || !/^[A-Z0-9]{16}$/.test(alphaOnly)) {
-    console.error(`❌ Webhook Chariow : clé invalide → "${rawKey}"`);
-    return res.status(400).json({ error: 'Clé de licence invalide dans le payload' });
-  }
-
-  const key = (alphaOnly.match(/.{1,4}/g) || []).join('-');
 
   try {
-    // Vérifier si la clé existe déjà (idempotence — Chariow peut renvoyer le webhook)
-    const docRef = firestore.collection('licences').doc(key);
-    const snap   = await docRef.get();
-
-    if (snap.exists) {
-      console.log(`ℹ️ Webhook Chariow : clé ${key} déjà enregistrée — ignorée`);
-      return res.json({ success: true, key, already_exists: true });
+    const companyId = await resoudreCompanyIdDepuisPayload(payload);
+    if (!companyId) {
+      console.error('❌ Webhook Chariow : UID société introuvable', payload.order_id);
+      return res.status(400).json({
+        error: 'UID société introuvable — ajoutez ?uid= sur le lien de paiement',
+      });
     }
 
-    // Créer le document de licence dans Firestore
-    const now = admin.firestore.Timestamp.now();
-    await docRef.set({
-      cle_licence:       key,
-      type_pack,
-      statut:            'disponible',
-      statut_abonnement: TYPES_ABONNEMENTS.includes(type_pack) ? 'inactif' : null,
-      quantite_agents:   type_pack === 'abonnement_unite' ? quantite_agents : null,
-      date_creation:     now,
-      utilise_par:       null,
-      date_activation:   null,
-      date_expiration:   null,
-      // Métadonnées Chariow pour traçabilité
-      chariow_order_id:  payload.order_id    || null,
-      customer_email:    payload.customer_email || null,
-    });
+    const orderId = payload.order_id || payload.orderId;
+    if (orderId) {
+      const profil = await lireProfilSociete(companyId);
+      if (profil.chariow_order_id === orderId && profil.chariow_product_id === productId) {
+        return res.json({ success: true, already_processed: true, companyId, productId });
+      }
+    }
 
-    console.log(`✅ Webhook Chariow : clé ${key} créée (${type_pack}, ${quantite_agents} agent(s))`);
-    res.json({ success: true, key, type_pack, quantite_agents });
+    const result = await traiterPaiementChariowParId(companyId, productId, payload);
+    if (!result) {
+      console.warn(`⚠️ Webhook Chariow : ID produit non géré → ${productId}`);
+      return res.json({ ignored: true, reason: `produit non géré: ${productId}` });
+    }
 
+    console.log(`✅ Webhook Chariow : ${productId} → société ${companyId}`, result);
+    res.json({ success: true, companyId, productId, ...result });
   } catch (err) {
     console.error('webhook chariow error:', err);
     res.status(500).json({ error: 'Erreur serveur lors du traitement du webhook' });
@@ -1327,7 +1494,8 @@ app.post('/api/rapport/generer', requireAuth, async (req, res) => {
       TYPES_SCOLAIRES.includes(droits.typeAbonnement)
     );
     const aPackIllimite     = droits.typePack === 'illimite' || droits.estIllimite;
-    const rapportsIllimites = aAbonnementActif || aPackIllimite;
+    const rapportsIllimites = aAbonnementActif || aPackIllimite ||
+      droits.rapportsIllimitesParticulier || droits.scolaireActif;
 
     // Pack crédits (pack_20 / pack_40) avec solde restant
     const aSoldePayant = !rapportsIllimites && (droits.rapportsRestants > 0);

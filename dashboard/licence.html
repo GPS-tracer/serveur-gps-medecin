@@ -1,10 +1,12 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Licences & Packs - GPS Tracker</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.tailwind={corePlugins:{preflight:true}}</script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
+  <style>body{margin:0;background:#0f172a;color:#f1f5f9;font-family:system-ui,sans-serif}*{box-sizing:border-box}</style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen">
 
@@ -40,9 +42,55 @@
             </div>
         </div>
 
-        <!-- Grille des packs -->
-        <h3 class="text-xl font-bold mb-2 text-center">Choisissez votre pack</h3>
-        <p class="text-slate-400 text-sm text-center mb-6">Packs à usage unique ou abonnements mensuels B2B</p>
+        <!-- Catalogue Chariow unifié (10 produits — paiement lié à votre compte) -->
+        <h3 class="text-xl font-bold mb-2 text-center">Catalogue Chariow GPTS</h3>
+        <p class="text-slate-400 text-sm text-center mb-6">Paiement Mobile Money — votre compte est activé automatiquement après confirmation</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+            <div class="bg-slate-800 rounded-xl border border-slate-600 p-4">
+                <h4 class="font-bold text-white mb-1">📶 Option Wi-Fi suivi</h4>
+                <p class="text-slate-400 text-xs mb-3">150 FCFA/mois · 1 670 FCFA/an</p>
+                <div class="flex flex-col gap-2">
+                    <button type="button" data-chariow-offre="wifi" data-chariow-periode="mensuel" class="w-full bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold py-2 rounded-lg">Mensuel — 150 FCFA</button>
+                    <button type="button" data-chariow-offre="wifi" data-chariow-periode="annuel" class="w-full bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold py-2 rounded-lg">Annuel — 1 670 FCFA</button>
+                </div>
+            </div>
+            <div class="bg-slate-800 rounded-xl border border-amber-500/40 p-4">
+                <h4 class="font-bold text-amber-200 mb-1">⭐ Particulier Premium</h4>
+                <p class="text-slate-400 text-xs mb-3">1 appareil · rapports illimités</p>
+                <div class="flex flex-col gap-2">
+                    <button type="button" data-chariow-offre="particulier" data-chariow-periode="mensuel" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold py-2 rounded-lg">Mensuel — 10 000 FCFA</button>
+                    <button type="button" data-chariow-offre="particulier" data-chariow-periode="annuel" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold py-2 rounded-lg">Annuel — 111 240 FCFA</button>
+                </div>
+            </div>
+            <div class="bg-slate-800 rounded-xl border border-cyan-500/40 p-4">
+                <h4 class="font-bold text-cyan-200 mb-1">🎒 Suivi Élève (≤ 15 ans)</h4>
+                <p class="text-slate-400 text-xs mb-3">3 000 FCFA/mois · 33 370 FCFA/an</p>
+                <div class="flex flex-col gap-2">
+                    <button type="button" data-chariow-offre="eleve" data-chariow-periode="mensuel" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold py-2 rounded-lg">Mensuel</button>
+                    <button type="button" data-chariow-offre="eleve" data-chariow-periode="annuel" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold py-2 rounded-lg">Annuel</button>
+                </div>
+            </div>
+            <div class="bg-slate-800 rounded-xl border border-indigo-500/40 p-4">
+                <h4 class="font-bold text-indigo-200 mb-1">🎓 Suivi Étudiant</h4>
+                <p class="text-slate-400 text-xs mb-3">3 000 FCFA/mois · 33 370 FCFA/an</p>
+                <div class="flex flex-col gap-2">
+                    <button type="button" data-chariow-offre="etudiant" data-chariow-periode="mensuel" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 rounded-lg">Mensuel</button>
+                    <button type="button" data-chariow-offre="etudiant" data-chariow-periode="annuel" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 rounded-lg">Annuel</button>
+                </div>
+            </div>
+            <div class="bg-slate-800 rounded-xl border border-emerald-500/40 p-4">
+                <h4 class="font-bold text-emerald-200 mb-1">🚛 Forfait Flotte B2B</h4>
+                <button type="button" data-chariow-offre="flotte" data-chariow-periode="mensuel" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold py-2 rounded-lg">S'abonner via Chariow →</button>
+            </div>
+            <div class="bg-slate-800 rounded-xl border border-yellow-500/40 p-4">
+                <h4 class="font-bold text-yellow-200 mb-1">♾️ Accès Illimité Premium</h4>
+                <button type="button" data-chariow-offre="illimite" data-chariow-periode="mensuel" class="w-full mt-3 bg-yellow-600 hover:bg-yellow-500 text-slate-900 text-sm font-bold py-2 rounded-lg">Acheter via Chariow →</button>
+            </div>
+        </div>
+
+        <h3 class="text-lg font-bold mb-2 text-center text-slate-500">Anciens packs (clé par email)</h3>
+        <p class="text-slate-500 text-xs text-center mb-4">Rapports crédités — activation manuelle de clé ci-dessous</p>
 
         <!-- ── Section : Packs à usage unique ── -->
         <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">

@@ -12,6 +12,9 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/fi
 import { brancherBoutonDeconnexion } from './deconnexion.js';
 import { ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 import { showQuotaEpuise } from './fleet.js';
+import { declencherPaiementChariow } from './chariow-paiement.js';
+
+window.declencherPaiementChariow = declencherPaiementChariow;
 
 // ─── Éléments DOM ───────────────────────────────────────────
 const statusContent   = document.getElementById('statusContent');
@@ -35,7 +38,30 @@ onAuthStateChanged(auth, (user) => {
   currentUser = user;
   loadFreemiumStatus();
   listenLicenceHistory();
+  brancherBoutonsChariow();
 });
+
+function brancherBoutonsChariow() {
+  document.querySelectorAll('[data-chariow-offre]').forEach((btn) => {
+    if (btn.dataset.chariowBound === '1') return;
+    btn.dataset.chariowBound = '1';
+    btn.addEventListener('click', () => {
+      if (!currentUser) {
+        showMessage('Connectez-vous pour lancer un paiement.', 'error');
+        return;
+      }
+      try {
+        declencherPaiementChariow(
+          btn.dataset.chariowOffre,
+          btn.dataset.chariowPeriode || 'mensuel',
+          currentUser.uid,
+        );
+      } catch (err) {
+        showMessage(err.message || 'Impossible d\'ouvrir le paiement.', 'error');
+      }
+    });
+  });
+}
 
 brancherBoutonDeconnexion('#btnSignOut');
 
@@ -100,13 +126,13 @@ async function loadFreemiumStatus() {
 function renderStatus(data) {
   // ── Labels des packs ──────────────────────────────────────
   const packLabel = {
-    free:               '🆓 Plan gratuit',
-    pack_20:            '📄 Pack Starter (20 rapports)',
-    pack_40:            '📋 Pack Pro (40 rapports)',
-    illimite:           '♾️ Pack Illimité',
-    abonnement_flotte:  '🚛 Forfait Flotte (mensuel)',
-    abonnement_unite:   '👤 Tarif à l\'Unité (mensuel)',
-    // Rétrocompatibilité anciens labels
+    free:                 '🆓 Plan gratuit',
+    particulier_premium:  '⭐ Particulier Premium',
+    pack_20:              '📄 Pack Starter (20 rapports)',
+    pack_40:              '📋 Pack Pro (40 rapports)',
+    illimite:             '♾️ Accès Illimité',
+    abonnement_flotte:    '🚛 Forfait Flotte',
+    abonnement_unite:     '👤 Tarif à l\'Unité',
     '20': '📄 Pack Starter (20 rapports)',
     '40': '📋 Pack Pro (40 rapports)',
   }[data.typePack] || data.typePack;
@@ -154,6 +180,13 @@ function renderStatus(data) {
         </div>
       ` : ''}
     `;
+  }
+
+  if (data.particulierActif) {
+    abonnementBannerHtml += `
+      <div class="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-sm text-amber-200">
+        ⭐ Particulier Premium actif — 1 appareil, rapports illimités.
+      </div>`;
   }
 
   statusContent.innerHTML = `
