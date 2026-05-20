@@ -4,84 +4,74 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Inscription Entreprise — GPS Tracker</title>
-  <script>window.tailwind={corePlugins:{preflight:true}}</script>
-  <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
-  <style>body{margin:0;background:#0f172a;color:#f1f5f9;font-family:system-ui,sans-serif}*{box-sizing:border-box}</style>
+  <link rel="preload" href="register-form.css" as="style">
+  <link rel="stylesheet" href="register-form.css">
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen flex items-center justify-center p-4">
+<body class="register-form register-form--entreprise">
 
-  <div class="w-full max-w-2xl">
+  <div class="register-form__wrap register-form__wrap--wide">
 
-    <div class="text-center mb-8">
-      <a href="register.html" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">← Retour au choix</a>
-      <div class="text-4xl mt-4 mb-2">🏢</div>
-      <h1 class="text-3xl font-bold text-white mb-1">Compte Entreprise</h1>
-      <p class="text-slate-400 text-sm">Gérez votre flotte et vos agents depuis le tableau de bord</p>
-    </div>
+    <header class="register-form__header">
+      <a href="register.html" class="register-form__back">← Retour au choix</a>
+      <div class="register-form__icon" aria-hidden="true">🏢</div>
+      <h1 class="register-form__title">Compte Entreprise</h1>
+      <p class="register-form__subtitle">Gérez votre flotte et vos agents depuis le tableau de bord</p>
+    </header>
 
-    <div class="bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-700/50 p-8">
-      <form id="registerForm" class="space-y-5">
+    <div class="register-form__card">
+      <form id="registerForm" class="register-form__form">
 
-        <!-- Logo -->
-        <div class="flex flex-col items-center mb-6">
-          <div class="relative">
-            <div id="logoPreview"
-              class="w-28 h-28 rounded-full bg-slate-700/50 border-2 border-dashed border-slate-600 flex items-center justify-center overflow-hidden cursor-pointer hover:border-sky-500 transition-colors">
-              <svg class="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="register-form__logo-block">
+          <div class="register-form__logo-wrap">
+            <div id="logoPreview" class="register-form__logo-preview" role="button" tabindex="0" aria-label="Choisir un logo">
+              <svg class="register-form__logo-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <img id="logoImage" class="hidden w-full h-full object-cover" alt="Logo" />
+              <img id="logoImage" class="register-form__logo-img hidden" alt="Logo" />
             </div>
             <input type="file" id="logoInput" accept="image/*" class="hidden" />
-            <label for="logoInput"
-              class="absolute bottom-0 right-0 bg-sky-500 hover:bg-sky-600 text-white rounded-full p-2 cursor-pointer shadow-lg transition-colors">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <label for="logoInput" class="register-form__logo-btn" aria-label="Ajouter un logo">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
             </label>
           </div>
-          <p class="text-slate-400 text-xs mt-2">Logo de votre société (optionnel)</p>
+          <p class="register-form__logo-hint">Logo de votre société (optionnel)</p>
         </div>
 
-        <div>
-          <label class="block text-slate-300 text-sm font-medium mb-2">Nom de la société <span class="text-red-400">*</span></label>
-          <input type="text" id="companyName" required placeholder="Ex: Transport Express SARL"
-            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+        <div class="register-form__field">
+          <label class="register-form__label" for="companyName">Nom de la société <span class="register-form__req">*</span></label>
+          <input type="text" id="companyName" required placeholder="Ex: Transport Express SARL" class="register-form__input" />
         </div>
 
-        <div>
-          <label class="block text-slate-300 text-sm font-medium mb-2">Secteur d'activité <span class="text-red-400">*</span></label>
-          <select id="sector" required
-            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer">
-            <option value="" class="bg-slate-800">Sélectionnez un secteur</option>
-            <option value="moto"     class="bg-slate-800">🏍️ Moto</option>
-            <option value="voiture"  class="bg-slate-800">🚗 Voiture</option>
-            <option value="camion"   class="bg-slate-800">🚚 Camion</option>
-            <option value="scolaire" class="bg-slate-800">🚌 Scolaire</option>
+        <div class="register-form__field">
+          <label class="register-form__label" for="sector">Secteur d'activité <span class="register-form__req">*</span></label>
+          <select id="sector" required class="register-form__select">
+            <option value="">Sélectionnez un secteur</option>
+            <option value="moto">🏍️ Moto</option>
+            <option value="voiture">🚗 Voiture</option>
+            <option value="camion">🚚 Camion</option>
+            <option value="scolaire">🚌 Scolaire</option>
           </select>
         </div>
 
-        <div>
-          <label class="block text-slate-300 text-sm font-medium mb-2">Adresse <span class="text-red-400">*</span></label>
-          <textarea id="address" required rows="2" placeholder="Numéro, rue, ville, pays"
-            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"></textarea>
+        <div class="register-form__field">
+          <label class="register-form__label" for="address">Adresse <span class="register-form__req">*</span></label>
+          <textarea id="address" required rows="2" placeholder="Numéro, rue, ville, pays" class="register-form__textarea"></textarea>
         </div>
 
-        <div>
-          <label class="block text-slate-300 text-sm font-medium mb-2">Email professionnel <span class="text-red-400">*</span></label>
-          <input type="email" id="email" required placeholder="contact@entreprise.com"
-            class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+        <div class="register-form__field">
+          <label class="register-form__label" for="email">Email professionnel <span class="register-form__req">*</span></label>
+          <input type="email" id="email" required placeholder="contact@entreprise.com" class="register-form__input" />
         </div>
 
-        <div>
-          <label class="block text-slate-300 text-sm font-medium mb-2">Mot de passe <span class="text-red-400">*</span></label>
-          <div class="relative">
-            <input type="password" id="password" required minlength="6" placeholder="Minimum 6 caractères"
-              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-            <button type="button" id="togglePassword"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="register-form__field">
+          <label class="register-form__label" for="password">Mot de passe <span class="register-form__req">*</span></label>
+          <div class="register-form__pwd-wrap">
+            <input type="password" id="password" required minlength="6" placeholder="Minimum 6 caractères" class="register-form__input" />
+            <button type="button" id="togglePassword" class="register-form__pwd-toggle" aria-label="Afficher le mot de passe">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
@@ -89,20 +79,17 @@
           </div>
         </div>
 
-        <div id="errorMessage" class="hidden bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm"></div>
+        <div id="errorMessage" class="register-form__msg register-form__msg--error hidden" role="alert"></div>
 
-        <button type="submit" id="submitBtn"
-          class="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all">
-          Créer mon compte entreprise
-        </button>
+        <button type="submit" id="submitBtn" class="register-form__submit">Créer mon compte entreprise</button>
 
-        <p class="text-center text-slate-400 text-sm">
-          Déjà un compte ? <a href="login.html" class="text-sky-400 hover:text-sky-300 font-medium">Se connecter</a>
+        <p class="register-form__foot">
+          Déjà un compte ? <a href="login.html">Se connecter</a>
         </p>
       </form>
     </div>
 
-    <p class="text-center text-slate-600 text-xs mt-6">© 2026 GPS Tracker — Tous droits réservés</p>
+    <p class="register-form__copy">© 2026 GPS Tracker — Tous droits réservés</p>
   </div>
 
   <script type="module" src="register-entreprise.js"></script>

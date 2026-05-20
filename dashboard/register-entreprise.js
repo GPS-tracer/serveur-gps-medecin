@@ -35,7 +35,8 @@ logoInput.addEventListener('change', (e) => {
         reader.onload = (e) => {
             logoImage.src = e.target.result;
             logoImage.classList.remove('hidden');
-            logoPreview.querySelector('svg').classList.add('hidden');
+            const icon = logoPreview.querySelector('.register-form__logo-icon, svg');
+            if (icon) icon.classList.add('hidden');
         };
         reader.readAsDataURL(file);
     }
@@ -65,7 +66,7 @@ function showError(message) {
 // Afficher succès
 function showSuccess(message) {
     const successDiv = document.createElement('div');
-    successDiv.className = 'fixed top-4 right-4 bg-green-500/90 text-white px-6 py-4 rounded-lg shadow-lg z-50 animate-fade-in';
+    successDiv.className = 'register-form__toast';
     successDiv.textContent = message;
     document.body.appendChild(successDiv);
     

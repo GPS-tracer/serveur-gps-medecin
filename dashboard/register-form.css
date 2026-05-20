@@ -1,0 +1,388 @@
+/**
+ * Pages inscription élève / étudiant / entreprise — CSS autonome (sans Tailwind CDN).
+ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  margin: 0;
+  background: #0f172a;
+  color: #f1f5f9;
+  -webkit-text-size-adjust: 100%;
+}
+
+.hidden { display: none !important; }
+
+body.register-form {
+  margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #f1f5f9;
+}
+
+body.register-form--eleve {
+  background: linear-gradient(135deg, #0f172a 0%, #083344 45%, #0f172a 100%);
+}
+
+body.register-form--etudiant {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #0f172a 100%);
+}
+
+body.register-form--entreprise {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+}
+
+.register-form__wrap {
+  width: 100%;
+  max-width: 32rem;
+}
+
+.register-form__wrap--wide { max-width: 42rem; }
+
+.register-form__header { text-align: center; margin-bottom: 2rem; }
+
+.register-form__back {
+  display: inline-block;
+  font-size: 0.875rem;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.register-form__back:hover { color: #cbd5e1; }
+
+.register-form__icon {
+  font-size: 2.5rem;
+  margin: 1rem 0 0.5rem;
+  line-height: 1;
+}
+
+.register-form__title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.35rem;
+}
+
+.register-form__subtitle {
+  color: #94a3b8;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.register-form__card {
+  background: rgba(30, 41, 59, 0.65);
+  border-radius: 1rem;
+  border: 1px solid #334155;
+  padding: 2rem;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35);
+}
+
+body.register-form--eleve .register-form__card {
+  border-color: rgba(34, 211, 238, 0.35);
+}
+
+body.register-form--etudiant .register-form__card {
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.register-form__info {
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+body.register-form--eleve .register-form__info {
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  color: #67e8f9;
+}
+
+body.register-form--etudiant .register-form__info {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: #a5b4fc;
+}
+
+.register-form__info-title {
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  color: inherit;
+}
+
+.register-form__info-text {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  opacity: 0.95;
+}
+
+.register-form__info-text strong { color: #fff; }
+
+.register-form__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.register-form__field { margin: 0; }
+
+.register-form__label {
+  display: block;
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.register-form__req { color: #f87171; }
+
+.register-form__opt { color: #64748b; font-weight: 400; }
+
+.register-form__input,
+.register-form__select,
+.register-form__textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  color: #fff;
+  background: rgba(51, 65, 85, 0.55);
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.register-form__input::placeholder,
+.register-form__textarea::placeholder { color: #94a3b8; }
+
+.register-form__input:focus,
+.register-form__select:focus,
+.register-form__textarea:focus {
+  border-color: var(--rf-accent, #38bdf8);
+  box-shadow: 0 0 0 3px var(--rf-accent-ring, rgba(56, 189, 248, 0.25));
+}
+
+body.register-form--eleve {
+  --rf-accent: #22d3ee;
+  --rf-accent-ring: rgba(34, 211, 238, 0.25);
+  --rf-btn-from: #0891b2;
+  --rf-btn-to: #0d9488;
+  --rf-btn-hover-from: #06b6d4;
+  --rf-btn-hover-to: #14b8a6;
+  --rf-link: #22d3ee;
+}
+
+body.register-form--etudiant {
+  --rf-accent: #818cf8;
+  --rf-accent-ring: rgba(129, 140, 248, 0.3);
+  --rf-btn-from: #4f46e5;
+  --rf-btn-to: #7c3aed;
+  --rf-btn-hover-from: #6366f1;
+  --rf-btn-hover-to: #8b5cf6;
+  --rf-link: #a5b4fc;
+}
+
+body.register-form--entreprise {
+  --rf-accent: #38bdf8;
+  --rf-accent-ring: rgba(56, 189, 248, 0.25);
+  --rf-btn-from: #0ea5e9;
+  --rf-btn-to: #2563eb;
+  --rf-btn-hover-from: #0284c7;
+  --rf-btn-hover-to: #1d4ed8;
+  --rf-link: #38bdf8;
+}
+
+.register-form__input--mono {
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.register-form__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.register-form__select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.register-form__select option { background: #1e293b; color: #fff; }
+
+.register-form__textarea { resize: vertical; min-height: 4.5rem; }
+
+.register-form__msg {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.register-form__msg--error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+}
+
+.register-form__msg--success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  color: #86efac;
+}
+
+.register-form__submit {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  background: linear-gradient(90deg, var(--rf-btn-from), var(--rf-btn-to));
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.register-form__submit:hover:not(:disabled) {
+  background: linear-gradient(90deg, var(--rf-btn-hover-from), var(--rf-btn-hover-to));
+  filter: brightness(1.05);
+}
+
+.register-form__submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.register-form__foot {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.register-form__foot a {
+  color: var(--rf-link);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.register-form__foot a:hover { text-decoration: underline; }
+
+.register-form__copy {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+/* Entreprise — logo */
+.register-form__logo-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.register-form__logo-wrap { position: relative; }
+
+.register-form__logo-preview {
+  width: 7rem;
+  height: 7rem;
+  border-radius: 50%;
+  background: rgba(51, 65, 85, 0.55);
+  border: 2px dashed #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.register-form__logo-preview:hover { border-color: var(--rf-accent); }
+
+.register-form__logo-preview svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #64748b;
+}
+
+.register-form__logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.register-form__logo-btn {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s;
+}
+
+.register-form__logo-btn:hover { background: #0284c7; }
+
+.register-form__logo-btn svg { width: 1rem; height: 1rem; }
+
+.register-form__logo-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.register-form__pwd-wrap { position: relative; }
+
+.register-form__pwd-wrap .register-form__input { padding-right: 3rem; }
+
+.register-form__pwd-toggle {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.25rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.register-form__pwd-toggle:hover { color: #fff; }
+
+.register-form__pwd-toggle svg { width: 1.25rem; height: 1.25rem; }
+
+.register-form__toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  max-width: min(22rem, calc(100vw - 2rem));
+  padding: 1rem 1.25rem;
+  font-size: 0.875rem;
+  color: #fff;
+  background: rgba(34, 197, 94, 0.92);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
