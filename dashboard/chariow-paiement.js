@@ -265,6 +265,37 @@ export function rendreCatalogueLicence(uid = null) {
 }
 
 /**
+ * Met en évidence la carte correspondant à l'intention vitrine (après consommation storage).
+ * @param {{ productId?: string|null, offreType?: string|null, periode?: string }|null} intent
+ */
+export function surlignerOffreIntentee(intent) {
+  if (!intent) return;
+
+  let cible = null;
+  if (intent.productId) {
+    cible = document.querySelector(`[data-chariow-product="${intent.productId}"]`);
+  }
+  if (!cible && intent.offreType) {
+    const periode = intent.periode || 'mensuel';
+    cible = document.querySelector(
+      `[data-chariow-offre="${intent.offreType}"][data-chariow-periode="${periode}"]`,
+    );
+  }
+  if (!cible && intent.offreType) {
+    cible = document.querySelector(`[data-chariow-offre="${intent.offreType}"]`);
+  }
+
+  const card = cible?.closest('.offer-card');
+  if (!card) return;
+
+  card.classList.add('offer-card--highlighted');
+  card.setAttribute('aria-selected', 'true');
+  requestAnimationFrame(() => {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+/**
  * Tableau admin : 10 produits + liens boutique (sans UID).
  */
 export function genererTableauAdminChariowHtml() {

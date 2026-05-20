@@ -12,13 +12,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "../shared/firebase.js";
 import { verifierSessionGeo } from "./session-geo.js";
-import { lireRedirectApresLogin, redirigerApresLogin } from "./post-login.js";
+import { aIntentAchatEnAttente } from "./intent-achat.js";
+import { redirigerApresLogin } from "./post-login.js";
 
 verifierSessionGeo();
 
 const hintEl = document.querySelector(".hint");
-if (hintEl && lireRedirectApresLogin("index.html") === "licence.html") {
-  hintEl.textContent = "Connectez-vous pour choisir votre abonnement (page Abonnements).";
+if (hintEl && aIntentAchatEnAttente()) {
+  hintEl.textContent = "Connectez-vous pour finaliser l'achat de l'offre sélectionnée (catalogue Chariow).";
 }
 
 const form                = document.getElementById("loginForm");
@@ -36,7 +37,7 @@ let pollingInterval  = null; // intervalle de vérification email
 onAuthStateChanged(auth, (user) => {
   if (user && user.emailVerified) {
     stopPolling();
-    redirigerApresLogin("index.html");
+    redirigerApresLogin();
   }
 });
 
@@ -99,7 +100,7 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    redirigerApresLogin("index.html");
+    redirigerApresLogin();
 
   } catch (err) {
     currentUser = null;
@@ -155,7 +156,7 @@ function startPolling() {
         errorEl.textContent = "✅ Email confirmé ! Redirection en cours…";
 
         // Rediriger après un court délai
-        setTimeout(() => redirigerApresLogin("index.html"), 1200);
+        setTimeout(() => redirigerApresLogin(), 1200);
       }
     } catch {
       // Ignorer les erreurs réseau temporaires

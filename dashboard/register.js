@@ -206,12 +206,9 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-// Vérifier si l'utilisateur est déjà connecté
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { redirigerApresLogin } from "./post-login.js";
 
 onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // Déjà connecté, rediriger vers le dashboard
-        window.location.href = 'index.html';
-    }
+    if (user && user.emailVerified) redirigerApresLogin();
 });

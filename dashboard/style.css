@@ -396,6 +396,11 @@ body.nav-open {
   border: 1px solid #475569;
 }
 .offer-card--free { border-color: rgba(148,163,184,.45); }
+.offer-card--highlighted {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px rgba(56,189,248,.35), 0 8px 24px rgba(14,165,233,.15);
+}
 .offer-card--amber   { border-color: rgba(245,158,11,.4); }
 .offer-card--cyan    { border-color: rgba(34,211,238,.4); }
 .offer-card--indigo  { border-color: rgba(129,140,248,.4); }

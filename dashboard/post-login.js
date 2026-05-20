@@ -1,6 +1,11 @@
 /**
- * Redirection après connexion — évite d'envoyer l'utilisateur directement vers Chariow.
+ * Redirection après connexion — intention d'achat ou dashboard.
  */
+import {
+  aIntentAchatEnAttente,
+  PAGE_CATALOGUE,
+  PAGE_DASHBOARD_DEFAUT,
+} from './intent-achat.js';
 
 const PAGES_AUTORISEES = new Set([
   'index.html',
@@ -10,10 +15,10 @@ const PAGES_AUTORISEES = new Set([
 ]);
 
 /**
- * Lit la cible post-login depuis ?redirect= ou ?next= (chemins relatifs dashboard uniquement).
- * @param {string} [defaut='index.html']
+ * Lit ?redirect= / ?next= (priorité moindre que intention d'achat).
+ * @param {string} [defaut]
  */
-export function lireRedirectApresLogin(defaut = 'index.html') {
+export function lireRedirectApresLogin(defaut = PAGE_DASHBOARD_DEFAUT) {
   const params = new URLSearchParams(window.location.search);
   const brut = (params.get('redirect') || params.get('next') || '').trim();
   if (!brut) return defaut;
@@ -30,7 +35,15 @@ export function lireRedirectApresLogin(defaut = 'index.html') {
   return defaut;
 }
 
-/** Redirige vers la page demandée (ou défaut). */
-export function redirigerApresLogin(defaut = 'index.html') {
+/**
+ * Après auth réussie :
+ * - produit en attente → licence.html (catalogue)
+ * - sinon → fleet.html ou ?redirect=
+ */
+export function redirigerApresLogin(defaut = PAGE_DASHBOARD_DEFAUT) {
+  if (aIntentAchatEnAttente()) {
+    window.location.replace(PAGE_CATALOGUE);
+    return;
+  }
   window.location.replace(lireRedirectApresLogin(defaut));
 }

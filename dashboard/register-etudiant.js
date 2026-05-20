@@ -29,9 +29,10 @@ const errorEl        = document.getElementById('errorMessage');
 const successEl      = document.getElementById('successMessage');
 const submitBtn      = document.getElementById('submitBtn');
 
-// Rediriger si déjà connecté
+import { redirigerApresLogin } from './post-login.js';
+
 onAuthStateChanged(auth, (user) => {
-  if (user && user.emailVerified) window.location.replace('index.html');
+  if (user && user.emailVerified) redirigerApresLogin();
 });
 
 // ─── Soumission ───────────────────────────────────────────────
