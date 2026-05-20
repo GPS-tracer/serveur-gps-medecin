@@ -260,7 +260,7 @@ export function genererGrilleOffresHtml(filterIds = null, { inclureGratuit = tru
 export function rendreCatalogueLicence(uid = null) {
   const el = document.getElementById('catalogueOffres');
   if (!el) return;
-  el.innerHTML = genererGrilleOffresHtml();
+  el.innerHTML = genererGrilleOffresHtml(null, { inclureGratuit: !uid });
   if (uid) injecterLiensChariow(uid);
 }
 

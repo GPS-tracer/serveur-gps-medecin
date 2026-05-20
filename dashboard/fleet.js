@@ -1,6 +1,7 @@
 ﻿import { auth, db, agentsPath } from "../shared/firebase.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { brancherBoutonDeconnexion, deconnecter } from "./deconnexion.js";
+import { brancherBoutonDeconnexion } from "./deconnexion.js";
+import { exigerSessionDashboard } from "./auth-session.js";
 import { genererListeUpsellHtml } from "./chariow-paiement.js";
 import { showQuotaEpuise } from "./quota-ui.js";
 
@@ -35,13 +36,10 @@ const IS_FLEET_PAGE = Boolean(document.getElementById('addAgentForm'));
 
 // ─── Auth (page flotte uniquement) ────────────────────────────
 if (IS_FLEET_PAGE) {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) { window.location.href = 'login.html'; return; }
-    if (!user.emailVerified) { await deconnecter('login.html'); return; }
+  async function demarrerPageFlotte() {
+    currentUser = await exigerSessionDashboard('login.html');
 
-    currentUser = user;
-
-    const companyRef = ref(db, `companies/${user.uid}`);
+    const companyRef = ref(db, `companies/${currentUser.uid}`);
     const snapshot = await get(companyRef);
     if (snapshot.exists()) {
       const company = snapshot.val();
@@ -50,8 +48,14 @@ if (IS_FLEET_PAGE) {
       renderWelcomeBanner(name);
     }
 
-    listenToAgents(user.uid);
+    listenToAgents(currentUser.uid);
     await syncAddAgentUi();
+  }
+
+  demarrerPageFlotte().catch(() => {});
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user && currentUser) window.location.href = 'login.html';
   });
 
   brancherBoutonDeconnexion('#btnSignOut');

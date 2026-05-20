@@ -10,8 +10,11 @@
 import { auth, db } from '../shared/firebase.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { brancherBoutonDeconnexion } from './deconnexion.js';
+import { exigerSessionDashboard } from './auth-session.js';
 import { ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 import { rendreCatalogueLicence } from './chariow-paiement.js';
+
+const LOGIN_LICENCE = 'login.html?redirect=licence.html';
 
 // ─── Éléments DOM ───────────────────────────────────────────
 const statusContent   = document.getElementById('statusContent');
@@ -32,15 +35,19 @@ if (catalogueEl && !catalogueEl.innerHTML.trim()) {
   catalogueEl.innerHTML = '<p class="text-slate-400 text-sm text-center py-8 col-span-full">Chargement du catalogue…</p>';
 }
 
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    window.location.replace('login.html?redirect=licence.html');
-    return;
-  }
-  currentUser = user;
-  rendreCatalogueLicence(user.uid);
+async function demarrerPageLicence() {
+  currentUser = await exigerSessionDashboard(LOGIN_LICENCE);
+  rendreCatalogueLicence(currentUser.uid);
   loadFreemiumStatus();
   listenLicenceHistory();
+}
+
+demarrerPageLicence().catch(() => { /* redirect login en cours */ });
+
+onAuthStateChanged(auth, (user) => {
+  if (!user && currentUser) {
+    window.location.replace(LOGIN_LICENCE);
+  }
 });
 
 brancherBoutonDeconnexion('#btnSignOut');

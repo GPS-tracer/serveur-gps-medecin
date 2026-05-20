@@ -12,6 +12,7 @@
 import { auth, db } from '../shared/firebase.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { brancherBoutonDeconnexion } from './deconnexion.js';
+import { exigerSessionDashboard } from './auth-session.js';
 import { genererListeUpsellHtml } from './chariow-paiement.js';
 import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
@@ -47,20 +48,22 @@ let currentUser = null;
 })();
 
 // ─── Auth ─────────────────────────────────────────────────────
-onAuthStateChanged(auth, async (user) => {
-  if (!user || !user.emailVerified) {
-    window.location.replace('login.html');
-    return;
-  }
-  currentUser = user;
-  authLoading.hidden = true;
-  dashRoot.hidden    = false;
+async function demarrerPageRapport() {
+  currentUser = await exigerSessionDashboard('login.html');
+  if (authLoading) authLoading.hidden = true;
+  if (dashRoot) dashRoot.hidden = false;
 
   await Promise.all([
     chargerAgents(),
     chargerQuota(),
     ecouterHistorique(),
   ]);
+}
+
+demarrerPageRapport().catch(() => {});
+
+onAuthStateChanged(auth, (user) => {
+  if (!user && currentUser) window.location.replace('login.html');
 });
 
 brancherBoutonDeconnexion('#btnSignOut');
