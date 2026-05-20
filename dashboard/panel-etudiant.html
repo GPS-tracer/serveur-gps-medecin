@@ -25,13 +25,22 @@
     <p class="text-slate-400 text-sm">Chargement de votre espace…</p>
   </div>
 
+  <!-- Overlay mobile sidebar -->
+  <div id="sidebarOverlay" aria-hidden="true"></div>
+
   <div id="dashboard-root" class="flex h-screen" hidden>
 
     <!-- ── Sidebar étudiant ── -->
-    <aside class="flex flex-col w-60 flex-shrink-0 bg-slate-900 border-r border-slate-800 h-screen">
+    <aside class="sidebar-etudiant flex flex-col w-60 flex-shrink-0 bg-slate-900 border-r border-slate-800 h-screen">
 
       <!-- Identité -->
       <div class="px-5 pt-6 pb-4 border-b border-slate-800">
+        <!-- Bouton fermeture sidebar (mobile) -->
+        <button id="sidebarClose"
+          class="md:hidden mb-3 flex items-center gap-2 text-slate-400 hover:text-white text-xs transition-colors"
+          aria-label="Fermer le menu">
+          ✕ Fermer
+        </button>
         <div class="flex items-center gap-3 mb-3">
           <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-xl flex-shrink-0">
             🎓
@@ -84,6 +93,17 @@
 
       <!-- ── Onglet : Mon suivi ── -->
       <div id="tab-suivi" class="tab-content p-6 max-w-3xl mx-auto">
+
+        <!-- Bouton hamburger mobile -->
+        <div class="md:hidden flex items-center gap-3 mb-5">
+          <button id="sidebarToggle" aria-label="Ouvrir le menu"
+            class="flex items-center justify-center w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 hover:bg-indigo-500/20 transition-colors">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <span class="text-sm font-semibold text-white">Mon espace étudiant</span>
+        </div>
 
         <h2 class="text-xl font-bold text-white mb-1">Mon suivi en temps réel</h2>
         <p class="text-slate-400 text-sm mb-6">Votre position est partagée avec votre parent ou établissement.</p>
@@ -354,5 +374,23 @@
     .tab-btn:hover { background: rgba(99,102,241,.08); color: #e2e8f0; }
     .tab-btn--active { background: rgba(99,102,241,.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,.25); }
   </style>
+
+  <!-- ── Sidebar mobile : hamburger / overlay ── -->
+  <script>
+    (function () {
+      const sidebar  = document.querySelector('.sidebar-etudiant');
+      const overlay  = document.getElementById('sidebarOverlay');
+      const btnOpen  = document.getElementById('sidebarToggle');
+      const btnClose = document.getElementById('sidebarClose');
+
+      function openSidebar()  { sidebar?.classList.add('is-open');  overlay?.classList.add('is-open');  document.body.style.overflow = 'hidden'; }
+      function closeSidebar() { sidebar?.classList.remove('is-open'); overlay?.classList.remove('is-open'); document.body.style.overflow = ''; }
+
+      btnOpen?.addEventListener('click', openSidebar);
+      btnClose?.addEventListener('click', closeSidebar);
+      overlay?.addEventListener('click', closeSidebar);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSidebar(); });
+    })();
+  </script>
 </body>
 </html>

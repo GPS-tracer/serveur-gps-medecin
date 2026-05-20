@@ -12,7 +12,7 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/fi
 import { brancherBoutonDeconnexion } from './deconnexion.js';
 import { ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 import { showQuotaEpuise } from './fleet.js';
-import { declencherPaiementChariow } from './chariow-paiement.js';
+import { declencherPaiementChariow, injecterLiensChariow } from './chariow-paiement.js';
 
 window.declencherPaiementChariow = declencherPaiementChariow;
 
@@ -38,42 +38,9 @@ onAuthStateChanged(auth, (user) => {
   currentUser = user;
   loadFreemiumStatus();
   listenLicenceHistory();
-  brancherBoutonsChariow();
+  // Injecter les vrais href Chariow sur tous les boutons — clic 100% natif
+  injecterLiensChariow(user.uid);
 });
-
-function brancherBoutonsChariow() {
-  document.querySelectorAll('[data-chariow-offre]').forEach((btn) => {
-    if (btn.dataset.chariowBound === '1') return;
-    btn.dataset.chariowBound = '1';
-    btn.addEventListener('click', () => {
-      if (!currentUser) {
-        showMessage('Connectez-vous pour lancer un paiement.', 'error');
-        return;
-      }
-      // Feedback visuel immédiat
-      const originalText = btn.textContent;
-      btn.textContent = '⏳ Ouverture…';
-      btn.disabled = true;
-
-      try {
-        declencherPaiementChariow(
-          btn.dataset.chariowOffre,
-          btn.dataset.chariowPeriode || 'mensuel',
-          currentUser.uid,
-        );
-        // Restaurer le bouton après 1.5s
-        setTimeout(() => {
-          btn.textContent = originalText;
-          btn.disabled = false;
-        }, 1500);
-      } catch (err) {
-        btn.textContent = originalText;
-        btn.disabled = false;
-        showMessage(err.message || 'Impossible d\'ouvrir le paiement.', 'error');
-      }
-    });
-  });
-}
 
 brancherBoutonDeconnexion('#btnSignOut');
 

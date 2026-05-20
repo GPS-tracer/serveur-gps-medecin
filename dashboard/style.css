@@ -120,11 +120,106 @@ html, body { margin: 0; height: 100%; font-family: "Inter", "Segoe UI", system-u
 .sidebar-new ::-webkit-scrollbar-track { background: transparent; }
 .sidebar-new ::-webkit-scrollbar-thumb { background: #1e3254; border-radius: 4px; }
 
-/* ── Responsive mobile ── */
-@media (max-width: 768px) {
-  #dashboard-root { flex-direction: column; }
-  .sidebar-new    { width: 100%; height: auto; flex-direction: row; overflow-x: auto; }
-  .sidebar-new nav { display: flex; flex-direction: row; padding: .5rem; }
-  .sidebar-new nav .nav-item span:not(.ml-auto) { display: none; }
-  #deviceList, #emptyState { display: none; }
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE MOBILE — sidebar escamotable + overlay
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Bouton hamburger (visible uniquement sur mobile) ── */
+#sidebarToggle {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 2.25rem; height: 2.25rem;
+  border-radius: .5rem;
+  background: rgba(14,165,233,.1);
+  border: 1px solid rgba(14,165,233,.25);
+  color: #38bdf8;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .15s;
+}
+#sidebarToggle:hover { background: rgba(14,165,233,.2); }
+
+/* ── Overlay sombre derrière la sidebar ouverte ── */
+#sidebarOverlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 39;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(2px);
+}
+#sidebarOverlay.is-open { display: block; }
+
+@media (max-width: 767px) {
+
+  /* Afficher le bouton hamburger */
+  #sidebarToggle { display: flex; }
+
+  /* ── Dashboard index.html ── */
+  #dashboard-root {
+    flex-direction: column;
+    height: 100dvh;          /* dynamic viewport height — évite le bug iOS */
+    overflow: hidden;
+  }
+
+  /* Sidebar : hors écran par défaut, glisse depuis la gauche */
+  .sidebar-new {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    width: min(80vw, 280px) !important;
+    height: 100dvh !important;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto;
+  }
+  .sidebar-new.is-open {
+    transform: translateX(0);
+  }
+
+  /* Zone carte : plein écran */
+  #dashboard-root > div:last-child {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+  }
+
+  /* Carte flottante historique : repositionnée en bas, pleine largeur */
+  #dashboard-root .absolute.bottom-6.left-6 {
+    left: .75rem !important;
+    right: .75rem !important;
+    bottom: .75rem !important;
+    width: auto !important;
+  }
+
+  /* Leaflet controls : remonter au-dessus de la carte flottante */
+  .leaflet-bottom.leaflet-left { bottom: 160px !important; }
+
+  /* ── panel-etudiant.html ── */
+  .sidebar-etudiant {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    width: min(80vw, 260px) !important;
+    height: 100dvh !important;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto;
+  }
+  .sidebar-etudiant.is-open {
+    transform: translateX(0);
+  }
+
+  /* Contenu principal étudiant : plein écran */
+  .sidebar-etudiant ~ main {
+    width: 100% !important;
+    overflow-y: auto;
+  }
+
+  /* Calendrier assiduité : cellules plus grandes sur mobile */
+  #calendrierAssiduite {
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: .25rem !important;
+  }
+  #calendrierAssiduite > div {
+    min-height: 1.75rem;
+  }
 }
