@@ -12,8 +12,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "../shared/firebase.js";
 import { verifierSessionGeo } from "./session-geo.js";
+import { lireRedirectApresLogin, redirigerApresLogin } from "./post-login.js";
 
 verifierSessionGeo();
+
+const hintEl = document.querySelector(".hint");
+if (hintEl && lireRedirectApresLogin("index.html") === "licence.html") {
+  hintEl.textContent = "Connectez-vous pour choisir votre abonnement (page Abonnements).";
+}
 
 const form                = document.getElementById("loginForm");
 const emailEl             = document.getElementById("email");
@@ -30,7 +36,7 @@ let pollingInterval  = null; // intervalle de vérification email
 onAuthStateChanged(auth, (user) => {
   if (user && user.emailVerified) {
     stopPolling();
-    window.location.replace("index.html");
+    redirigerApresLogin("index.html");
   }
 });
 
@@ -93,8 +99,7 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    // Email déjà vérifié → dashboard
-    window.location.replace("index.html");
+    redirigerApresLogin("index.html");
 
   } catch (err) {
     currentUser = null;
@@ -150,7 +155,7 @@ function startPolling() {
         errorEl.textContent = "✅ Email confirmé ! Redirection en cours…";
 
         // Rediriger après un court délai
-        setTimeout(() => window.location.replace("index.html"), 1200);
+        setTimeout(() => redirigerApresLogin("index.html"), 1200);
       }
     } catch {
       // Ignorer les erreurs réseau temporaires

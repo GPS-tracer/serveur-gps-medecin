@@ -11,8 +11,7 @@ import { auth, db } from '../shared/firebase.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { brancherBoutonDeconnexion } from './deconnexion.js';
 import { ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-import { showQuotaEpuise } from './fleet.js';
-import { genererGrilleOffresHtml, injecterLiensChariow } from './chariow-paiement.js';
+import { rendreCatalogueLicence } from './chariow-paiement.js';
 
 // ─── Éléments DOM ───────────────────────────────────────────
 const statusContent   = document.getElementById('statusContent');
@@ -28,17 +27,20 @@ const btnSignOut      = document.getElementById('btnSignOut');
 let currentUser = null;
 
 // ─── Auth ────────────────────────────────────────────────────
+const catalogueEl = document.getElementById('catalogueOffres');
+if (catalogueEl && !catalogueEl.innerHTML.trim()) {
+  catalogueEl.innerHTML = '<p class="text-slate-400 text-sm text-center py-8 col-span-full">Chargement du catalogue…</p>';
+}
+
 onAuthStateChanged(auth, (user) => {
   if (!user) {
-    window.location.href = 'login.html';
+    window.location.replace('login.html?redirect=licence.html');
     return;
   }
   currentUser = user;
-  const catalogue = document.getElementById('catalogueOffres');
-  if (catalogue) catalogue.innerHTML = genererGrilleOffresHtml();
+  rendreCatalogueLicence(user.uid);
   loadFreemiumStatus();
   listenLicenceHistory();
-  injecterLiensChariow(user.uid);
 });
 
 brancherBoutonDeconnexion('#btnSignOut');

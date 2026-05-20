@@ -9,9 +9,10 @@
  *  - Statistiques globales (sociétés, abonnements, clés)
  */
 
-'use strict';
+import { genererTableauAdminChariowHtml } from './chariow-paiement.js';
 
 // ─── Éléments DOM ────────────────────────────────────────────
+const adminCatalogueChariow = document.getElementById('adminCatalogueChariow');
 const adminAuth        = document.getElementById('adminAuth');
 const adminPanel       = document.getElementById('adminPanel');
 const adminSecretInput = document.getElementById('adminSecretInput');
@@ -75,6 +76,9 @@ btnAdminAuth.addEventListener('click', async () => {
     adminSecret = secret;
     adminAuth.classList.add('hidden');
     adminPanel.classList.remove('hidden');
+    if (adminCatalogueChariow) {
+      adminCatalogueChariow.innerHTML = genererTableauAdminChariowHtml();
+    }
     await chargerStats();
 
   } catch (err) {

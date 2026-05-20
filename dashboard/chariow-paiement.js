@@ -254,10 +254,62 @@ export function genererGrilleOffresHtml(filterIds = null, { inclureGratuit = tru
 /**
  * Liste compacte pour bannières quota (fleet / rapport).
  */
+/**
+ * Affiche le catalogue sur licence.html (grille + liens Chariow si UID).
+ */
+export function rendreCatalogueLicence(uid = null) {
+  const el = document.getElementById('catalogueOffres');
+  if (!el) return;
+  el.innerHTML = genererGrilleOffresHtml();
+  if (uid) injecterLiensChariow(uid);
+}
+
+/**
+ * Tableau admin : 10 produits + liens boutique (sans UID).
+ */
+export function genererTableauAdminChariowHtml() {
+  const lignes = CATALOGUE_OFFRES.flatMap((o) =>
+    o.periodes.map((p) => {
+      const url = `${CHARIOW_SHOP_BASE}/${p.productId}`;
+      return `
+        <tr class="border-b border-slate-700/80 hover:bg-slate-700/30">
+          <td class="py-2 pr-3 text-slate-200 text-sm">${o.icon} ${o.titre}</td>
+          <td class="py-2 pr-3 text-slate-400 text-xs font-mono">${p.productId}</td>
+          <td class="py-2 pr-3 text-sky-300 text-sm whitespace-nowrap">${p.prixLabel}</td>
+          <td class="py-2">
+            <a href="${url}" target="_blank" rel="noopener noreferrer"
+               class="text-sky-400 hover:text-sky-300 text-xs font-medium break-all">${url}</a>
+          </td>
+        </tr>`;
+    }),
+  ).join('');
+
+  return `
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 mb-8 overflow-x-auto">
+      <h3 class="text-lg font-bold mb-2 flex items-center gap-2">🛒 Catalogue Chariow (10 produits)</h3>
+      <p class="text-slate-400 text-sm mb-4">
+        Liens boutique — les clients paient depuis
+        <a href="licence.html" class="text-sky-400 hover:underline">Abonnements</a>
+        après connexion (UID ajouté automatiquement).
+      </p>
+      <table class="w-full text-left border-collapse min-w-[640px]">
+        <thead>
+          <tr class="text-slate-500 text-xs uppercase border-b border-slate-600">
+            <th class="pb-2 pr-3">Offre</th>
+            <th class="pb-2 pr-3">ID produit</th>
+            <th class="pb-2 pr-3">Prix</th>
+            <th class="pb-2">Lien Chariow</th>
+          </tr>
+        </thead>
+        <tbody>${lignes}</tbody>
+      </table>
+    </div>`;
+}
+
 export function genererListeUpsellHtml(uid, filterIds = ['particulier', 'flotte', 'eleve', 'etudiant']) {
   if (!uid) {
     return `<p class="text-slate-400 text-xs text-center">
-      <a href="licence.html" class="text-sky-400 hover:underline">Voir les offres</a>
+      <a href="licence.html" class="text-sky-400 hover:underline">Choisir une offre (Abonnements)</a>
     </p>`;
   }
 

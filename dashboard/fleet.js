@@ -2,6 +2,9 @@
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { brancherBoutonDeconnexion, deconnecter } from "./deconnexion.js";
 import { genererListeUpsellHtml } from "./chariow-paiement.js";
+import { showQuotaEpuise } from "./quota-ui.js";
+
+export { showQuotaEpuise };
 import { ref, set, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // Éléments DOM
@@ -28,8 +31,11 @@ let agentLimitState = { max: 1, count: 0, allowed: true, estIllimite: false, typ
 const vehicleIcons = { moto: '🏍️', voiture: '🚗', camion: '🚚' };
 const vehicleLabels = { moto: 'Moto (Livraison/Taxi-moto)', voiture: 'Voiture', camion: 'Camion' };
 
-// ─── Auth ─────────────────────────────────────────────────────
-onAuthStateChanged(auth, async (user) => {
+const IS_FLEET_PAGE = Boolean(document.getElementById('addAgentForm'));
+
+// ─── Auth (page flotte uniquement) ────────────────────────────
+if (IS_FLEET_PAGE) {
+  onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = 'login.html'; return; }
     if (!user.emailVerified) { await deconnecter('login.html'); return; }
 
@@ -38,18 +44,19 @@ onAuthStateChanged(auth, async (user) => {
     const companyRef = ref(db, `companies/${user.uid}`);
     const snapshot = await get(companyRef);
     if (snapshot.exists()) {
-        const company = snapshot.val();
-        const name = company.companyName || 'Ma Société';
-        if (companyNameEl) companyNameEl.textContent = name;
-        renderWelcomeBanner(name);
+      const company = snapshot.val();
+      const name = company.companyName || 'Ma Société';
+      if (companyNameEl) companyNameEl.textContent = name;
+      renderWelcomeBanner(name);
     }
 
     listenToAgents(user.uid);
     await syncAddAgentUi();
-});
+  });
 
-brancherBoutonDeconnexion('#btnSignOut');
-brancherBoutonDeconnexion('#btnSignOutMobile');
+  brancherBoutonDeconnexion('#btnSignOut');
+  brancherBoutonDeconnexion('#btnSignOutMobile');
+}
 
 // ─── Helpers UI ───────────────────────────────────────────────
 function showError(message) {
@@ -175,7 +182,7 @@ async function syncAddAgentUi() {
 }
 
 // ─── Soumission formulaire ────────────────────────────────────
-form.addEventListener('submit', async (e) => {
+if (IS_FLEET_PAGE) form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!currentUser) { showError('Vous devez être connecté'); return; }
 
@@ -269,9 +276,10 @@ function showFreemiumBlock(limitData) {
 // ─── Suppression ──────────────────────────────────────────────
 window.deleteAgent = (agentId) => { agentToDelete = agentId; deleteModal.classList.remove('hidden'); };
 
-cancelDelete.addEventListener('click', () => { deleteModal.classList.add('hidden'); agentToDelete = null; });
+if (IS_FLEET_PAGE) {
+cancelDelete?.addEventListener('click', () => { deleteModal.classList.add('hidden'); agentToDelete = null; });
 
-confirmDelete.addEventListener('click', async () => {
+confirmDelete?.addEventListener('click', async () => {
     if (!agentToDelete || !currentUser) return;
     try {
         await remove(ref(db, `${agentsPath(currentUser.uid)}/${agentToDelete}`));
@@ -283,9 +291,10 @@ confirmDelete.addEventListener('click', async () => {
     }
 });
 
-deleteModal.addEventListener('click', (e) => {
+deleteModal?.addEventListener('click', (e) => {
     if (e.target === deleteModal) { deleteModal.classList.add('hidden'); agentToDelete = null; }
 });
+}
 
 // ─── Bandeau de bienvenue ─────────────────────────────────────
 function renderWelcomeBanner(companyName) {
@@ -317,22 +326,3 @@ function renderWelcomeBanner(companyName) {
 
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-// ─── showQuotaEpuise (export pour licence.js) ─────────────────
-export function showQuotaEpuise(errData, ancre = null) {
-    document.getElementById('quotaEpuiseBlock')?.remove();
-    const uid = currentUser?.uid;
-    const offresHtml = `<div class="offer-upsell">${genererListeUpsellHtml(uid)}</div>`;
-    const div = document.createElement('div');
-    div.id = 'quotaEpuiseBlock';
-    div.className = 'my-4 bg-amber-500/10 border border-amber-500/40 rounded-xl p-4 text-sm';
-    div.innerHTML = `
-        <div class="flex items-start justify-between gap-2 mb-3">
-            <p class="text-amber-300 font-semibold leading-snug">⏳ Vous avez épuisé votre impression gratuite pour aujourd'hui.</p>
-            <button onclick="document.getElementById('quotaEpuiseBlock').remove()" class="text-slate-500 hover:text-slate-300 text-lg leading-none flex-shrink-0">✕</button>
-        </div>
-        <p class="text-slate-400 text-xs mb-3">Pour débloquer ce rapport, choisissez une offre via Mobile Money :</p>
-        <div class="flex flex-col gap-2">${offresHtml}</div>
-        <p class="text-slate-500 text-xs mt-3 text-center">Après paiement, activez votre clé dans <a href="licence.html" class="text-sky-400 hover:underline">Licences & Packs</a>.</p>`;
-    if (ancre?.parentNode) ancre.parentNode.insertBefore(div, ancre.nextSibling);
-    else (document.querySelector('.container') || document.body).prepend(div);
-}
