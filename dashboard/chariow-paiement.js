@@ -111,68 +111,136 @@ export const CATALOGUE_OFFRES = [
   {
     id: 'wifi',
     icon: '📶',
-    titre: 'Option Réseau',
-    desc: 'Suivi réseau anti-vol',
+    titre: 'Anti-vol Réseau',
+    desc: 'Option GPS Tracker — suivi réseau anti-vol',
     accent: 'slate',
     periodes: [
-      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.WIFI_MENSUEL,        montantFcfa: 150,    prixLabel: '150 FCFA/mois' },
-      { periode: 'annuel',  productId: CHARIOW_PRODUCTS.WIFI_ANNUEL,         montantFcfa: 1670,   prixLabel: '1 670 FCFA/an' },
+      {
+        periode: 'mensuel',
+        productId: CHARIOW_PRODUCTS.WIFI_MENSUEL,
+        libelleChariow: 'Option GPS Tracker - Anti-vol Réseau Mensuel',
+        montantFcfa: 150,
+        prixLabel: '150 FCFA/mois',
+      },
+      {
+        periode: 'annuel',
+        productId: CHARIOW_PRODUCTS.WIFI_ANNUEL,
+        libelleChariow: 'Option GPS Tracker - Anti-vol Réseau Annuel',
+        montantFcfa: 1670,
+        prixLabel: '1 670 FCFA/an',
+      },
     ],
   },
   {
     id: 'particulier',
     icon: '⭐',
-    titre: 'Particulier Premium',
-    desc: '1 appareil · rapports illimités',
+    titre: 'Particulier',
+    desc: 'Licence GPS Tracker — 1 appareil, rapports illimités',
     accent: 'amber',
     periodes: [
-      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.PARTICULIER_MENSUEL, montantFcfa: 10000,  prixLabel: '10 000 FCFA/mois' },
-      { periode: 'annuel',  productId: CHARIOW_PRODUCTS.PARTICULIER_ANNUEL,  montantFcfa: 111240, prixLabel: '111 240 FCFA/an' },
+      {
+        periode: 'mensuel',
+        productId: CHARIOW_PRODUCTS.PARTICULIER_MENSUEL,
+        libelleChariow: 'Licence GPS Tracker - Particulier Mensuelle',
+        montantFcfa: 10000,
+        prixLabel: '10 000 FCFA/mois',
+      },
+      {
+        periode: 'annuel',
+        productId: CHARIOW_PRODUCTS.PARTICULIER_ANNUEL,
+        libelleChariow: 'Licence GPS Tracker - Particulier Annuelle',
+        montantFcfa: 111240,
+        prixLabel: '111 240 FCFA/an',
+      },
     ],
   },
   {
     id: 'eleve',
     icon: '🎒',
-    titre: 'Scolaire Élève',
-    desc: '≤ 15 ans · suivi parental',
+    titre: 'Licence Élève',
+    desc: 'Application GPS Tracker — ≤ 15 ans, suivi parental',
     accent: 'cyan',
     periodes: [
-      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.ELEVE_MENSUEL,       montantFcfa: 3000,   prixLabel: '3 000 FCFA/mois' },
-      { periode: 'annuel',  productId: CHARIOW_PRODUCTS.ELEVE_ANNUEL,        montantFcfa: 33370,  prixLabel: '33 370 FCFA/an' },
+      {
+        periode: 'mensuel',
+        productId: CHARIOW_PRODUCTS.ELEVE_MENSUEL,
+        libelleChariow: 'Application GPS Tracker - Licence Élève Mensuelle',
+        montantFcfa: 3000,
+        prixLabel: '3 000 FCFA/mois',
+      },
+      {
+        periode: 'annuel',
+        productId: CHARIOW_PRODUCTS.ELEVE_ANNUEL,
+        libelleChariow: 'Application GPS Tracker - Licence Élève Annuelle',
+        montantFcfa: 33370,
+        prixLabel: '33 370 FCFA/an',
+      },
     ],
   },
   {
     id: 'etudiant',
     icon: '🎓',
-    titre: 'Scolaire Étudiant',
-    desc: 'Université · assiduité',
+    titre: 'Licence Étudiant',
+    desc: 'Application GPS Tracker — université, assiduité',
     accent: 'indigo',
     periodes: [
-      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.ETUDIANT_MENSUEL,    montantFcfa: 3000,   prixLabel: '3 000 FCFA/mois' },
-      { periode: 'annuel',  productId: CHARIOW_PRODUCTS.ETUDIANT_ANNUEL,     montantFcfa: 33370,  prixLabel: '33 370 FCFA/an' },
+      {
+        periode: 'mensuel',
+        productId: CHARIOW_PRODUCTS.ETUDIANT_MENSUEL,
+        libelleChariow: 'Application GPS Tracker - Licence Étudiant Mensuelle',
+        montantFcfa: 3000,
+        prixLabel: '3 000 FCFA/mois',
+      },
+      {
+        periode: 'annuel',
+        productId: CHARIOW_PRODUCTS.ETUDIANT_ANNUEL,
+        libelleChariow: 'GPS Tracker - Étudiant Annuel',
+        montantFcfa: 33370,
+        prixLabel: '33 370 FCFA/an',
+      },
     ],
   },
   {
     id: 'flotte',
     icon: '🚛',
-    titre: 'Forfait Flotte B2B',
-    desc: 'Agents et rapports illimités',
+    titre: 'Forfait Flotte',
+    desc: 'GpSTracker — agents et rapports illimités (B2B)',
     accent: 'emerald',
     periodes: [
-      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.FORFAIT_FLOTTE,      montantFcfa: 25000,  prixLabel: '25 000 FCFA/mois', labelBtn: 'S\'abonner' },
+      {
+        periode: 'mensuel',
+        productId: CHARIOW_PRODUCTS.FORFAIT_FLOTTE,
+        libelleChariow: 'GpSTracker - Forfait Flotte',
+        montantFcfa: 25000,
+        prixLabel: '25 000 FCFA/mois',
+        labelBtn: 'S\'abonner',
+      },
     ],
   },
   {
     id: 'illimite',
     icon: '♾️',
-    titre: 'Accès Illimité',
-    desc: 'Premium permanent · agents et rapports illimités',
+    titre: 'Accès Illimité Premium',
+    desc: 'Pack permanent — agents et rapports illimités',
     accent: 'yellow',
     periodes: [
-      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.ACCES_ILLIMITE,      montantFcfa: 20000,  prixLabel: '20 000 FCFA', labelBtn: 'Acheter' },
+      {
+        periode: 'mensuel',
+        productId: CHARIOW_PRODUCTS.ACCES_ILLIMITE,
+        libelleChariow: 'Pack Accès Illimité Premium',
+        montantFcfa: 20000,
+        prixLabel: '20 000 FCFA',
+        labelBtn: 'Acheter',
+      },
     ],
   },
 ];
+
+/** URL boutique Chariow (avec UID optionnel pour le webhook). */
+export function urlProduitChariow(productId, uid = null) {
+  const base = `${CHARIOW_SHOP_BASE}/${productId}`;
+  return uid ? `${base}?uid=${encodeURIComponent(uid)}` : base;
+}
 
 /** Vérifie que chaque productId du catalogue existe dans CHARIOW_PRODUCTS */
 const IDS_OFFICIELS = new Set(Object.values(CHARIOW_PRODUCTS));
@@ -225,20 +293,31 @@ function cartePlanGratuit() {
     </article>`;
 }
 
-export function genererGrilleOffresHtml(filterIds = null, { inclureGratuit = true } = {}) {
+export function genererGrilleOffresHtml(filterIds = null, { inclureGratuit = true, uid = null } = {}) {
   const list = filterIds
     ? CATALOGUE_OFFRES.filter((o) => filterIds.includes(o.id))
     : CATALOGUE_OFFRES;
 
   const paid = list.map((o) => {
-    const btns = o.periodes.map((p) => `
-      <button type="button"
+    const btns = o.periodes.map((p) => {
+      const href = urlProduitChariow(p.productId, uid);
+      const libelle = p.libelleChariow || o.titre;
+      const sousTitre = p.labelBtn
+        ? `${p.labelBtn} — ${p.prixLabel}`
+        : `${p.periode === 'annuel' ? 'Annuel' : 'Mensuel'} — ${p.prixLabel}`;
+      return `
+      <a href="${href}"
+        target="_blank"
+        rel="noopener noreferrer"
         data-chariow-offre="${o.id}"
         data-chariow-periode="${p.periode}"
         data-chariow-product="${p.productId}"
-        class="${BTN_CLASS[o.accent] || BTN_CLASS.slate}">
-        ${p.labelBtn || (p.periode === 'annuel' ? 'Annuel' : 'Mensuel')} — ${p.prixLabel}
-      </button>`).join('');
+        class="${BTN_CLASS[o.accent] || BTN_CLASS.slate}"
+        title="${libelle}">
+        <span class="offer-card__btn-label">${libelle}</span>
+        <span class="offer-card__btn-prix">${sousTitre}</span>
+      </a>`;
+    }).join('');
 
     return `
       <article class="offer-card offer-card--${o.accent}">
@@ -330,7 +409,7 @@ export function rendreCatalogueLicence(uid = null, intent = null) {
 
   const el = document.getElementById('catalogueOffres');
   if (!el) return;
-  el.innerHTML = genererGrilleOffresHtml(null, { inclureGratuit: !uid });
+  el.innerHTML = genererGrilleOffresHtml(null, { inclureGratuit: !uid, uid });
   if (uid) injecterLiensChariow(uid);
 }
 

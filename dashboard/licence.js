@@ -32,11 +32,8 @@ const btnSignOut      = document.getElementById('btnSignOut');
 
 let currentUser = null;
 
-// ─── Auth ────────────────────────────────────────────────────
-const catalogueEl = document.getElementById('catalogueOffres');
-if (catalogueEl && !catalogueEl.innerHTML.trim()) {
-  catalogueEl.innerHTML = '<p class="text-slate-400 text-sm text-center py-8 col-span-full">Chargement du catalogue…</p>';
-}
+// Catalogue visible immédiatement (liens boutique ; UID ajouté après auth)
+rendreCatalogueLicence(null);
 
 async function demarrerPageLicence() {
   currentUser = await exigerSessionDashboard(pageLoginSiDeconnecte());
@@ -47,7 +44,16 @@ async function demarrerPageLicence() {
   listenLicenceHistory();
 }
 
-demarrerPageLicence().catch(() => { /* redirect login en cours */ });
+demarrerPageLicence().catch((err) => {
+  if (err?.message === 'AUTH_REQUIRED' || err?.message === 'EMAIL_NOT_VERIFIED') return;
+  const el = document.getElementById('catalogueOffres');
+  if (el) {
+    el.insertAdjacentHTML(
+      'afterbegin',
+      '<p class="text-amber-300 text-sm text-center py-2 col-span-full">Connexion requise pour lier le paiement à votre compte. Les liens ci-dessous ouvrent la boutique Chariow.</p>',
+    );
+  }
+});
 
 onAuthStateChanged(auth, (user) => {
   if (!user && currentUser) {
@@ -68,7 +74,7 @@ function formatKey(raw) {
   return (clean.match(/.{1,4}/g) || []).join('-').slice(0, 19);
 }
 
-licenceKeyInput.addEventListener('input', (e) => {
+licenceKeyInput?.addEventListener('input', (e) => {
   const pos    = e.target.selectionStart;
   const before = e.target.value.length;
   e.target.value = formatKey(e.target.value);
@@ -269,7 +275,7 @@ function listenLicenceHistory() {
 }
 
 // ─── Activation de la clé ────────────────────────────────────
-licenceForm.addEventListener('submit', async (e) => {
+licenceForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const key = licenceKeyInput.value.trim();
