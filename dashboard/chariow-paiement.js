@@ -47,6 +47,14 @@ export function construireUrlChariow(typeOffre, periode, uid) {
 export function injecterLiensChariow(uid) {
   if (!uid) return;
 
+  document.querySelectorAll('a[data-chariow-product]').forEach((el) => {
+    const productId = el.dataset.chariowProduct;
+    if (!productId) return;
+    el.href = urlProduitChariow(productId, uid);
+    el.target = '_blank';
+    el.rel = 'noopener noreferrer';
+  });
+
   document.querySelectorAll('[data-chariow-offre]').forEach((el) => {
     const type   = el.dataset.chariowOffre   || '';
     const periode = el.dataset.chariowPeriode || 'mensuel';
@@ -242,6 +250,29 @@ export function urlProduitChariow(productId, uid = null) {
   return uid ? `${base}?uid=${encodeURIComponent(uid)}` : base;
 }
 
+/**
+ * Les 10 produits Chariow officiels (libellés boutique + ID + lien).
+ * Source unique pour panel Abonnements, upsell et admin.
+ */
+export function listeProduitsChariowPlats() {
+  return CATALOGUE_OFFRES.flatMap((offre) =>
+    offre.periodes.map((p) => ({
+      offreId: offre.id,
+      icon: offre.icon,
+      periode: p.periode,
+      productId: p.productId,
+      libelleChariow: p.libelleChariow || offre.titre,
+      prixLabel: p.prixLabel,
+      url: urlProduitChariow(p.productId),
+    })),
+  );
+}
+
+/** Retrouve un produit plat par ID Chariow (prd_…). */
+export function produitChariowParId(productId) {
+  return listeProduitsChariowPlats().find((p) => p.productId === productId) || null;
+}
+
 /** Vérifie que chaque productId du catalogue existe dans CHARIOW_PRODUCTS */
 const IDS_OFFICIELS = new Set(Object.values(CHARIOW_PRODUCTS));
 for (const offre of CATALOGUE_OFFRES) {
@@ -397,6 +428,42 @@ export function genererFicheProduitSelectionneHtml(intent, uid) {
     </section>`;
 }
 
+/**
+ * Liste des 10 liens Chariow (noms officiels boutique) — panel Abonnements.
+ */
+export function genererListeComplete10ProduitsHtml(uid = null) {
+  const noteUid = uid
+    ? ''
+    : '<p class="chariow-liste__note">Connectez-vous pour ajouter votre compte au paiement (<code>?uid=</code>).</p>';
+
+  const lignes = listeProduitsChariowPlats().map((p) => {
+    const href = urlProduitChariow(p.productId, uid);
+    return `
+      <li class="chariow-liste__item">
+        <a href="${href}" target="_blank" rel="noopener noreferrer"
+           class="chariow-liste__link"
+           data-chariow-offre="${p.offreId}"
+           data-chariow-periode="${p.periode}"
+           data-chariow-product="${p.productId}"
+           title="${p.libelleChariow}">
+          <span class="chariow-liste__icon" aria-hidden="true">${p.icon}</span>
+          <span class="chariow-liste__body">
+            <span class="chariow-liste__titre">${p.libelleChariow}</span>
+            <span class="chariow-liste__meta">${p.prixLabel} · <code class="chariow-liste__id">${p.productId}</code></span>
+          </span>
+          <span class="chariow-liste__arrow" aria-hidden="true">→</span>
+        </a>
+      </li>`;
+  }).join('');
+
+  return `
+    <section class="chariow-liste" aria-labelledby="chariow-liste-titre">
+      <h3 id="chariow-liste-titre" class="chariow-liste__heading">🛒 Les 10 produits Chariow (liens officiels)</h3>
+      ${noteUid}
+      <ul class="chariow-liste__ul">${lignes}</ul>
+    </section>`;
+}
+
 export function rendreCatalogueLicence(uid = null, intent = null) {
   const ficheEl = document.getElementById('ficheProduitSelectionne');
   if (ficheEl && intent && uid) {
@@ -408,8 +475,15 @@ export function rendreCatalogueLicence(uid = null, intent = null) {
   }
 
   const el = document.getElementById('catalogueOffres');
-  if (!el) return;
-  el.innerHTML = genererGrilleOffresHtml(null, { inclureGratuit: !uid, uid });
+  if (el) {
+    el.innerHTML = genererGrilleOffresHtml(null, { inclureGratuit: !uid, uid });
+  }
+
+  const listeEl = document.getElementById('catalogueChariowListe');
+  if (listeEl) {
+    listeEl.innerHTML = genererListeComplete10ProduitsHtml(uid);
+  }
+
   if (uid) injecterLiensChariow(uid);
 }
 
@@ -448,21 +522,17 @@ export function surlignerOffreIntentee(intent) {
  * Tableau admin : 10 produits + liens boutique (sans UID).
  */
 export function genererTableauAdminChariowHtml() {
-  const lignes = CATALOGUE_OFFRES.flatMap((o) =>
-    o.periodes.map((p) => {
-      const url = `${CHARIOW_SHOP_BASE}/${p.productId}`;
-      return `
+  const lignes = listeProduitsChariowPlats().map((p) => `
         <tr class="border-b border-slate-700/80 hover:bg-slate-700/30">
-          <td class="py-2 pr-3 text-slate-200 text-sm">${o.icon} ${o.titre}</td>
+          <td class="py-2 pr-3 text-slate-200 text-sm">${p.icon} ${p.libelleChariow}</td>
           <td class="py-2 pr-3 text-slate-400 text-xs font-mono">${p.productId}</td>
           <td class="py-2 pr-3 text-sky-300 text-sm whitespace-nowrap">${p.prixLabel}</td>
           <td class="py-2">
-            <a href="${url}" target="_blank" rel="noopener noreferrer"
-               class="text-sky-400 hover:text-sky-300 text-xs font-medium break-all">${url}</a>
+            <a href="${p.url}" target="_blank" rel="noopener noreferrer"
+               data-chariow-product="${p.productId}"
+               class="text-sky-400 hover:text-sky-300 text-xs font-medium break-all">${p.url}</a>
           </td>
-        </tr>`;
-    }),
-  ).join('');
+        </tr>`).join('');
 
   return `
     <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 mb-8 overflow-x-auto">
@@ -486,21 +556,27 @@ export function genererTableauAdminChariowHtml() {
     </div>`;
 }
 
-export function genererListeUpsellHtml(uid, filterIds = ['particulier', 'flotte', 'eleve', 'etudiant']) {
+export function genererListeUpsellHtml(uid, filterIds = null) {
   if (!uid) {
     return `<p class="text-slate-400 text-xs text-center">
-      <a href="licence.html" class="text-sky-400 hover:underline">Choisir une offre (Abonnements)</a>
+      <a href="licence.html" class="text-sky-400 hover:underline">Voir les 10 offres Chariow (Abonnements)</a>
     </p>`;
   }
 
-  const items = CATALOGUE_OFFRES.filter((o) => filterIds.includes(o.id));
-  return items.map((o) => {
-    const p = o.periodes[0];
-    const url = construireUrlChariow(o.id, p.periode, uid);
+  const items = listeProduitsChariowPlats().filter(
+    (p) => !filterIds || filterIds.includes(p.offreId),
+  );
+
+  return items.map((p) => {
+    const url = urlProduitChariow(p.productId, uid);
     return `
       <a href="${url}" target="_blank" rel="noopener noreferrer"
-         class="offer-upsell__row">
-        <span class="offer-upsell__label">${o.icon} ${o.titre}</span>
+         class="offer-upsell__row"
+         data-chariow-offre="${p.offreId}"
+         data-chariow-periode="${p.periode}"
+         data-chariow-product="${p.productId}"
+         title="${p.libelleChariow}">
+        <span class="offer-upsell__label">${p.icon} ${p.libelleChariow}</span>
         <span class="offer-upsell__prix">${p.prixLabel}</span>
       </a>`;
   }).join('');

@@ -31,17 +31,18 @@ export const CHARIOW_SHOP_BASE = 'https://erpbbfef.mychariow.shop';
 /**
  * Catalogue officiel Chariow — détection stricte par ID produit (webhook + frontend).
  */
+/** IDs produits boutique https://erpbbfef.mychariow.shop — 10 offres officielles */
 export const CHARIOW_PRODUCTS = {
-  WIFI_MENSUEL:         'prd_ggudpxa3',
-  WIFI_ANNUEL:          'prd_ldq33m9h',
-  PARTICULIER_MENSUEL:  'prd_raupzm8z',
-  PARTICULIER_ANNUEL:   'prd_3iklqt66',
-  ELEVE_MENSUEL:        'prd_aotwqf',
-  ELEVE_ANNUEL:         'prd_ci4t10',
-  ETUDIANT_MENSUEL:     'prd_tv5t2h',
-  ETUDIANT_ANNUEL:      'prd_zaxkdc',
-  FORFAIT_FLOTTE:       'prd_zvj2cv',
-  ACCES_ILLIMITE:       'prd_7hj1hc',
+  WIFI_MENSUEL:         'prd_ggudpxa3', // Option GPS Tracker - Anti-vol Réseau Mensuel
+  WIFI_ANNUEL:          'prd_ldq33m9h', // Option GPS Tracker - Anti-vol Réseau Annuel
+  PARTICULIER_MENSUEL:  'prd_raupzm8z', // Licence GPS Tracker - Particulier Mensuelle
+  PARTICULIER_ANNUEL:   'prd_3iklqt66', // Licence GPS Tracker - Particulier Annuelle
+  ELEVE_MENSUEL:        'prd_aotwqf',   // Application GPS Tracker - Licence Élève Mensuelle
+  ELEVE_ANNUEL:         'prd_ci4t10',   // Application GPS Tracker - Licence Élève Annuelle
+  ETUDIANT_MENSUEL:     'prd_tv5t2h',   // Application GPS Tracker - Licence Étudiant Mensuelle
+  ETUDIANT_ANNUEL:      'prd_zaxkdc',   // GPS Tracker - Étudiant Annuel
+  FORFAIT_FLOTTE:       'prd_zvj2cv',   // GpSTracker - Forfait Flotte
+  ACCES_ILLIMITE:       'prd_7hj1hc',   // Pack Accès Illimité Premium
 };
 
 /** Jours ajoutés selon la période (mensuel / annuel) */
