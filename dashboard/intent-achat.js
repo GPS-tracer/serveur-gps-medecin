@@ -62,3 +62,6 @@ export const PAGE_CATALOGUE = 'licence.html';
 export const PAGE_DASHBOARD_DEFAUT = 'fleet.html';
 
 export const PAGE_LOGIN = 'login.html';
+
+/** Choix connexion vs inscription (après clic vitrine, non connecté). */
+export const PAGE_ACHAT_AUTH = 'achat-auth.html';

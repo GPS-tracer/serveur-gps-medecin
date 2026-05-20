@@ -12,14 +12,37 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "../shared/firebase.js";
 import { verifierSessionGeo } from "./session-geo.js";
-import { aIntentAchatEnAttente } from "./intent-achat.js";
+import { aIntentAchatEnAttente, lireIntentAchat } from "./intent-achat.js";
 import { redirigerApresLogin } from "./post-login.js";
+import { libelleOffreIntent } from "./chariow-paiement.js";
 
 verifierSessionGeo();
 
 const hintEl = document.querySelector(".hint");
-if (hintEl && aIntentAchatEnAttente()) {
-  hintEl.textContent = "Connectez-vous pour finaliser l'achat de l'offre sélectionnée (catalogue Chariow).";
+const recapEl = document.getElementById("intentAchatLoginRecap");
+const linkRegister = document.getElementById("linkRegisterAchat");
+
+if (aIntentAchatEnAttente()) {
+  const intent = lireIntentAchat();
+  if (hintEl) {
+    hintEl.textContent = "Vous avez déjà un compte — saisissez votre email et mot de passe pour accéder au paiement Chariow.";
+  }
+  if (recapEl && intent) {
+    recapEl.textContent = `Offre en attente : ${libelleOffreIntent(intent)}`;
+    recapEl.classList.remove("hidden");
+  }
+  if (linkRegister) {
+    linkRegister.href = lienInscription(intent?.offreType);
+    linkRegister.textContent = "Créer un compte pour payer cette offre";
+  }
+}
+
+function lienInscription(offreType) {
+  switch (offreType) {
+    case "eleve":    return "register-eleve.html";
+    case "etudiant": return "register-etudiant.html";
+    default:         return "register-entreprise.html";
+  }
 }
 
 const form                = document.getElementById("loginForm");

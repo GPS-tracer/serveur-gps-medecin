@@ -257,7 +257,77 @@ export function genererGrilleOffresHtml(filterIds = null, { inclureGratuit = tru
 /**
  * Affiche le catalogue sur licence.html (grille + liens Chariow si UID).
  */
-export function rendreCatalogueLicence(uid = null) {
+/**
+ * Résout l'offre catalogue correspondant à une intention vitrine.
+ * @param {{ productId?: string|null, offreType?: string|null, periode?: string }|null} intent
+ */
+export function trouverOffreParIntent(intent) {
+  if (!intent) return null;
+
+  for (const offre of CATALOGUE_OFFRES) {
+    for (const p of offre.periodes) {
+      if (intent.productId && p.productId === intent.productId) {
+        return { offre, periode: p };
+      }
+    }
+  }
+
+  if (intent.offreType) {
+    const offre = CATALOGUE_OFFRES.find((o) => o.id === intent.offreType);
+    if (offre) {
+      const periode = offre.periodes.find((p) => p.periode === (intent.periode || 'mensuel'))
+        || offre.periodes[0];
+      return { offre, periode };
+    }
+  }
+
+  return null;
+}
+
+export function libelleOffreIntent(intent) {
+  const m = trouverOffreParIntent(intent);
+  return m ? `${m.offre.titre} — ${m.periode.prixLabel}` : 'Offre sélectionnée';
+}
+
+/**
+ * Fiche détaillée du produit choisi sur la vitrine + bouton paiement Chariow.
+ */
+export function genererFicheProduitSelectionneHtml(intent, uid) {
+  const match = trouverOffreParIntent(intent);
+  if (!match || !uid) return '';
+
+  const { offre, periode } = match;
+  const url = construireUrlChariow(offre.id, periode.periode, uid);
+  const btnClass = BTN_CLASS[offre.accent] || BTN_CLASS.slate;
+
+  return `
+    <section class="fiche-produit" aria-labelledby="fiche-produit-titre">
+      <p class="fiche-produit__badge">Votre sélection</p>
+      <h3 id="fiche-produit-titre" class="fiche-produit__titre">${offre.icon} ${offre.titre}</h3>
+      <p class="fiche-produit__desc">${offre.desc}</p>
+      <p class="fiche-produit__prix">${periode.prixLabel}</p>
+      <p class="fiche-produit__id">Produit Chariow : <code>${periode.productId}</code></p>
+      <a href="${url}" target="_blank" rel="noopener noreferrer"
+         class="fiche-produit__cta ${btnClass}"
+         data-chariow-offre="${offre.id}"
+         data-chariow-periode="${periode.periode}"
+         data-chariow-product="${periode.productId}">
+        Payer via Chariow (Airtel / MTN) →
+      </a>
+      <p class="fiche-produit__note">Activation automatique sur votre compte après confirmation du paiement.</p>
+    </section>`;
+}
+
+export function rendreCatalogueLicence(uid = null, intent = null) {
+  const ficheEl = document.getElementById('ficheProduitSelectionne');
+  if (ficheEl && intent && uid) {
+    ficheEl.innerHTML = genererFicheProduitSelectionneHtml(intent, uid);
+    ficheEl.classList.remove('hidden');
+  } else if (ficheEl) {
+    ficheEl.innerHTML = '';
+    ficheEl.classList.add('hidden');
+  }
+
   const el = document.getElementById('catalogueOffres');
   if (!el) return;
   el.innerHTML = genererGrilleOffresHtml(null, { inclureGratuit: !uid });

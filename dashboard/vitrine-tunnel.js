@@ -5,14 +5,11 @@ import { auth } from '../shared/firebase.js';
 import {
   enregistrerIntentAchat,
   PAGE_CATALOGUE,
+  PAGE_ACHAT_AUTH,
   PAGE_LOGIN,
 } from './intent-achat.js';
 
 const BASE = '/dashboard';
-
-function destinationConnexion() {
-  return `${BASE}/${PAGE_LOGIN}`;
-}
 
 function destinationCatalogue() {
   return `${BASE}/${PAGE_CATALOGUE}`;
@@ -35,7 +32,12 @@ async function traiterClicOffre(btn) {
     return;
   }
 
-  window.location.href = destinationConnexion();
+  if (user && !user.emailVerified) {
+    window.location.href = `${BASE}/${PAGE_LOGIN}`;
+    return;
+  }
+
+  window.location.href = `${BASE}/${PAGE_ACHAT_AUTH}`;
 }
 
 function initVitrineTunnel() {

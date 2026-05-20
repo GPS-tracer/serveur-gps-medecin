@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finaliser votre achat — GPS Tracker</title>
+  <link rel="preload" href="style.css" as="style">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body class="app-body achat-auth-body">
+  <main class="achat-auth-main">
+    <h1 class="achat-auth-title">GPS Tracker</h1>
+    <p class="achat-auth-sub">Pour payer votre offre via Chariow (Mobile Money)</p>
+
+    <div id="achatAuthRecap" class="achat-auth-recap" hidden></div>
+
+    <div class="achat-auth-actions">
+      <a id="btnAchatLogin" href="login.html" class="achat-auth-btn achat-auth-btn--primary">
+        J'ai déjà un compte — Se connecter
+      </a>
+      <a id="btnAchatRegister" href="register.html" class="achat-auth-btn achat-auth-btn--secondary">
+        Nouveau client — Créer mon compte
+      </a>
+    </div>
+
+    <p class="achat-auth-foot">
+      Après connexion ou inscription, vous accéderez au catalogue pour payer sur Chariow.
+    </p>
+  </main>
+  <script type="module" src="achat-auth.js"></script>
+</body>
+</html>

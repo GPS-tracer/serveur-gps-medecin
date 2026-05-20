@@ -12,10 +12,12 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/fi
 import { brancherBoutonDeconnexion } from './deconnexion.js';
 import { exigerSessionDashboard } from './auth-session.js';
 import { ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-import { consommerIntentAchat } from './intent-achat.js';
+import { consommerIntentAchat, aIntentAchatEnAttente, PAGE_ACHAT_AUTH } from './intent-achat.js';
 import { rendreCatalogueLicence, surlignerOffreIntentee } from './chariow-paiement.js';
 
-const LOGIN_LICENCE = 'login.html?redirect=licence.html';
+function pageLoginSiDeconnecte() {
+  return aIntentAchatEnAttente() ? PAGE_ACHAT_AUTH : 'login.html';
+}
 
 // ─── Éléments DOM ───────────────────────────────────────────
 const statusContent   = document.getElementById('statusContent');
@@ -37,28 +39,19 @@ if (catalogueEl && !catalogueEl.innerHTML.trim()) {
 }
 
 async function demarrerPageLicence() {
-  currentUser = await exigerSessionDashboard(LOGIN_LICENCE);
+  currentUser = await exigerSessionDashboard(pageLoginSiDeconnecte());
   const intentAchat = consommerIntentAchat();
-  rendreCatalogueLicence(currentUser.uid);
+  rendreCatalogueLicence(currentUser.uid, intentAchat);
   surlignerOffreIntentee(intentAchat);
-  afficherBanniereIntent(intentAchat);
   loadFreemiumStatus();
   listenLicenceHistory();
-}
-
-function afficherBanniereIntent(intent) {
-  const el = document.getElementById('intentAchatBanner');
-  if (!el || !intent) return;
-  el.textContent =
-    'Offre sélectionnée depuis la page d\'accueil — cliquez sur le bouton mis en surbrillance ci-dessous pour payer via Chariow (votre compte sera lié automatiquement).';
-  el.classList.remove('hidden');
 }
 
 demarrerPageLicence().catch(() => { /* redirect login en cours */ });
 
 onAuthStateChanged(auth, (user) => {
   if (!user && currentUser) {
-    window.location.replace(LOGIN_LICENCE);
+    window.location.replace(pageLoginSiDeconnecte());
   }
 });
 
