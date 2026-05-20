@@ -5,15 +5,137 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="GPS Tracker Congo — Suivi de flotte, élèves et étudiants en temps réel. Paiement Mobile Money (Airtel / MTN)." />
   <title>GPS Tracker Congo — Suivi GPS en temps réel</title>
-  <script>window.tailwind={corePlugins:{preflight:true}}</script>
-  <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
-  <style>body{margin:0;background:#0f172a;color:#f1f5f9;font-family:system-ui,sans-serif}*{box-sizing:border-box}</style>
+
+  <!--
+    ┌─────────────────────────────────────────────────────────┐
+    │  ANTI-FOUC : le body reste invisible (opacity:0)        │
+    │  jusqu'à ce que Tailwind ait fini de s'initialiser.     │
+    │  La classe .tw-ready est ajoutée par tailwind.ready()   │
+    │  ou par le fallback DOMContentLoaded (300 ms max).      │
+    └─────────────────────────────────────────────────────────┘
+  -->
   <style>
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner { animation: spin 1s linear infinite; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
-    .fade-in { animation: fadeIn .5s ease both; }
+    /* ── Reset minimal garanti AVANT Tailwind ── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: #0f172a;
+      color: #f1f5f9;
+      font-family: system-ui, -apple-system, sans-serif;
+      /* Anti-FOUC : masque le body jusqu'à ce que Tailwind soit prêt */
+      opacity: 0;
+      transition: opacity .15s ease;
+    }
+    body.tw-ready { opacity: 1; }
+
+    /* ── Animations ── */
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    @keyframes fadeIn  { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+    .spinner  { animation: spin 1s linear infinite; }
+    .fade-in  { animation: fadeIn .5s ease both; }
+
+    /* ══════════════════════════════════════════════════════
+       MODALE — styles critiques isolés (indépendants de Tailwind)
+       Garantit un rendu correct même si Tailwind est lent.
+       ══════════════════════════════════════════════════════ */
+
+    /* Overlay */
+    #dlModal {
+      position: fixed; inset: 0; z-index: 100;
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 1rem;
+      background: rgba(0,0,0,.78);
+      backdrop-filter: blur(6px);
+    }
+    #dlModal.is-open { display: flex; }
+
+    /* Boîte modale */
+    #dlModalBox {
+      position: relative;
+      width: 100%;
+      max-width: 32rem;          /* 512px — confortable sur PC */
+      max-height: 92vh;
+      overflow-y: auto;
+      background: #0f172a;
+      border: 1px solid rgba(56,189,248,.35);
+      border-radius: 1rem;
+      box-shadow: 0 25px 60px rgba(56,189,248,.12);
+      /* Scrollbar discrète */
+      scrollbar-width: thin;
+      scrollbar-color: #334155 transparent;
+    }
+
+    /* ── QR Code : centré, taille contrainte sur mobile ── */
+    #qrCodeWrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    #qrCodeWrapper > div {          /* conteneur blanc autour du QR */
+      padding: .75rem;
+      background: #fff;
+      border-radius: 1rem;
+      border: 2px solid rgba(56,189,248,.3);
+      box-shadow: 0 8px 32px rgba(56,189,248,.12);
+      /* Empêche le débordement sur mobile */
+      max-width: min(80vw, 300px);
+      width: fit-content;
+    }
+    #qrCanvas canvas,
+    #qrCanvas img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* ── Options A/B : empilées sur mobile, côte à côte sur PC ── */
+    #dlOptionsGrid {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (min-width: 640px) {
+      #dlOptionsGrid {
+        flex-direction: row;
+        align-items: stretch;
+      }
+      #dlOptionsGrid > * { flex: 1; }
+    }
+
+    /* ── Bouton fermeture ── */
+    #dlModalClose {
+      position: absolute; top: 1rem; right: 1rem;
+      width: 2rem; height: 2rem;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 9999px;
+      background: #1e293b;
+      border: none; cursor: pointer;
+      color: #94a3b8;
+      font-size: 1.1rem; font-weight: 700;
+      transition: background .15s, color .15s;
+      z-index: 10;
+    }
+    #dlModalClose:hover { background: #334155; color: #fff; }
   </style>
+
+  <!-- Tailwind CDN — chargé en async pour ne pas bloquer le rendu -->
+  <script>window.tailwind = { corePlugins: { preflight: false } };</script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms" async
+          onload="document.body.classList.add('tw-ready')"
+          onerror="document.body.classList.add('tw-ready')"></script>
+  <!-- Fallback : si Tailwind met trop de temps, on révèle quand même le body -->
+  <script>
+    (function(){
+      var t = setTimeout(function(){ document.body.classList.add('tw-ready'); }, 300);
+      document.addEventListener('DOMContentLoaded', function(){
+        clearTimeout(t);
+        document.body.classList.add('tw-ready');
+      }, { once: true });
+    })();
+  </script>
 </head>
 <body class="bg-slate-950 text-white min-h-screen">
 
@@ -134,7 +256,7 @@
           <h3 class="text-lg font-bold text-emerald-300 mb-1">Forfait Flotte</h3>
           <p class="text-slate-400 text-sm mb-4">Abonnement mensuel B2B</p>
           <div class="text-3xl font-extrabold text-emerald-400 mb-1">25 000 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
-          <p class="text-slate-500 text-xs mb-4">26 010 FCFA frais Chariow inclus</p>
+          <p class="text-slate-500 text-xs mb-4">Forfait Flotte — agents et rapports illimités</p>
           <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
             <li class="flex gap-2"><span class="text-emerald-400">✓</span> Agents illimités</li>
             <li class="flex gap-2"><span class="text-emerald-400">✓</span> Rapports illimités</li>
@@ -236,22 +358,15 @@
   <!-- ══════════════════════════════════════════════════════════
        MODALE — Téléchargement APK + Guide installation MDM
        ══════════════════════════════════════════════════════════ -->
-  <div id="dlModal" role="dialog" aria-modal="true" aria-labelledby="dlModalTitle"
-       class="fixed inset-0 z-[100] hidden items-center justify-center p-4"
-       style="background:rgba(0,0,0,.75);backdrop-filter:blur(6px)">
+  <div id="dlModal" role="dialog" aria-modal="true" aria-labelledby="dlModalTitle">
 
-    <div id="dlModalBox"
-         class="relative w-full max-w-lg bg-slate-900 border border-sky-500/40 rounded-2xl shadow-2xl shadow-sky-500/10 overflow-hidden"
-         style="max-height:90vh;overflow-y:auto">
+    <div id="dlModalBox">
 
       <!-- Barre décorative top -->
       <div class="h-1 w-full bg-gradient-to-r from-sky-500 via-cyan-400 to-blue-600"></div>
 
       <!-- Bouton fermeture -->
-      <button id="dlModalClose" aria-label="Fermer"
-              class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all text-lg font-bold z-10">
-        ✕
-      </button>
+      <button id="dlModalClose" aria-label="Fermer">✕</button>
 
       <!-- ── VUE A : Choix d'installation ── -->
       <div id="dlViewChoice" class="p-6 sm:p-8">
@@ -263,47 +378,52 @@
           <p class="text-slate-400 text-sm mt-1">Choisissez votre mode d'installation</p>
         </div>
 
-        <!-- Option A -->
-        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 mb-4">
-          <div class="flex items-start gap-3">
-            <span class="text-2xl mt-0.5">📦</span>
-            <div>
-              <h3 class="font-bold text-white text-sm mb-1">
-                Option A — Installation standard
-              </h3>
-              <p class="text-slate-400 text-xs leading-relaxed">
-                Installez le fichier APK normalement sur votre téléphone.
-              </p>
-              <div class="mt-2 flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                <span class="text-amber-400 text-xs mt-0.5">⚠️</span>
-                <p class="text-amber-300 text-xs leading-relaxed">
-                  Dans ce mode, l'application peut être désinstallée ou le téléphone réinitialisé par un tiers.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Options A & B — empilées mobile / côte à côte PC -->
+        <div id="dlOptionsGrid">
 
-        <!-- Option B -->
-        <div class="bg-gradient-to-br from-sky-900/40 to-blue-900/40 border border-sky-500/50 rounded-xl p-4 mb-6">
-          <div class="flex items-start gap-3">
-            <span class="text-2xl mt-0.5">🛡️</span>
-            <div class="flex-1">
-              <div class="flex items-center gap-2 mb-1">
-                <h3 class="font-bold text-sky-300 text-sm">Option B — Bouclier Anti-Vol Inviolable</h3>
-                <span class="px-2 py-0.5 bg-sky-500/20 text-sky-400 text-xs font-bold rounded-full border border-sky-500/30">RECOMMANDÉ</span>
+          <!-- Option A -->
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl mt-0.5 flex-shrink-0">📦</span>
+              <div>
+                <h3 class="font-bold text-white text-sm mb-1">
+                  Option A — Installation standard
+                </h3>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                  Installez le fichier APK normalement sur votre téléphone.
+                </p>
+                <div class="mt-2 flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                  <span class="text-amber-400 text-xs mt-0.5 flex-shrink-0">⚠️</span>
+                  <p class="text-amber-300 text-xs leading-relaxed">
+                    Dans ce mode, l'application peut être désinstallée ou le téléphone réinitialisé par un tiers.
+                  </p>
+                </div>
               </div>
-              <p class="text-slate-300 text-xs leading-relaxed mb-3">
-                Bloquez définitivement la désinstallation et le Factory Reset en passant en mode
-                <strong class="text-sky-400">MDM Device Owner</strong> — l'appareil est verrouillé sur votre application.
-              </p>
-              <button id="btnShowQR"
-                      class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all text-sm shadow-lg shadow-sky-500/20">
-                <span>🔒</span> Afficher le QR Code de Sécurité Totale
-              </button>
             </div>
           </div>
-        </div>
+
+          <!-- Option B -->
+          <div class="bg-gradient-to-br from-sky-900/40 to-blue-900/40 border border-sky-500/50 rounded-xl p-4">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl mt-0.5 flex-shrink-0">🛡️</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <h3 class="font-bold text-sky-300 text-sm">Option B — Bouclier Anti-Vol</h3>
+                  <span class="px-2 py-0.5 bg-sky-500/20 text-sky-400 text-xs font-bold rounded-full border border-sky-500/30 whitespace-nowrap">RECOMMANDÉ</span>
+                </div>
+                <p class="text-slate-300 text-xs leading-relaxed mb-3">
+                  Bloquez définitivement la désinstallation et le Factory Reset en passant en mode
+                  <strong class="text-sky-400">MDM Device Owner</strong>.
+                </p>
+                <button id="btnShowQR"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all text-sm shadow-lg shadow-sky-500/20">
+                  <span>🔒</span> Afficher le QR Code
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /dlOptionsGrid -->
 
         <!-- Bouton continuer -->
         <button id="dlModalContinue"
@@ -328,9 +448,9 @@
           <p class="text-slate-400 text-sm mt-1">Enrôlement Android Enterprise — Device Owner</p>
         </div>
 
-        <!-- QR Code -->
-        <div class="flex justify-center mb-6">
-          <div class="p-3 bg-white rounded-2xl shadow-xl shadow-sky-500/10 border-2 border-sky-500/30">
+        <!-- QR Code — centré, max 80vw sur mobile -->
+        <div id="qrCodeWrapper">
+          <div>
             <div id="qrCanvas"></div>
           </div>
         </div>
@@ -348,13 +468,13 @@
             <div class="flex items-start gap-3">
               <span class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-600 text-white text-xs font-bold flex items-center justify-center">2</span>
               <p class="text-slate-300 text-xs leading-relaxed pt-0.5">
-                Sur l'écran <strong class="text-white">"Bienvenue"</strong>, tapotez <strong class="text-sky-400">6 fois</strong> rapidement sur l'écran pour activer le mode enrôlement.
+                Sur l'écran <strong class="text-white">"Bienvenue"</strong>, tapotez <strong class="text-sky-400">6 fois</strong> rapidement pour activer le mode enrôlement.
               </p>
             </div>
             <div class="flex items-start gap-3">
               <span class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-600 text-white text-xs font-bold flex items-center justify-center">3</span>
               <p class="text-slate-300 text-xs leading-relaxed pt-0.5">
-                <strong class="text-white">Scannez ce QR Code</strong> — l'appareil télécharge et installe l'APK automatiquement, puis se verrouille en mode Device Owner.
+                <strong class="text-white">Scannez ce QR Code</strong> — l'APK s'installe automatiquement en mode Device Owner.
               </p>
             </div>
           </div>
@@ -378,8 +498,8 @@
     </div><!-- /dlModalBox -->
   </div><!-- /dlModal -->
 
-  <!-- qrcode.js (génération QR Code côté client) -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <!-- qrcode.js — chargé en dernier, non bloquant -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js" defer></script>
 
   <script type="module">
     // ── Ping le serveur avant d'afficher la vitrine ──────────
@@ -412,7 +532,6 @@
       'use strict';
 
       // Payload JSON pour le QR Code d'enrôlement Device Owner
-      // Aligné sur android/qr-provisioning.json
       const QR_PAYLOAD = JSON.stringify({
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME":
           "com.gpstracker.agent/.AdminReceiver",
@@ -442,17 +561,14 @@
       // ── Ouvrir la modale ──────────────────────────────────
       function openModal() {
         showView('choice');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        modal.classList.add('is-open');
         document.body.style.overflow = 'hidden';
-        // Focus trap : focus sur le bouton de fermeture
         setTimeout(() => btnClose.focus(), 50);
       }
 
       // ── Fermer la modale ──────────────────────────────────
       function closeModal() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        modal.classList.remove('is-open');
         document.body.style.overflow = '';
       }
 
@@ -462,28 +578,45 @@
         viewQR.classList.toggle('hidden', name !== 'qr');
       }
 
-      // ── Générer le QR Code (une seule fois) ───────────────
+      // ── Générer le QR Code (une seule fois, après chargement lib) ──
       function generateQR() {
         if (qrGenerated) return;
-        qrGenerated = true;
 
-        // Taille responsive : 220px sur mobile, 260px sur desktop
-        const size = window.innerWidth < 480 ? 220 : 260;
-
-        // qrcode.js expose QRCode en global (chargé via CDN non-module)
-        if (typeof QRCode !== 'undefined') {
+        function doGenerate() {
+          if (typeof QRCode === 'undefined') {
+            qrCanvas.innerHTML =
+              '<p style="color:#f87171;font-size:.75rem;text-align:center;padding:1rem">Impossible de générer le QR Code.<br>Vérifiez votre connexion.</p>';
+            return;
+          }
+          qrGenerated = true;
+          // Taille responsive : contrainte par le CSS (max 80vw / 300px)
+          // On cible 260px sur desktop, 220px sur mobile
+          const size = window.innerWidth < 480 ? 220 : 260;
           new QRCode(qrCanvas, {
-            text:           QR_PAYLOAD,
-            width:          size,
-            height:         size,
-            colorDark:      '#0f172a',
-            colorLight:     '#ffffff',
-            correctLevel:   QRCode.CorrectLevel.M,
+            text:         QR_PAYLOAD,
+            width:        size,
+            height:       size,
+            colorDark:    '#0f172a',
+            colorLight:   '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M,
           });
+        }
+
+        // Si qrcode.js est déjà chargé (defer peut être déjà résolu)
+        if (typeof QRCode !== 'undefined') {
+          doGenerate();
         } else {
-          // Fallback : afficher un message si la lib n'est pas chargée
-          qrCanvas.innerHTML =
-            '<p class="text-red-400 text-xs text-center p-4">Impossible de générer le QR Code.<br>Vérifiez votre connexion.</p>';
+          // Attendre le chargement du script defer
+          const script = document.querySelector('script[src*="qrcode"]');
+          if (script) {
+            script.addEventListener('load', doGenerate, { once: true });
+            script.addEventListener('error', () => {
+              qrCanvas.innerHTML =
+                '<p style="color:#f87171;font-size:.75rem;text-align:center;padding:1rem">Bibliothèque QR Code indisponible.</p>';
+            }, { once: true });
+          } else {
+            doGenerate(); // fallback
+          }
         }
       }
 
@@ -494,7 +627,7 @@
 
       // ── Fermeture touche Escape ───────────────────────────
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+        if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
       });
 
       btnClose.addEventListener('click', closeModal);
@@ -507,7 +640,6 @@
         window.location.href = '/dashboard/login.html';
       });
 
-      // ── Afficher le QR Code ───────────────────────────────
       btnShowQR.addEventListener('click', () => {
         showView('qr');
         generateQR();
@@ -515,14 +647,11 @@
 
       btnBack.addEventListener('click', () => showView('choice'));
 
-      // ── Intercepter TOUS les boutons de téléchargement APK
-      // Sélectionne les liens pointant vers l'APK (header + hero + guide)
+      // ── Intercepter TOUS les boutons de téléchargement APK ──
       document.querySelectorAll('a[href*="GPTS-Tracker.apk"], a[href*="agent.apk"]')
         .forEach((link) => {
-          link.addEventListener('click', (e) => {
+          link.addEventListener('click', () => {
             // Laisser le téléchargement se lancer normalement
-            // (pas de preventDefault — le navigateur gère le download)
-            // Ouvrir la modale avec un léger délai pour que le download démarre
             setTimeout(openModal, 150);
           });
         });
