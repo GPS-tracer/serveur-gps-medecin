@@ -92,16 +92,184 @@ export function declencherPaiementChariow(typeOffre, periode, uid) {
   window.location.href = url; // fallback absolu : navigation dans l'onglet courant
 }
 
-/** Libellés et prix officiels des 10 produits Chariow */
-export const OFFRES_CHARIOW_AFFICHAGE = [
-  { type: 'wifi',        periode: 'mensuel', label: 'Option Anti-vol Réseau',  prix: '200 FCFA/mois'    },
-  { type: 'wifi',        periode: 'annuel',  label: 'Option Anti-vol Réseau',  prix: '1 670 FCFA/an'    },
-  { type: 'particulier', periode: 'mensuel', label: 'Particulier Premium',     prix: '10 000 FCFA/mois' },
-  { type: 'particulier', periode: 'annuel',  label: 'Particulier Premium',     prix: '111 240 FCFA/an'  },
-  { type: 'eleve',       periode: 'mensuel', label: 'Suivi Élève (≤ 15 ans)',  prix: '3 000 FCFA/mois'  },
-  { type: 'eleve',       periode: 'annuel',  label: 'Suivi Élève (≤ 15 ans)',  prix: '33 370 FCFA/an'   },
-  { type: 'etudiant',    periode: 'mensuel', label: 'Suivi Étudiant',          prix: '3 000 FCFA/mois'  },
-  { type: 'etudiant',    periode: 'annuel',  label: 'Suivi Étudiant',          prix: '33 370 FCFA/an'   },
-  { type: 'flotte',      periode: 'mensuel', label: 'Forfait Flotte B2B',      prix: '25 000 FCFA/mois' },
-  { type: 'illimite',    periode: 'mensuel', label: 'Accès Illimité',          prix: '20 000 FCFA'      },
+/** Plan gratuit — 1 appareil max (hors Chariow) */
+export const PLAN_GRATUIT = {
+  id: 'gratuit',
+  icon: '🆓',
+  titre: 'Plan Gratuit',
+  desc: '1 appareil max · 1 rapport/jour · bonus 14 jours (50 crédits)',
+  accent: 'free',
+  href: 'register.html',
+  labelBtn: 'Commencer gratuitement',
+};
+
+/**
+ * Matrice officielle Chariow — IDs produit + montants FCFA au centime près.
+ * Source unique UI ; alignée sur shared/firebase.js CHARIOW_PRODUCTS.
+ */
+export const CATALOGUE_OFFRES = [
+  {
+    id: 'wifi',
+    icon: '📶',
+    titre: 'Option Réseau',
+    desc: 'Suivi réseau anti-vol',
+    accent: 'slate',
+    periodes: [
+      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.WIFI_MENSUEL,        montantFcfa: 150,    prixLabel: '150 FCFA/mois' },
+      { periode: 'annuel',  productId: CHARIOW_PRODUCTS.WIFI_ANNUEL,         montantFcfa: 1670,   prixLabel: '1 670 FCFA/an' },
+    ],
+  },
+  {
+    id: 'particulier',
+    icon: '⭐',
+    titre: 'Particulier Premium',
+    desc: '1 appareil · rapports illimités',
+    accent: 'amber',
+    periodes: [
+      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.PARTICULIER_MENSUEL, montantFcfa: 10000,  prixLabel: '10 000 FCFA/mois' },
+      { periode: 'annuel',  productId: CHARIOW_PRODUCTS.PARTICULIER_ANNUEL,  montantFcfa: 111240, prixLabel: '111 240 FCFA/an' },
+    ],
+  },
+  {
+    id: 'eleve',
+    icon: '🎒',
+    titre: 'Scolaire Élève',
+    desc: '≤ 15 ans · suivi parental',
+    accent: 'cyan',
+    periodes: [
+      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.ELEVE_MENSUEL,       montantFcfa: 3000,   prixLabel: '3 000 FCFA/mois' },
+      { periode: 'annuel',  productId: CHARIOW_PRODUCTS.ELEVE_ANNUEL,        montantFcfa: 33370,  prixLabel: '33 370 FCFA/an' },
+    ],
+  },
+  {
+    id: 'etudiant',
+    icon: '🎓',
+    titre: 'Scolaire Étudiant',
+    desc: 'Université · assiduité',
+    accent: 'indigo',
+    periodes: [
+      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.ETUDIANT_MENSUEL,    montantFcfa: 3000,   prixLabel: '3 000 FCFA/mois' },
+      { periode: 'annuel',  productId: CHARIOW_PRODUCTS.ETUDIANT_ANNUEL,     montantFcfa: 33370,  prixLabel: '33 370 FCFA/an' },
+    ],
+  },
+  {
+    id: 'flotte',
+    icon: '🚛',
+    titre: 'Forfait Flotte B2B',
+    desc: 'Agents et rapports illimités',
+    accent: 'emerald',
+    periodes: [
+      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.FORFAIT_FLOTTE,      montantFcfa: 25000,  prixLabel: '25 000 FCFA/mois', labelBtn: 'S\'abonner' },
+    ],
+  },
+  {
+    id: 'illimite',
+    icon: '♾️',
+    titre: 'Accès Illimité',
+    desc: 'Premium permanent · agents et rapports illimités',
+    accent: 'yellow',
+    periodes: [
+      { periode: 'mensuel', productId: CHARIOW_PRODUCTS.ACCES_ILLIMITE,      montantFcfa: 20000,  prixLabel: '20 000 FCFA', labelBtn: 'Acheter' },
+    ],
+  },
 ];
+
+/** Vérifie que chaque productId du catalogue existe dans CHARIOW_PRODUCTS */
+const IDS_OFFICIELS = new Set(Object.values(CHARIOW_PRODUCTS));
+for (const offre of CATALOGUE_OFFRES) {
+  for (const p of offre.periodes) {
+    if (!IDS_OFFICIELS.has(p.productId)) {
+      console.warn(`[Chariow] productId hors catalogue : ${p.productId}`);
+    }
+    const resolu = resoudreProduitChariow(offre.id, p.periode);
+    if (resolu !== p.productId) {
+      console.warn(`[Chariow] mismatch ${offre.id}/${p.periode}: attendu ${p.productId}, résolu ${resolu}`);
+    }
+  }
+}
+
+/** @deprecated — utiliser CATALOGUE_OFFRES */
+export const OFFRES_CHARIOW_AFFICHAGE = CATALOGUE_OFFRES.flatMap((o) =>
+  o.periodes.map((p) => ({
+    type: o.id,
+    periode: p.periode,
+    label: o.titre,
+    prix: p.prixLabel,
+    productId: p.productId,
+    montantFcfa: p.montantFcfa,
+  })),
+);
+
+const BTN_CLASS = {
+  slate:   'offer-card__btn offer-card__btn--slate',
+  amber:   'offer-card__btn offer-card__btn--amber',
+  cyan:    'offer-card__btn offer-card__btn--cyan',
+  indigo:  'offer-card__btn offer-card__btn--indigo',
+  emerald: 'offer-card__btn offer-card__btn--emerald',
+  yellow:  'offer-card__btn offer-card__btn--yellow',
+};
+
+/**
+ * Grille HTML des cartes offres (boutons → liens après injecterLiensChariow).
+ * @param {string[]} [filterIds] — sous-ensemble d'IDs à afficher
+ */
+function cartePlanGratuit() {
+  const g = PLAN_GRATUIT;
+  return `
+    <article class="offer-card offer-card--${g.accent}">
+      <h4 class="offer-card__title">${g.icon} ${g.titre}</h4>
+      <p class="offer-card__desc">${g.desc}</p>
+      <div class="offer-card__actions">
+        <a href="${g.href}" class="offer-card__btn offer-card__btn--free">${g.labelBtn}</a>
+      </div>
+    </article>`;
+}
+
+export function genererGrilleOffresHtml(filterIds = null, { inclureGratuit = true } = {}) {
+  const list = filterIds
+    ? CATALOGUE_OFFRES.filter((o) => filterIds.includes(o.id))
+    : CATALOGUE_OFFRES;
+
+  const paid = list.map((o) => {
+    const btns = o.periodes.map((p) => `
+      <button type="button"
+        data-chariow-offre="${o.id}"
+        data-chariow-periode="${p.periode}"
+        data-chariow-product="${p.productId}"
+        class="${BTN_CLASS[o.accent] || BTN_CLASS.slate}">
+        ${p.labelBtn || (p.periode === 'annuel' ? 'Annuel' : 'Mensuel')} — ${p.prixLabel}
+      </button>`).join('');
+
+    return `
+      <article class="offer-card offer-card--${o.accent}">
+        <h4 class="offer-card__title">${o.icon} ${o.titre}</h4>
+        <p class="offer-card__desc">${o.desc}</p>
+        <div class="offer-card__actions offer-card__actions--stack">${btns}</div>
+      </article>`;
+  }).join('');
+
+  return (inclureGratuit && !filterIds ? cartePlanGratuit() : '') + paid;
+}
+
+/**
+ * Liste compacte pour bannières quota (fleet / rapport).
+ */
+export function genererListeUpsellHtml(uid, filterIds = ['particulier', 'flotte', 'eleve', 'etudiant']) {
+  if (!uid) {
+    return `<p class="text-slate-400 text-xs text-center">
+      <a href="licence.html" class="text-sky-400 hover:underline">Voir les offres</a>
+    </p>`;
+  }
+
+  const items = CATALOGUE_OFFRES.filter((o) => filterIds.includes(o.id));
+  return items.map((o) => {
+    const p = o.periodes[0];
+    const url = construireUrlChariow(o.id, p.periode, uid);
+    return `
+      <a href="${url}" target="_blank" rel="noopener noreferrer"
+         class="offer-upsell__row">
+        <span class="offer-upsell__label">${o.icon} ${o.titre}</span>
+        <span class="offer-upsell__prix">${p.prixLabel}</span>
+      </a>`;
+  }).join('');
+}

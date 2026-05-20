@@ -1,8 +1,33 @@
 /**
  * style.css — GPS Tracker Dashboard
  * Tailwind gère le layout principal.
- * Ce fichier couvre : Leaflet overrides, animations, agent-cards, popups.
+ * Ce fichier couvre : Leaflet overrides, animations, agent-cards, popups, shell nav.
  */
+
+/* ── Critical : anti-FOUC (chargé en premier dans <head>) ── */
+html {
+  margin: 0;
+  background: #0f172a;
+  color: #f1f5f9;
+  -webkit-text-size-adjust: 100%;
+}
+html:not(.shell-ready) .app-main,
+html:not(.shell-ready) #dashboard-root {
+  opacity: 1;
+}
+#appShellRoot:empty {
+  min-height: 3.25rem;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+.nav-drawer:not(.is-open) {
+  visibility: hidden;
+  pointer-events: none;
+}
+.nav-drawer.is-open {
+  visibility: visible;
+  pointer-events: auto;
+}
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -222,4 +247,225 @@ html, body { margin: 0; height: 100%; font-family: "Inter", "Segoe UI", system-u
   #calendrierAssiduite > div {
     min-height: 1.75rem;
   }
+}
+
+/* ══════════════════════════════════════════════════════════
+   APP SHELL — topbar + tiroir hamburger (fleet, rapport, licence)
+   ══════════════════════════════════════════════════════════ */
+
+.app-body {
+  min-height: 100dvh;
+  background: #0f172a;
+  color: #f1f5f9;
+  overflow-x: hidden;
+}
+.app-main {
+  padding-bottom: 2rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.app-topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+.app-topbar__brand { font-size: .95rem; font-weight: 700; color: #38bdf8; line-height: 1.2; margin: 0; }
+.app-topbar__page  { font-size: .72rem; color: #94a3b8; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-topbar__nav-link {
+  padding: .4rem .65rem; border-radius: .5rem; font-size: .78rem;
+  color: #cbd5e1; background: #334155; text-decoration: none; transition: background .15s;
+}
+.app-topbar__nav-link:hover { background: #475569; color: #fff; }
+.app-topbar__nav-link--active { background: rgba(14,165,233,.2); color: #7dd3fc; border: 1px solid rgba(14,165,233,.35); }
+.app-topbar__logout {
+  padding: .4rem .75rem; border-radius: .5rem; font-size: .78rem; font-weight: 600;
+  background: #dc2626; color: #fff; border: none; cursor: pointer;
+}
+.app-topbar__logout:hover { background: #b91c1c; }
+
+.nav-hamburger {
+  display: none;
+  flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+  min-width: 2.75rem; min-height: 2.75rem;
+  width: 2.75rem; height: 2.75rem; padding: .5rem;
+  border-radius: .5rem; border: 1px solid rgba(14,165,233,.3);
+  background: rgba(14,165,233,.1); cursor: pointer; flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-hamburger__bar {
+  display: block; height: 2px; width: 100%; background: #38bdf8; border-radius: 1px;
+}
+.nav-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 55;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+.nav-overlay.is-open {
+  display: block;
+  pointer-events: auto;
+}
+.nav-drawer {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: min(85vw, 300px); max-width: 100vw; z-index: 60;
+  background: #0f172a; border-right: 1px solid #334155;
+  transform: translateX(-100%);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column;
+  padding: 1rem; padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  will-change: transform;
+}
+.nav-drawer.is-open { transform: translateX(0); }
+.nav-drawer__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .25rem; }
+.nav-drawer__brand { font-weight: 700; color: #38bdf8; }
+.nav-drawer__close {
+  width: 2rem; height: 2rem; border: none; border-radius: .4rem;
+  background: #334155; color: #94a3b8; cursor: pointer;
+}
+.nav-drawer__subtitle { font-size: .75rem; color: #64748b; margin: 0 0 1rem; }
+.nav-drawer__links { display: flex; flex-direction: column; gap: .35rem; flex: 1; }
+.nav-drawer__link {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .7rem .85rem; border-radius: .6rem;
+  color: #94a3b8; text-decoration: none; font-size: .9rem;
+  transition: background .15s, color .15s;
+}
+.nav-drawer__link:hover { background: rgba(14,165,233,.08); color: #e2e8f0; }
+.nav-drawer__link--active {
+  background: rgba(14,165,233,.15); color: #38bdf8;
+  border: 1px solid rgba(14,165,233,.25);
+}
+.nav-drawer__icon { font-size: 1.1rem; }
+.nav-drawer__foot { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #334155; }
+.nav-drawer__logout {
+  width: 100%; padding: .65rem; border-radius: .5rem; border: none;
+  background: #dc2626; color: #fff; font-weight: 600; cursor: pointer;
+}
+body.nav-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  left: 0;
+  right: 0;
+}
+
+@media (min-width: 768px) {
+  .nav-hamburger { display: none !important; }
+  .app-topbar__desktop { display: flex !important; }
+  .nav-drawer { display: none !important; }
+  .nav-overlay { display: none !important; }
+}
+
+@media (max-width: 767px) {
+  .nav-hamburger { display: flex; }
+  .app-topbar__desktop { display: none !important; }
+  .app-topbar__inner { padding-left: max(.75rem, env(safe-area-inset-left)); padding-right: max(.75rem, env(safe-area-inset-right)); }
+}
+
+/* ── Cartes offres (catalogue licence + upsell) ── */
+.offer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+@media (min-width: 640px) {
+  .offer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .offer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.offer-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #1e293b;
+  border-radius: .75rem;
+  padding: 1rem;
+  border: 1px solid #475569;
+}
+.offer-card--free { border-color: rgba(148,163,184,.45); }
+.offer-card--amber   { border-color: rgba(245,158,11,.4); }
+.offer-card--cyan    { border-color: rgba(34,211,238,.4); }
+.offer-card--indigo  { border-color: rgba(129,140,248,.4); }
+.offer-card--emerald { border-color: rgba(52,211,153,.4); }
+.offer-card--yellow  { border-color: rgba(234,179,8,.4); }
+.offer-card__title { font-weight: 700; color: #f1f5f9; margin: 0 0 .25rem; font-size: .95rem; }
+.offer-card__desc  { font-size: .75rem; color: #94a3b8; margin: 0 0 .75rem; }
+.offer-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  margin-top: auto;
+  width: 100%;
+}
+.offer-card__actions--stack { flex-direction: column; }
+@media (min-width: 480px) and (max-width: 767px) {
+  .offer-card__actions--stack { flex-direction: row; flex-wrap: wrap; }
+  .offer-card__actions--stack .offer-card__btn { flex: 1 1 calc(50% - .25rem); min-width: 8.5rem; }
+}
+.offer-card__btn {
+  width: 100%;
+  min-width: 0;
+  padding: .55rem .75rem;
+  border-radius: .5rem;
+  border: none;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+  box-sizing: border-box;
+  transition: filter .15s;
+  touch-action: manipulation;
+}
+.offer-card__btn--free { background: #475569; color: #f8fafc; }
+.offer-card__btn:hover { filter: brightness(1.08); }
+.offer-card__btn--slate   { background: #475569; }
+.offer-card__btn--amber   { background: #d97706; }
+.offer-card__btn--cyan    { background: #0891b2; }
+.offer-card__btn--indigo  { background: #4f46e5; }
+.offer-card__btn--emerald { background: #059669; }
+.offer-card__btn--yellow  { background: #ca8a04; color: #0f172a; }
+
+.offer-upsell { display: flex; flex-direction: column; gap: .35rem; margin-top: .5rem; }
+.offer-upsell__row {
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  padding: .5rem .65rem; border-radius: .5rem;
+  background: rgba(51,65,85,.6); border: 1px solid #475569;
+  text-decoration: none; transition: border-color .15s, background .15s;
+}
+.offer-upsell__row:hover { border-color: #38bdf8; background: #334155; }
+.offer-upsell__label { font-size: .75rem; color: #e2e8f0; }
+.offer-upsell__prix  { font-size: .7rem; font-weight: 700; color: #38bdf8; white-space: nowrap; }
+
+/* Vitrine publique — menu mobile */
+#vitrineNavToggle { display: none; }
+#vitrineNavDrawer { display: none; }
+@media (max-width: 767px) {
+  #vitrineNavToggle { display: flex; }
+  .vitrine-header__links { display: none !important; }
+  #vitrineNavDrawer {
+    display: flex;
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(85vw, 280px); z-index: 60;
+    background: #0f172a; border-left: 1px solid #334155;
+    transform: translateX(100%);
+    transition: transform .25s ease;
+    padding: 1.25rem; flex-direction: column; gap: .75rem;
+  }
+  #vitrineNavDrawer.is-open { transform: translateX(0); }
 }

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="GPS Tracker Congo — Suivi de flotte, élèves et étudiants en temps réel. Paiement Mobile Money (Airtel / MTN)." />
   <title>GPS Tracker Congo — Suivi GPS en temps réel</title>
+  <link rel="preload" href="/dashboard/style.css" as="style">
+  <link rel="stylesheet" href="/dashboard/style.css">
 
   <!--
     ┌─────────────────────────────────────────────────────────┐
@@ -121,21 +123,6 @@
     #dlModalClose:hover { background: #334155; color: #fff; }
   </style>
 
-  <!-- Tailwind CDN — chargé en async pour ne pas bloquer le rendu -->
-  <script>window.tailwind = { corePlugins: { preflight: false } };</script>
-  <script src="https://cdn.tailwindcss.com?plugins=forms" async
-          onload="document.body.classList.add('tw-ready')"
-          onerror="document.body.classList.add('tw-ready')"></script>
-  <!-- Fallback : si Tailwind met trop de temps, on révèle quand même le body -->
-  <script>
-    (function(){
-      var t = setTimeout(function(){ document.body.classList.add('tw-ready'); }, 300);
-      document.addEventListener('DOMContentLoaded', function(){
-        clearTimeout(t);
-        document.body.classList.add('tw-ready');
-      }, { once: true });
-    })();
-  </script>
 </head>
 <body class="bg-slate-950 text-white min-h-screen">
 
@@ -151,14 +138,21 @@
        ════════════════════════════════════════════════════════ -->
   <div id="vitrine" class="hidden">
 
+    <div id="vitrineNavOverlay" class="nav-overlay" aria-hidden="true"></div>
+
     <!-- ── Header ── -->
     <header class="bg-slate-900/80 backdrop-blur-sm border-b border-slate-800 sticky top-0 z-40">
-      <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
+      <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
           <span class="text-2xl">🛰️</span>
-          <span class="text-xl font-bold text-sky-400">GPS Tracker Congo</span>
+          <span class="text-xl font-bold text-sky-400 truncate">GPS Tracker Congo</span>
         </div>
-        <div class="flex items-center gap-3">
+        <button type="button" id="vitrineNavToggle" class="nav-hamburger" aria-label="Ouvrir le menu">
+          <span class="nav-hamburger__bar"></span>
+          <span class="nav-hamburger__bar"></span>
+          <span class="nav-hamburger__bar"></span>
+        </button>
+        <div class="vitrine-header__links flex items-center gap-3">
           <a href="/download/GPTS-Tracker.apk"
              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-all flex items-center gap-2">
             📱 Télécharger l'APK
@@ -170,6 +164,14 @@
         </div>
       </div>
     </header>
+
+    <aside id="vitrineNavDrawer" aria-hidden="true">
+      <button type="button" id="vitrineNavClose" class="nav-drawer__close self-end mb-4" aria-label="Fermer">✕</button>
+      <a href="/download/GPTS-Tracker.apk" class="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg text-center">📱 Télécharger l'APK</a>
+      <a href="/dashboard/login.html" class="px-4 py-3 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-lg text-center">Tableau de bord →</a>
+      <a href="/dashboard/register.html" class="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg text-center">Créer un compte</a>
+      <a href="#offres" class="px-4 py-3 text-slate-300 hover:text-white text-center">Voir les offres</a>
+    </aside>
 
     <!-- ── Hero ── -->
     <section class="max-w-6xl mx-auto px-4 py-20 text-center fade-in">
@@ -199,103 +201,79 @@
     </section>
 
     <!-- ── Catalogue des offres ── -->
-    <section class="max-w-6xl mx-auto px-4 py-16">
+    <section id="offres" class="max-w-6xl mx-auto px-4 py-16">
       <h2 class="text-3xl font-bold text-center text-white mb-3">Nos offres</h2>
-      <p class="text-slate-400 text-center mb-12">Paiement sécurisé via Chariow (Airtel Money / MTN Mobile Money)</p>
+      <p class="text-slate-400 text-center mb-4">Paiement sécurisé via Chariow (Airtel Money / MTN Mobile Money)</p>
+      <p class="text-slate-500 text-center text-sm mb-12">Connectez-vous pour payer avec votre compte — liens personnalisés et activation automatique.</p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-        <!-- Gratuit -->
         <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 flex flex-col">
           <div class="text-3xl mb-3">🆓</div>
           <h3 class="text-lg font-bold text-white mb-1">Plan Gratuit</h3>
-          <p class="text-slate-400 text-sm mb-4">Pour découvrir le service</p>
+          <p class="text-slate-400 text-sm mb-4">Bonus 14 jours · 50 crédits de visite</p>
           <div class="text-3xl font-extrabold text-white mb-4">0 <span class="text-slate-500 text-base font-normal">FCFA</span></div>
           <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
             <li class="flex gap-2"><span class="text-green-400">✓</span> 1 appareil à suivre</li>
-            <li class="flex gap-2"><span class="text-green-400">✓</span> 1 rapport gratuit/jour</li>
-            <li class="flex gap-2"><span class="text-slate-500">✗</span> Rapports avancés</li>
+            <li class="flex gap-2"><span class="text-green-400">✓</span> 1 rapport / jour (strict)</li>
           </ul>
           <a href="/dashboard/register.html" class="w-full text-center py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl transition-all">Commencer gratuitement</a>
         </div>
 
-        <!-- Pack 20 -->
-        <div class="bg-slate-900 rounded-2xl border border-sky-500/50 p-6 flex flex-col">
-          <div class="text-3xl mb-3">📄</div>
-          <h3 class="text-lg font-bold text-white mb-1">Pack Starter</h3>
-          <p class="text-slate-400 text-sm mb-4">20 rapports d'impression</p>
-          <div class="text-3xl font-extrabold text-sky-400 mb-1">500 <span class="text-slate-500 text-base font-normal">FCFA</span></div>
-          <p class="text-slate-500 text-xs mb-4">590 FCFA frais Chariow inclus</p>
-          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
-            <li class="flex gap-2"><span class="text-green-400">✓</span> 20 impressions PDF</li>
-            <li class="flex gap-2"><span class="text-green-400">✓</span> Jusqu'à 10 appareils</li>
-            <li class="flex gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
-          </ul>
-          <a href="https://erpbbfef.mychariow.shop/prd_59udmg" target="_blank" rel="noopener" class="w-full text-center py-3 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-xl transition-all">Payer via Chariow →</a>
+        <div class="bg-slate-900 rounded-2xl border border-slate-600 p-6 flex flex-col">
+          <div class="text-3xl mb-3">📶</div>
+          <h3 class="text-lg font-bold text-white mb-1">Option Wi-Fi</h3>
+          <p class="text-slate-400 text-sm mb-4">Suivi réseau anti-vol</p>
+          <div class="text-2xl font-extrabold text-slate-200 mb-4">150 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
+          <a href="/dashboard/login.html" class="w-full text-center py-3 bg-slate-600 hover:bg-slate-500 text-white font-semibold rounded-xl transition-all mt-auto">Se connecter pour payer →</a>
         </div>
 
-        <!-- Pack 40 -->
-        <div class="bg-slate-900 rounded-2xl border border-sky-500 p-6 flex flex-col relative">
-          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-full">⭐ POPULAIRE</div>
-          <div class="text-3xl mb-3 mt-2">📋</div>
-          <h3 class="text-lg font-bold text-white mb-1">Pack Pro</h3>
-          <p class="text-slate-400 text-sm mb-4">40 rapports d'impression</p>
-          <div class="text-3xl font-extrabold text-sky-400 mb-1">1 000 <span class="text-slate-500 text-base font-normal">FCFA</span></div>
-          <p class="text-slate-500 text-xs mb-4">1 180 FCFA frais Chariow inclus</p>
-          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
-            <li class="flex gap-2"><span class="text-green-400">✓</span> 40 impressions PDF</li>
-            <li class="flex gap-2"><span class="text-green-400">✓</span> Jusqu'à 10 appareils</li>
-            <li class="flex gap-2"><span class="text-sky-400 font-bold">✓</span> Meilleur rapport qualité/prix</li>
-          </ul>
-          <a href="https://erpbbfef.mychariow.shop/prd_ia4imm" target="_blank" rel="noopener" class="w-full text-center py-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-semibold rounded-xl transition-all">Payer via Chariow →</a>
+        <div class="bg-slate-900 rounded-2xl border border-amber-500/40 p-6 flex flex-col">
+          <div class="text-3xl mb-3">⭐</div>
+          <h3 class="text-lg font-bold text-amber-200 mb-1">Particulier Premium</h3>
+          <p class="text-slate-400 text-sm mb-4">1 appareil · rapports illimités</p>
+          <div class="text-2xl font-extrabold text-amber-300 mb-4">10 000 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
+          <a href="/dashboard/login.html" class="w-full text-center py-3 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-xl transition-all mt-auto">Se connecter pour payer →</a>
         </div>
 
-        <!-- Forfait Flotte -->
-        <div class="bg-gradient-to-b from-slate-900 to-emerald-950/30 rounded-2xl border border-emerald-500/50 p-6 flex flex-col">
+        <div class="bg-slate-900 rounded-2xl border border-emerald-500/50 p-6 flex flex-col">
           <div class="text-3xl mb-3">🚛</div>
-          <h3 class="text-lg font-bold text-emerald-300 mb-1">Forfait Flotte</h3>
-          <p class="text-slate-400 text-sm mb-4">Abonnement mensuel B2B</p>
-          <div class="text-3xl font-extrabold text-emerald-400 mb-1">25 000 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
-          <p class="text-slate-500 text-xs mb-4">Forfait Flotte — agents et rapports illimités</p>
-          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
-            <li class="flex gap-2"><span class="text-emerald-400">✓</span> Agents illimités</li>
-            <li class="flex gap-2"><span class="text-emerald-400">✓</span> Rapports illimités</li>
-            <li class="flex gap-2"><span class="text-green-400">✓</span> Support prioritaire</li>
-          </ul>
-          <a href="https://erpbbfef.mychariow.shop/prd_zvj2cv" target="_blank" rel="noopener" class="w-full text-center py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all">S'abonner via Chariow →</a>
+          <h3 class="text-lg font-bold text-emerald-300 mb-1">Forfait Flotte B2B</h3>
+          <p class="text-slate-400 text-sm mb-4">Agents et rapports illimités</p>
+          <div class="text-2xl font-extrabold text-emerald-400 mb-4">25 000 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
+          <a href="/dashboard/login.html" class="w-full text-center py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all mt-auto">Se connecter pour payer →</a>
         </div>
 
-        <!-- Suivi Élève -->
-        <div class="bg-gradient-to-b from-slate-900 to-cyan-950/30 rounded-2xl border border-cyan-500/50 p-6 flex flex-col">
+        <div class="bg-slate-900 rounded-2xl border border-cyan-500/50 p-6 flex flex-col">
           <div class="text-3xl mb-3">🎒</div>
           <h3 class="text-lg font-bold text-cyan-300 mb-1">Suivi Élève</h3>
-          <p class="text-slate-400 text-sm mb-4">Suivi scolaire — par parent</p>
-          <div class="text-3xl font-extrabold text-cyan-400 mb-1">3 000 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
-          <p class="text-slate-500 text-xs mb-4">Application GPS Tracker - Licence Élève</p>
-          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
-            <li class="flex gap-2"><span class="text-cyan-400">✓</span> Suivi présence scolaire</li>
-            <li class="flex gap-2"><span class="text-cyan-400">✓</span> Rapport d'assiduité PDF</li>
-            <li class="flex gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
-          </ul>
-          <a href="https://erpbbfef.mychariow.shop/prd_aotwqf" target="_blank" rel="noopener" class="w-full text-center py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all">S'abonner via Chariow →</a>
+          <p class="text-slate-400 text-sm mb-4">≤ 15 ans · suivi parental</p>
+          <div class="text-2xl font-extrabold text-cyan-400 mb-4">3 000 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
+          <a href="/dashboard/login.html" class="w-full text-center py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all mt-auto">Se connecter pour payer →</a>
         </div>
 
-        <!-- Suivi Étudiant -->
-        <div class="bg-gradient-to-b from-slate-900 to-indigo-950/30 rounded-2xl border border-indigo-500/50 p-6 flex flex-col">
+        <div class="bg-slate-900 rounded-2xl border border-indigo-500/50 p-6 flex flex-col">
           <div class="text-3xl mb-3">🎓</div>
           <h3 class="text-lg font-bold text-indigo-300 mb-1">Suivi Étudiant</h3>
-          <p class="text-slate-400 text-sm mb-4">Suivi universitaire</p>
-          <div class="text-3xl font-extrabold text-indigo-400 mb-1">3 000 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
-          <p class="text-slate-500 text-xs mb-4">Application GPS Tracker - Licence Étudiant</p>
-          <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
-            <li class="flex gap-2"><span class="text-indigo-400">✓</span> Suivi présence université</li>
-            <li class="flex gap-2"><span class="text-indigo-400">✓</span> Rapport d'assiduité PDF</li>
-            <li class="flex gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
-          </ul>
-          <a href="https://erpbbfef.mychariow.shop/prd_tv5t2h" target="_blank" rel="noopener" class="w-full text-center py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all">S'abonner via Chariow →</a>
+          <p class="text-slate-400 text-sm mb-4">Université · assiduité</p>
+          <div class="text-2xl font-extrabold text-indigo-400 mb-4">3 000 <span class="text-slate-500 text-base font-normal">FCFA/mois</span></div>
+          <a href="/dashboard/login.html" class="w-full text-center py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all mt-auto">Se connecter pour payer →</a>
+        </div>
+
+        <div class="bg-slate-900 rounded-2xl border border-yellow-500/50 p-6 flex flex-col md:col-span-2 lg:col-span-1">
+          <div class="text-3xl mb-3">♾️</div>
+          <h3 class="text-lg font-bold text-yellow-300 mb-1">Accès Illimité</h3>
+          <p class="text-slate-400 text-sm mb-4">Premium permanent</p>
+          <div class="text-2xl font-extrabold text-yellow-400 mb-4">20 000 <span class="text-slate-500 text-base font-normal">FCFA</span></div>
+          <a href="/dashboard/login.html" class="w-full text-center py-3 bg-yellow-600 hover:bg-yellow-500 text-slate-900 font-bold rounded-xl transition-all mt-auto">Se connecter pour payer →</a>
         </div>
 
       </div>
+      <p class="text-center text-slate-500 text-xs mt-8">
+        Catalogue complet (mensuel + annuel) dans
+        <a href="/dashboard/licence.html" class="text-sky-400 hover:underline">Abonnements</a>
+        après connexion.
+      </p>
     </section>
 
     <!-- ── Guide d'installation APK ── -->
@@ -498,8 +476,22 @@
     </div><!-- /dlModalBox -->
   </div><!-- /dlModal -->
 
-  <!-- qrcode.js — chargé en dernier, non bloquant -->
+  <script>window.tailwind = { corePlugins: { preflight: false } };</script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms" defer
+          onload="document.body.classList.add('tw-ready')"
+          onerror="document.body.classList.add('tw-ready')"></script>
+  <script defer>
+    (function () {
+      var t = setTimeout(function () { document.body.classList.add('tw-ready'); }, 300);
+      document.addEventListener('DOMContentLoaded', function () {
+        clearTimeout(t);
+        document.body.classList.add('tw-ready');
+      }, { once: true });
+    })();
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js" defer></script>
+  <script type="module" defer src="/dashboard/boot-vitrine.js"></script>
 
   <script type="module">
     // ── Ping le serveur avant d'afficher la vitrine ──────────
@@ -658,5 +650,6 @@
 
     })();
   </script>
+
 </body>
 </html>

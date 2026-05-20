@@ -12,9 +12,7 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/fi
 import { brancherBoutonDeconnexion } from './deconnexion.js';
 import { ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 import { showQuotaEpuise } from './fleet.js';
-import { declencherPaiementChariow, injecterLiensChariow } from './chariow-paiement.js';
-
-window.declencherPaiementChariow = declencherPaiementChariow;
+import { genererGrilleOffresHtml, injecterLiensChariow } from './chariow-paiement.js';
 
 // ─── Éléments DOM ───────────────────────────────────────────
 const statusContent   = document.getElementById('statusContent');
@@ -36,13 +34,15 @@ onAuthStateChanged(auth, (user) => {
     return;
   }
   currentUser = user;
+  const catalogue = document.getElementById('catalogueOffres');
+  if (catalogue) catalogue.innerHTML = genererGrilleOffresHtml();
   loadFreemiumStatus();
   listenLicenceHistory();
-  // Injecter les vrais href Chariow sur tous les boutons — clic 100% natif
   injecterLiensChariow(user.uid);
 });
 
 brancherBoutonDeconnexion('#btnSignOut');
+brancherBoutonDeconnexion('#btnSignOutMobile');
 
 // ─── Auto-formatage : XXXX-XXXX-XXXX-XXXX ───────────────────
 // Force majuscules, supprime espaces, insère tirets automatiquement

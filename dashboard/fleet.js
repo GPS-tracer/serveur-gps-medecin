@@ -1,7 +1,7 @@
 ﻿import { auth, db, agentsPath } from "../shared/firebase.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { brancherBoutonDeconnexion, deconnecter } from "./deconnexion.js";
-import { construireUrlChariow } from "./chariow-paiement.js";
+import { genererListeUpsellHtml } from "./chariow-paiement.js";
 import { ref, set, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // Éléments DOM
@@ -49,6 +49,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 brancherBoutonDeconnexion('#btnSignOut');
+brancherBoutonDeconnexion('#btnSignOutMobile');
 
 // ─── Helpers UI ───────────────────────────────────────────────
 function showError(message) {
@@ -288,7 +289,7 @@ deleteModal.addEventListener('click', (e) => {
 
 // ─── Bandeau de bienvenue ─────────────────────────────────────
 function renderWelcomeBanner(companyName) {
-    const header = document.querySelector('header .container');
+    const header = document.querySelector('.app-topbar__inner');
     if (!header || document.getElementById('welcomeBanner')) return;
     if (!document.getElementById('pulse-style')) {
         const style = document.createElement('style');
@@ -320,19 +321,7 @@ function escapeHtml(s) { const d = document.createElement('div'); d.textContent 
 export function showQuotaEpuise(errData, ancre = null) {
     document.getElementById('quotaEpuiseBlock')?.remove();
     const uid = currentUser?.uid;
-    const offres = errData.offres || (uid ? [
-        { label: 'Particulier Premium',  prix: '10 000 FCFA/mois', url: construireUrlChariow('particulier', 'mensuel', uid) },
-        { label: 'Forfait Flotte',       prix: 'B2B',              url: construireUrlChariow('flotte', 'mensuel', uid) },
-        { label: 'Accès Illimité',       prix: 'Premium',          url: construireUrlChariow('illimite', 'mensuel', uid) },
-    ] : [
-        { label: 'Voir les offres', prix: 'Licences', url: 'licence.html' },
-    ]);
-    const offresHtml = offres.map(o => `
-        <a href="${escapeHtml(o.url)}" target="_blank" rel="noopener"
-           class="flex items-center justify-between bg-slate-700/60 hover:bg-slate-700 border border-slate-600 hover:border-sky-500 rounded-lg px-3 py-2 transition-all group">
-            <span class="text-slate-200 text-xs font-medium group-hover:text-white">${escapeHtml(o.label)}</span>
-            <span class="text-sky-400 text-xs font-bold whitespace-nowrap ml-3">${escapeHtml(o.prix)}</span>
-        </a>`).join('');
+    const offresHtml = `<div class="offer-upsell">${genererListeUpsellHtml(uid)}</div>`;
     const div = document.createElement('div');
     div.id = 'quotaEpuiseBlock';
     div.className = 'my-4 bg-amber-500/10 border border-amber-500/40 rounded-xl p-4 text-sm';

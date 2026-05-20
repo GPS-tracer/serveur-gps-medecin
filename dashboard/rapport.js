@@ -12,7 +12,7 @@
 import { auth, db } from '../shared/firebase.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { brancherBoutonDeconnexion } from './deconnexion.js';
-import { construireUrlChariow } from './chariow-paiement.js';
+import { genererListeUpsellHtml } from './chariow-paiement.js';
 import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
 // ─── Éléments DOM ────────────────────────────────────────────
@@ -64,6 +64,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 brancherBoutonDeconnexion('#btnSignOut');
+brancherBoutonDeconnexion('#btnSignOutMobile');
 
 // ─── Charger les agents de la société ────────────────────────
 async function chargerAgents() {
@@ -259,15 +260,6 @@ reportForm.addEventListener('submit', async (e) => {
 // ─── Afficher le bloc d'offres Chariow ───────────────────────
 function afficherOffres(data) {
   const uid = currentUser?.uid;
-  const offres = data.offres || (uid ? [
-    { label: 'Particulier Premium', prix: '10 000 FCFA/mois', url: construireUrlChariow('particulier', 'mensuel', uid) },
-    { label: 'Forfait Flotte',      prix: 'B2B',              url: construireUrlChariow('flotte', 'mensuel', uid) },
-    { label: 'Suivi Élève',         prix: '3 000 FCFA/mois',  url: construireUrlChariow('eleve', 'mensuel', uid) },
-    { label: 'Suivi Étudiant',      prix: '3 000 FCFA/mois',  url: construireUrlChariow('etudiant', 'mensuel', uid) },
-  ] : [
-    { label: 'Catalogue complet', prix: '—', url: 'licence.html' },
-  ]);
-
   const titre = data.message
     ? escapeHtml(data.message)
     : '⏳ Limite quotidienne atteinte. Plan gratuit : 1 seule impression par jour.';
@@ -276,20 +268,12 @@ function afficherOffres(data) {
     <div class="bg-amber-500/10 border border-amber-500/40 rounded-xl p-4">
       <p class="text-amber-300 font-semibold mb-1">${titre}</p>
       <p class="text-slate-400 text-xs mb-3">
-        Activez votre licence sur Chariow pour des rapports illimités :
+        Paiement Chariow (Airtel / MTN) — activation automatique :
       </p>
-      <div class="flex flex-col gap-2">
-        ${offres.map((o) => `
-          <a href="${escapeHtml(o.url)}" target="_blank" rel="noopener"
-             class="flex items-center justify-between bg-slate-700/60 hover:bg-slate-700 border border-slate-600 hover:border-sky-500 rounded-lg px-3 py-2 transition-all group">
-            <span class="text-slate-200 text-xs font-medium group-hover:text-white">${escapeHtml(o.label)}</span>
-            <span class="text-sky-400 text-xs font-bold whitespace-nowrap ml-3">${escapeHtml(o.prix)}</span>
-          </a>
-        `).join('')}
-      </div>
+      <div class="offer-upsell">${genererListeUpsellHtml(uid)}</div>
       <p class="text-slate-500 text-xs mt-3 text-center">
         Après paiement, activez votre clé dans
-        <a href="licence.html" class="text-sky-400 hover:underline">Licences & Packs</a>.
+        <a href="licence.html" class="text-sky-400 hover:underline">Abonnements</a>.
       </p>
     </div>
   `;

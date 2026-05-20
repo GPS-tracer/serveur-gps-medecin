@@ -7,20 +7,13 @@
   <meta name="theme-color" content="#0f172a" />
   <title>GPS Tracker — Dashboard</title>
 
-  <!-- Leaflet CSS -->
+  <link rel="preload" href="style.css" as="style">
+  <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 
-  <!-- Tailwind CDN -->
   <script>window.tailwind={corePlugins:{preflight:true}}</script>
   <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
-  <style>body{margin:0;background:#0f172a;color:#f1f5f9;font-family:system-ui,sans-serif}*{box-sizing:border-box}</style>
-
-  <!-- Lucide icons (CDN) -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-
-  <!-- Custom overrides (Leaflet + animations) -->
-  <link rel="stylesheet" href="style.css" />
 
   <script>
     tailwind.config = {
@@ -217,43 +210,17 @@
     </div>
   </div>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
 
-  <!-- Initialiser les icônes Lucide -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => lucide.createIcons());
+  <script defer>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
   </script>
 
-  <!-- ── Sidebar mobile : hamburger / overlay ── -->
-  <script>
-    (function () {
-      const sidebar  = document.querySelector('.sidebar-new');
-      const overlay  = document.getElementById('sidebarOverlay');
-      const btnOpen  = document.getElementById('sidebarToggle');
-      const btnClose = document.getElementById('sidebarClose');
-
-      function openSidebar()  { sidebar.classList.add('is-open');  overlay.classList.add('is-open');  document.body.style.overflow = 'hidden'; }
-      function closeSidebar() { sidebar.classList.remove('is-open'); overlay.classList.remove('is-open'); document.body.style.overflow = ''; }
-
-      btnOpen?.addEventListener('click', openSidebar);
-      btnClose?.addEventListener('click', closeSidebar);
-      overlay?.addEventListener('click', closeSidebar);
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSidebar(); });
-    })();
-  </script>
-
-  <script type="module">
-    import { waitForServerWake } from "./splash-wake.js";
-    const statusEl = document.getElementById("splash-status");
-    (async () => {
-      await waitForServerWake({
-        onStatus: (msg) => { if (statusEl) statusEl.textContent = msg; },
-      });
-      if (statusEl) statusEl.textContent = "Connexion sécurisée établie, vérification de votre session...";
-      await import("./bootstrap.js");
-    })();
-  </script>
+  <script type="module" defer src="./boot-sidebar.js"></script>
+  <script type="module" defer src="./boot-dashboard.js"></script>
 </body>
 </html>

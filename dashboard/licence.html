@@ -4,35 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Licences & Abonnements - GPS Tracker</title>
+    <link rel="preload" href="style.css" as="style">
+    <link rel="stylesheet" href="style.css">
     <script>window.tailwind={corePlugins:{preflight:true}}</script>
     <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
-    <style>
-        body { margin: 0; background: #0f172a; color: #f1f5f9; font-family: system-ui, sans-serif; }
-        * { box-sizing: border-box; }
-    </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen">
+<body class="app-body" data-nav-active="licence" data-nav-title="Abonnements" data-page-module="./licence.js">
 
-    <!-- En-tête -->
-    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
-        <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <h1 class="text-2xl font-bold text-sky-400">GPS Tracker</h1>
-                <span class="text-slate-400">|</span>
-                <h2 class="text-lg text-slate-300">Licences & Abonnements</h2>
-            </div>
-            <div class="flex items-center gap-4">
-                <a href="fleet.html" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm">
-                    ← Flotte
-                </a>
-                <button id="btnSignOut" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-sm">
-                    Déconnexion
-                </button>
-            </div>
-        </div>
-    </header>
+    <div id="appShellRoot"></div>
 
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
+    <main class="app-main container mx-auto px-4 py-8 max-w-4xl">
 
         <!-- Abonnement actuel -->
         <div id="statusCard" class="bg-slate-800 rounded-xl border border-slate-700 p-6 mb-8">
@@ -51,113 +32,7 @@
             Paiement Mobile Money (Airtel / MTN) — votre compte est activé automatiquement après confirmation
         </p>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-
-            <!-- 1 & 2 — Option Wi-Fi suivi -->
-            <div class="bg-slate-800 rounded-xl border border-slate-600 p-4">
-                <h4 class="font-bold text-white mb-1">📶 Option Wi-Fi suivi</h4>
-                <p class="text-slate-400 text-xs mb-3">200 FCFA/mois · 1 670 FCFA/an</p>
-                <div class="flex flex-col gap-2">
-                    <button type="button"
-                        data-chariow-offre="wifi"
-                        data-chariow-periode="mensuel"
-                        class="w-full bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold py-2 rounded-lg">
-                        Mensuel — 200 FCFA
-                    </button>
-                    <button type="button"
-                        data-chariow-offre="wifi"
-                        data-chariow-periode="annuel"
-                        class="w-full bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold py-2 rounded-lg">
-                        Annuel — 1 670 FCFA
-                    </button>
-                </div>
-            </div>
-
-            <!-- 3 & 4 — Particulier Premium -->
-            <div class="bg-slate-800 rounded-xl border border-amber-500/40 p-4">
-                <h4 class="font-bold text-amber-200 mb-1">⭐ Particulier Premium</h4>
-                <p class="text-slate-400 text-xs mb-3">1 appareil · rapports illimités</p>
-                <div class="flex flex-col gap-2">
-                    <button type="button"
-                        data-chariow-offre="particulier"
-                        data-chariow-periode="mensuel"
-                        class="w-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold py-2 rounded-lg">
-                        Mensuel — 10 000 FCFA
-                    </button>
-                    <button type="button"
-                        data-chariow-offre="particulier"
-                        data-chariow-periode="annuel"
-                        class="w-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold py-2 rounded-lg">
-                        Annuel — 111 240 FCFA
-                    </button>
-                </div>
-            </div>
-
-            <!-- 5 & 6 — Suivi Élève -->
-            <div class="bg-slate-800 rounded-xl border border-cyan-500/40 p-4">
-                <h4 class="font-bold text-cyan-200 mb-1">🎒 Suivi Élève (≤ 15 ans)</h4>
-                <p class="text-slate-400 text-xs mb-3">3 000 FCFA/mois · 33 370 FCFA/an</p>
-                <div class="flex flex-col gap-2">
-                    <button type="button"
-                        data-chariow-offre="eleve"
-                        data-chariow-periode="mensuel"
-                        class="w-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold py-2 rounded-lg">
-                        Mensuel — 3 000 FCFA
-                    </button>
-                    <button type="button"
-                        data-chariow-offre="eleve"
-                        data-chariow-periode="annuel"
-                        class="w-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold py-2 rounded-lg">
-                        Annuel — 33 370 FCFA
-                    </button>
-                </div>
-            </div>
-
-            <!-- 7 & 8 — Suivi Étudiant -->
-            <div class="bg-slate-800 rounded-xl border border-indigo-500/40 p-4">
-                <h4 class="font-bold text-indigo-200 mb-1">🎓 Suivi Étudiant</h4>
-                <p class="text-slate-400 text-xs mb-3">3 000 FCFA/mois · 33 370 FCFA/an</p>
-                <div class="flex flex-col gap-2">
-                    <button type="button"
-                        data-chariow-offre="etudiant"
-                        data-chariow-periode="mensuel"
-                        class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 rounded-lg">
-                        Mensuel — 3 000 FCFA
-                    </button>
-                    <button type="button"
-                        data-chariow-offre="etudiant"
-                        data-chariow-periode="annuel"
-                        class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 rounded-lg">
-                        Annuel — 33 370 FCFA
-                    </button>
-                </div>
-            </div>
-
-            <!-- 9 — Forfait Flotte B2B -->
-            <div class="bg-slate-800 rounded-xl border border-emerald-500/40 p-4">
-                <h4 class="font-bold text-emerald-200 mb-1">🚛 Forfait Flotte B2B</h4>
-                <p class="text-slate-400 text-xs mb-3">Agents et rapports illimités · 25 000 FCFA/mois</p>
-                <button type="button"
-                    data-chariow-offre="flotte"
-                    data-chariow-periode="mensuel"
-                    class="w-full mt-1 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold py-2 rounded-lg">
-                    S'abonner via Chariow →
-                </button>
-            </div>
-
-            <!-- 10 — Accès Illimité -->
-            <div class="bg-slate-800 rounded-xl border border-yellow-500/40 p-4">
-                <h4 class="font-bold text-yellow-200 mb-1">♾️ Accès Illimité</h4>
-                <p class="text-slate-400 text-xs mb-3">Agents et rapports illimités · accès permanent · 20 000 FCFA</p>
-                <button type="button"
-                    data-chariow-offre="illimite"
-                    data-chariow-periode="mensuel"
-                    class="w-full mt-1 bg-yellow-600 hover:bg-yellow-500 text-slate-900 text-sm font-bold py-2 rounded-lg">
-                    Acheter via Chariow →
-                </button>
-            </div>
-
-        </div>
+        <div id="catalogueOffres" class="offer-grid" aria-live="polite"></div>
 
         <!-- Activation de clé de licence -->
         <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
@@ -223,8 +98,8 @@
             </ul>
         </div>
 
-    </div>
+    </main>
 
-    <script type="module" src="licence.js"></script>
+    <script type="module" defer src="./boot-app.js"></script>
 </body>
 </html>
