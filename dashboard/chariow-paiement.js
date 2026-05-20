@@ -59,6 +59,10 @@ export function construireUrlChariow(typeOffre, periode, uid) {
 
 /**
  * Ouvre la boutique Chariow pour l'offre demandée.
+ *
+ * Technique anti-popup-blocker : on crée un <a> temporaire et on
+ * simule un clic natif — garanti de passer même depuis un module ES.
+ *
  * @param {string} typeOffre — wifi | particulier | eleve | etudiant | flotte | illimite
  * @param {string} periode — mensuel | annuel
  * @param {string} uid — UID Firebase Auth (société / parent)
@@ -75,7 +79,18 @@ export function declencherPaiementChariow(typeOffre, periode, uid) {
   }
 
   const url = construireUrlChariow(type, p, uid);
-  window.open(url, '_blank', 'noopener,noreferrer');
+
+  // Créer un lien temporaire et déclencher un clic natif
+  // → contourne le popup blocker des navigateurs modernes
+  const a = document.createElement('a');
+  a.href   = url;
+  a.target = '_blank';
+  a.rel    = 'noopener noreferrer';
+  // Insérer brièvement dans le DOM pour que le clic soit considéré "de confiance"
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 /** Libellés et prix des 10 produits Chariow officiels */

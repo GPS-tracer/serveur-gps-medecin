@@ -50,13 +50,25 @@ function brancherBoutonsChariow() {
         showMessage('Connectez-vous pour lancer un paiement.', 'error');
         return;
       }
+      // Feedback visuel immédiat
+      const originalText = btn.textContent;
+      btn.textContent = '⏳ Ouverture…';
+      btn.disabled = true;
+
       try {
         declencherPaiementChariow(
           btn.dataset.chariowOffre,
           btn.dataset.chariowPeriode || 'mensuel',
           currentUser.uid,
         );
+        // Restaurer le bouton après 1.5s
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.disabled = false;
+        }, 1500);
       } catch (err) {
+        btn.textContent = originalText;
+        btn.disabled = false;
         showMessage(err.message || 'Impossible d\'ouvrir le paiement.', 'error');
       }
     });
