@@ -78,16 +78,16 @@ export function declencherPaiementChariow(typeOffre, periode, uid) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-/** Libellés + prix affichés (offres quota / upsell) */
+/** Libellés et prix des 10 produits Chariow officiels */
 export const OFFRES_CHARIOW_AFFICHAGE = [
-  { type: 'wifi',        periode: 'mensuel', label: 'Option Wi-Fi suivi',      prix: '150 FCFA/mois' },
-  { type: 'wifi',        periode: 'annuel',  label: 'Option Wi-Fi suivi',      prix: '1 670 FCFA/an' },
-  { type: 'particulier', periode: 'mensuel', label: 'Particulier Premium',     prix: '10 000 FCFA/mois' },
-  { type: 'particulier', periode: 'annuel',  label: 'Particulier Premium',     prix: '111 240 FCFA/an' },
-  { type: 'eleve',       periode: 'mensuel', label: 'Suivi Élève (≤ 15 ans)',  prix: '3 000 FCFA/mois' },
-  { type: 'eleve',       periode: 'annuel',  label: 'Suivi Élève (≤ 15 ans)',  prix: '33 370 FCFA/an' },
-  { type: 'etudiant',    periode: 'mensuel', label: 'Suivi Étudiant',          prix: '3 000 FCFA/mois' },
-  { type: 'etudiant',    periode: 'annuel',  label: 'Suivi Étudiant',          prix: '33 370 FCFA/an' },
-  { type: 'flotte',      periode: 'mensuel', label: 'Forfait Flotte B2B',     prix: 'Sur devis Chariow' },
-  { type: 'illimite',    periode: 'mensuel', label: 'Accès Illimité Premium',  prix: 'Sur devis Chariow' },
+  { type: 'wifi',        periode: 'mensuel', label: 'Option Wi-Fi suivi',     prix: '150 FCFA/mois'      },
+  { type: 'wifi',        periode: 'annuel',  label: 'Option Wi-Fi suivi',     prix: '1 670 FCFA/an'      },
+  { type: 'particulier', periode: 'mensuel', label: 'Particulier Premium',    prix: '10 000 FCFA/mois'   },
+  { type: 'particulier', periode: 'annuel',  label: 'Particulier Premium',    prix: '111 240 FCFA/an'    },
+  { type: 'eleve',       periode: 'mensuel', label: 'Suivi Élève (≤ 15 ans)', prix: '3 000 FCFA/mois'    },
+  { type: 'eleve',       periode: 'annuel',  label: 'Suivi Élève (≤ 15 ans)', prix: '33 370 FCFA/an'     },
+  { type: 'etudiant',    periode: 'mensuel', label: 'Suivi Étudiant',         prix: '3 000 FCFA/mois'    },
+  { type: 'etudiant',    periode: 'annuel',  label: 'Suivi Étudiant',         prix: '33 370 FCFA/an'     },
+  { type: 'flotte',      periode: 'mensuel', label: 'Forfait Flotte B2B',     prix: '25 000 FCFA/mois'   },
+  { type: 'illimite',    periode: 'mensuel', label: 'Accès Illimité',         prix: '20 000 FCFA'        },
 ];

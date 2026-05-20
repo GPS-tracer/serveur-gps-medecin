@@ -124,17 +124,18 @@ async function loadFreemiumStatus() {
 }
 
 function renderStatus(data) {
-  // ── Labels des packs ──────────────────────────────────────
+  // ── Labels des packs (alignés sur les 10 produits Chariow) ──
   const packLabel = {
-    free:                 '🆓 Plan gratuit',
-    particulier_premium:  '⭐ Particulier Premium',
-    pack_20:              '📄 Pack Starter (20 rapports)',
-    pack_40:              '📋 Pack Pro (40 rapports)',
-    illimite:             '♾️ Accès Illimité',
-    abonnement_flotte:    '🚛 Forfait Flotte',
-    abonnement_unite:     '👤 Tarif à l\'Unité',
-    '20': '📄 Pack Starter (20 rapports)',
-    '40': '📋 Pack Pro (40 rapports)',
+    free:                '🆓 Plan gratuit',
+    wifi:                '📶 Option Wi-Fi suivi',
+    particulier:         '⭐ Particulier Premium',
+    particulier_premium: '⭐ Particulier Premium',
+    eleve:               '🎒 Suivi Élève',
+    suivi_eleve:         '🎒 Suivi Élève',
+    etudiant:            '🎓 Suivi Étudiant',
+    suivi_etudiant:      '🎓 Suivi Étudiant',
+    abonnement_flotte:   '🚛 Forfait Flotte B2B',
+    illimite:            '♾️ Accès Illimité',
   }[data.typePack] || data.typePack;
 
   // ── Rapports ──────────────────────────────────────────────
@@ -194,8 +195,8 @@ function renderStatus(data) {
       <div class="bg-slate-700/50 rounded-lg p-4">
         <p class="text-slate-400 text-xs mb-1">Pack actuel</p>
         <p class="font-semibold">${packLabel}</p>
-        ${data.typeAbonnement === 'abonnement_unite' && data.quantiteAgents
-          ? `<p class="text-violet-400 text-xs mt-1">${data.quantiteAgents} agent(s) inclus</p>`
+        ${data.quantiteAgents && data.quantiteAgents > 1
+          ? `<p class="text-sky-400 text-xs mt-1">${data.quantiteAgents} agent(s) inclus</p>`
           : ''}
       </div>
       <div class="bg-slate-700/50 rounded-lg p-4">
@@ -240,20 +241,20 @@ function listenLicenceHistory() {
       const date = new Date(e.activatedAt).toLocaleString('fr-FR', {
         dateStyle: 'short', timeStyle: 'short',
       });
-      // Labels lisibles pour chaque type de pack
+      // Labels alignés sur les 10 produits Chariow
       const packLabels = {
-        pack_20:            '+20 rapports',
-        pack_40:            '+40 rapports',
-        illimite:           'Illimité permanent',
-        abonnement_flotte:  'Forfait Flotte 30j',
-        abonnement_unite:   `Abonnement ${e.quantiteAgents || '?'} agent(s) 30j`,
-        // rétrocompatibilité
-        '20': '+20 rapports',
-        '40': '+40 rapports',
+        wifi:              'Option Wi-Fi suivi',
+        particulier:       'Particulier Premium',
+        eleve:             'Suivi Élève',
+        suivi_eleve:       'Suivi Élève',
+        etudiant:          'Suivi Étudiant',
+        suivi_etudiant:    'Suivi Étudiant',
+        abonnement_flotte: 'Forfait Flotte B2B',
+        illimite:          'Accès Illimité',
       };
       const creditsLabel = e.credits === 'illimite'
-        ? 'Illimité permanent'
-        : packLabels[e.typePack] || `+${e.credits} rapports`;
+        ? 'Accès Illimité'
+        : packLabels[e.typePack] || (e.credits ? `+${e.credits} crédits` : e.typePack || '—');
 
       // Badge expiration pour les abonnements
       const expBadge = e.dateExpiration

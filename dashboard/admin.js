@@ -95,11 +95,12 @@ function showAuthError(msg) {
 }
 
 // ─── Afficher/masquer quantité agents ────────────────────────
+// (réservé aux types qui nécessitent une quantité d'agents — suivi_eleve / suivi_etudiant)
 [importTypePack, genTypePack].forEach((sel) => {
   sel.addEventListener('change', () => {
-    const isUnite = sel.value === 'abonnement_unite';
-    if (sel === importTypePack) quantiteAgentsRow.classList.toggle('hidden', !isUnite);
-    if (sel === genTypePack)    genQuantiteRow.classList.toggle('hidden', !isUnite);
+    const needsQty = ['suivi_eleve', 'suivi_etudiant'].includes(sel.value);
+    if (sel === importTypePack) quantiteAgentsRow.classList.toggle('hidden', !needsQty);
+    if (sel === genTypePack)    genQuantiteRow.classList.toggle('hidden', !needsQty);
   });
 });
 
@@ -130,7 +131,7 @@ btnImport.addEventListener('click', async () => {
 
   const keys = rawKeys.split('\n').map((k) => k.trim()).filter(Boolean);
   const body = { type_pack, keys };
-  if (type_pack === 'abonnement_unite') {
+  if (['suivi_eleve', 'suivi_etudiant'].includes(type_pack)) {
     body.quantite_agents = parseInt(importQuantiteAgents.value, 10) || 1;
   }
 
@@ -168,7 +169,7 @@ btnGenerate.addEventListener('click', async () => {
   const type_pack = genTypePack.value;
   const count     = parseInt(genCount.value, 10) || 1;
   const body      = { type_pack, count };
-  if (type_pack === 'abonnement_unite') {
+  if (['suivi_eleve', 'suivi_etudiant'].includes(type_pack)) {
     body.quantite_agents = parseInt(genQuantiteAgents.value, 10) || 1;
   }
 

@@ -3,20 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Licences & Packs - GPS Tracker</title>
+    <title>Licences & Abonnements - GPS Tracker</title>
     <script>window.tailwind={corePlugins:{preflight:true}}</script>
-  <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
-  <style>body{margin:0;background:#0f172a;color:#f1f5f9;font-family:system-ui,sans-serif}*{box-sizing:border-box}</style>
+    <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
+    <style>
+        body { margin: 0; background: #0f172a; color: #f1f5f9; font-family: system-ui, sans-serif; }
+        * { box-sizing: border-box; }
+    </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen">
 
-    <!-- Header -->
+    <!-- En-tête -->
     <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
         <div class="container mx-auto px-4 py-4 flex items-center justify-between">
             <div class="flex items-center gap-4">
                 <h1 class="text-2xl font-bold text-sky-400">GPS Tracker</h1>
                 <span class="text-slate-400">|</span>
-                <h2 class="text-lg text-slate-300">Licences & Packs</h2>
+                <h2 class="text-lg text-slate-300">Licences & Abonnements</h2>
             </div>
             <div class="flex items-center gap-4">
                 <a href="fleet.html" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm">
@@ -31,7 +34,7 @@
 
     <div class="container mx-auto px-4 py-8 max-w-4xl">
 
-        <!-- Statut actuel -->
+        <!-- Abonnement actuel -->
         <div id="statusCard" class="bg-slate-800 rounded-xl border border-slate-700 p-6 mb-8">
             <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
                 <span>📊</span> Votre abonnement actuel
@@ -42,214 +45,121 @@
             </div>
         </div>
 
-        <!-- Catalogue Chariow unifié (10 produits — paiement lié à votre compte) -->
+        <!-- Catalogue Chariow — 10 produits officiels -->
         <h3 class="text-xl font-bold mb-2 text-center">Catalogue Chariow GPTS</h3>
-        <p class="text-slate-400 text-sm text-center mb-6">Paiement Mobile Money — votre compte est activé automatiquement après confirmation</p>
+        <p class="text-slate-400 text-sm text-center mb-6">
+            Paiement Mobile Money (Airtel / MTN) — votre compte est activé automatiquement après confirmation
+        </p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+
+            <!-- 1 & 2 — Option Wi-Fi suivi -->
             <div class="bg-slate-800 rounded-xl border border-slate-600 p-4">
                 <h4 class="font-bold text-white mb-1">📶 Option Wi-Fi suivi</h4>
                 <p class="text-slate-400 text-xs mb-3">150 FCFA/mois · 1 670 FCFA/an</p>
                 <div class="flex flex-col gap-2">
-                    <button type="button" data-chariow-offre="wifi" data-chariow-periode="mensuel" class="w-full bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold py-2 rounded-lg">Mensuel — 150 FCFA</button>
-                    <button type="button" data-chariow-offre="wifi" data-chariow-periode="annuel" class="w-full bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold py-2 rounded-lg">Annuel — 1 670 FCFA</button>
+                    <button type="button"
+                        data-chariow-offre="wifi"
+                        data-chariow-periode="mensuel"
+                        class="w-full bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold py-2 rounded-lg">
+                        Mensuel — 150 FCFA
+                    </button>
+                    <button type="button"
+                        data-chariow-offre="wifi"
+                        data-chariow-periode="annuel"
+                        class="w-full bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold py-2 rounded-lg">
+                        Annuel — 1 670 FCFA
+                    </button>
                 </div>
             </div>
+
+            <!-- 3 & 4 — Particulier Premium -->
             <div class="bg-slate-800 rounded-xl border border-amber-500/40 p-4">
                 <h4 class="font-bold text-amber-200 mb-1">⭐ Particulier Premium</h4>
                 <p class="text-slate-400 text-xs mb-3">1 appareil · rapports illimités</p>
                 <div class="flex flex-col gap-2">
-                    <button type="button" data-chariow-offre="particulier" data-chariow-periode="mensuel" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold py-2 rounded-lg">Mensuel — 10 000 FCFA</button>
-                    <button type="button" data-chariow-offre="particulier" data-chariow-periode="annuel" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold py-2 rounded-lg">Annuel — 111 240 FCFA</button>
+                    <button type="button"
+                        data-chariow-offre="particulier"
+                        data-chariow-periode="mensuel"
+                        class="w-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold py-2 rounded-lg">
+                        Mensuel — 10 000 FCFA
+                    </button>
+                    <button type="button"
+                        data-chariow-offre="particulier"
+                        data-chariow-periode="annuel"
+                        class="w-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold py-2 rounded-lg">
+                        Annuel — 111 240 FCFA
+                    </button>
                 </div>
             </div>
+
+            <!-- 5 & 6 — Suivi Élève -->
             <div class="bg-slate-800 rounded-xl border border-cyan-500/40 p-4">
                 <h4 class="font-bold text-cyan-200 mb-1">🎒 Suivi Élève (≤ 15 ans)</h4>
                 <p class="text-slate-400 text-xs mb-3">3 000 FCFA/mois · 33 370 FCFA/an</p>
                 <div class="flex flex-col gap-2">
-                    <button type="button" data-chariow-offre="eleve" data-chariow-periode="mensuel" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold py-2 rounded-lg">Mensuel</button>
-                    <button type="button" data-chariow-offre="eleve" data-chariow-periode="annuel" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold py-2 rounded-lg">Annuel</button>
+                    <button type="button"
+                        data-chariow-offre="eleve"
+                        data-chariow-periode="mensuel"
+                        class="w-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold py-2 rounded-lg">
+                        Mensuel — 3 000 FCFA
+                    </button>
+                    <button type="button"
+                        data-chariow-offre="eleve"
+                        data-chariow-periode="annuel"
+                        class="w-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold py-2 rounded-lg">
+                        Annuel — 33 370 FCFA
+                    </button>
                 </div>
             </div>
+
+            <!-- 7 & 8 — Suivi Étudiant -->
             <div class="bg-slate-800 rounded-xl border border-indigo-500/40 p-4">
                 <h4 class="font-bold text-indigo-200 mb-1">🎓 Suivi Étudiant</h4>
                 <p class="text-slate-400 text-xs mb-3">3 000 FCFA/mois · 33 370 FCFA/an</p>
                 <div class="flex flex-col gap-2">
-                    <button type="button" data-chariow-offre="etudiant" data-chariow-periode="mensuel" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 rounded-lg">Mensuel</button>
-                    <button type="button" data-chariow-offre="etudiant" data-chariow-periode="annuel" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 rounded-lg">Annuel</button>
+                    <button type="button"
+                        data-chariow-offre="etudiant"
+                        data-chariow-periode="mensuel"
+                        class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 rounded-lg">
+                        Mensuel — 3 000 FCFA
+                    </button>
+                    <button type="button"
+                        data-chariow-offre="etudiant"
+                        data-chariow-periode="annuel"
+                        class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 rounded-lg">
+                        Annuel — 33 370 FCFA
+                    </button>
                 </div>
             </div>
+
+            <!-- 9 — Forfait Flotte B2B -->
             <div class="bg-slate-800 rounded-xl border border-emerald-500/40 p-4">
                 <h4 class="font-bold text-emerald-200 mb-1">🚛 Forfait Flotte B2B</h4>
-                <button type="button" data-chariow-offre="flotte" data-chariow-periode="mensuel" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold py-2 rounded-lg">S'abonner via Chariow →</button>
+                <p class="text-slate-400 text-xs mb-3">Agents et rapports illimités · 25 000 FCFA/mois</p>
+                <button type="button"
+                    data-chariow-offre="flotte"
+                    data-chariow-periode="mensuel"
+                    class="w-full mt-1 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold py-2 rounded-lg">
+                    S'abonner via Chariow →
+                </button>
             </div>
+
+            <!-- 10 — Accès Illimité -->
             <div class="bg-slate-800 rounded-xl border border-yellow-500/40 p-4">
-                <h4 class="font-bold text-yellow-200 mb-1">♾️ Accès Illimité Premium</h4>
-                <button type="button" data-chariow-offre="illimite" data-chariow-periode="mensuel" class="w-full mt-3 bg-yellow-600 hover:bg-yellow-500 text-slate-900 text-sm font-bold py-2 rounded-lg">Acheter via Chariow →</button>
-            </div>
-        </div>
-
-        <h3 class="text-lg font-bold mb-2 text-center text-slate-500">Anciens packs (clé par email)</h3>
-        <p class="text-slate-500 text-xs text-center mb-4">Rapports crédités — activation manuelle de clé ci-dessous</p>
-
-        <!-- ── Section : Packs à usage unique ── -->
-        <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-            <span class="flex-1 h-px bg-slate-700"></span>
-            <span>📦 Packs à usage unique</span>
-            <span class="flex-1 h-px bg-slate-700"></span>
-        </h4>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-
-            <!-- ── Pack Starter : 20 rapports ── -->
-            <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 flex flex-col hover:border-sky-500 transition-all group">
-                <div class="text-center mb-4">
-                    <div class="text-5xl mb-3">📄</div>
-                    <h4 class="text-lg font-bold text-white">Pack Starter</h4>
-                    <p class="text-slate-400 text-sm mt-1">20 rapports d'impression</p>
-                </div>
-                <div class="text-center my-4 py-3 bg-slate-700/40 rounded-xl">
-                    <span class="text-4xl font-extrabold text-sky-400">500</span>
-                    <span class="text-slate-400 text-sm"> FCFA</span>
-                    <p class="text-slate-500 text-xs mt-1">590 FCFA frais Mobile Money inclus</p>
-                </div>
-                <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> 20 impressions de rapports</li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Paiement Airtel / MTN</li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
-                    <li class="flex items-center gap-2"><span class="text-slate-500">✗</span> Agents illimités</li>
-                </ul>
-                <a href="https://erpbbfef.mychariow.shop/prd_59udmg" target="_blank" rel="noopener"
-                   class="w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-3 px-4 rounded-lg text-center transition-all block group-hover:shadow-lg group-hover:shadow-sky-500/20">
-                    Payer via Chariow →
-                </a>
-            </div>
-
-            <!-- ── Pack Pro : 40 rapports ── -->
-            <div class="bg-slate-800 rounded-xl border-2 border-sky-500 p-6 flex flex-col relative shadow-xl shadow-sky-500/10">
-                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span class="bg-sky-500 text-white text-xs font-bold px-4 py-1 rounded-full tracking-wide">⭐ POPULAIRE</span>
-                </div>
-                <div class="text-center mb-4 mt-2">
-                    <div class="text-5xl mb-3">📋</div>
-                    <h4 class="text-lg font-bold text-white">Pack Pro</h4>
-                    <p class="text-slate-400 text-sm mt-1">40 rapports d'impression</p>
-                </div>
-                <div class="text-center my-4 py-3 bg-sky-500/10 rounded-xl border border-sky-500/30">
-                    <span class="text-4xl font-extrabold text-sky-400">1 000</span>
-                    <span class="text-slate-400 text-sm"> FCFA</span>
-                    <p class="text-slate-500 text-xs mt-1">1 180 FCFA frais Mobile Money inclus</p>
-                </div>
-                <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> 40 impressions de rapports</li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Paiement Airtel / MTN</li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
-                    <li class="flex items-center gap-2"><span class="text-sky-400 font-bold">✓</span> <span class="text-sky-300 font-medium">Meilleur rapport qualité/prix</span></li>
-                    <li class="flex items-center gap-2"><span class="text-slate-500">✗</span> Agents illimités</li>
-                </ul>
-                <a href="https://erpbbfef.mychariow.shop/prd_ia4imm" target="_blank" rel="noopener"
-                   class="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-semibold py-3 px-4 rounded-lg text-center transition-all block shadow-lg shadow-sky-500/30">
-                    Payer via Chariow →
-                </a>
-            </div>
-
-            <!-- ── Pack Illimité ── -->
-            <div class="bg-gradient-to-b from-slate-800 to-yellow-900/20 rounded-xl border border-yellow-500/60 p-6 flex flex-col hover:border-yellow-400 transition-all group shadow-xl shadow-yellow-500/5">
-                <div class="text-center mb-4">
-                    <div class="text-5xl mb-3">♾️</div>
-                    <h4 class="text-lg font-bold text-yellow-300">Pack Illimité</h4>
-                    <p class="text-slate-400 text-sm mt-1">Rapports + Agents illimités</p>
-                </div>
-                <div class="text-center my-4 py-3 bg-yellow-500/10 rounded-xl border border-yellow-500/30">
-                    <span class="text-4xl font-extrabold text-yellow-400">20 000</span>
-                    <span class="text-slate-400 text-sm"> FCFA</span>
-                    <p class="text-slate-500 text-xs mt-1">23 550 FCFA frais Mobile Money inclus</p>
-                </div>
-                <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
-                    <li class="flex items-center gap-2"><span class="text-yellow-400">✓</span> <span class="text-yellow-200 font-medium">Impressions illimitées</span></li>
-                    <li class="flex items-center gap-2"><span class="text-yellow-400">✓</span> <span class="text-yellow-200 font-medium">Agents illimités</span></li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Paiement Airtel / MTN</li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Support prioritaire</li>
-                </ul>
-                <a href="https://erpbbfef.mychariow.shop/prd_7hj1hc" target="_blank" rel="noopener"
-                   class="w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-900 font-bold py-3 px-4 rounded-lg text-center transition-all block group-hover:shadow-lg group-hover:shadow-yellow-500/30">
-                    Payer via Chariow →
-                </a>
+                <h4 class="font-bold text-yellow-200 mb-1">♾️ Accès Illimité</h4>
+                <p class="text-slate-400 text-xs mb-3">Agents et rapports illimités · accès permanent · 20 000 FCFA</p>
+                <button type="button"
+                    data-chariow-offre="illimite"
+                    data-chariow-periode="mensuel"
+                    class="w-full mt-1 bg-yellow-600 hover:bg-yellow-500 text-slate-900 text-sm font-bold py-2 rounded-lg">
+                    Acheter via Chariow →
+                </button>
             </div>
 
         </div>
 
-        <!-- ── Section : Abonnements mensuels B2B ── -->
-        <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-            <span class="flex-1 h-px bg-slate-700"></span>
-            <span>🏢 Abonnements mensuels B2B</span>
-            <span class="flex-1 h-px bg-slate-700"></span>
-        </h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-
-            <!-- ── Forfait Flotte ── -->
-            <div class="bg-gradient-to-b from-slate-800 to-emerald-900/20 rounded-xl border border-emerald-500/60 p-6 flex flex-col hover:border-emerald-400 transition-all group shadow-xl shadow-emerald-500/5 relative">
-                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span class="bg-emerald-600 text-white text-xs font-bold px-4 py-1 rounded-full tracking-wide">🏢 B2B MENSUEL</span>
-                </div>
-                <div class="text-center mb-4 mt-2">
-                    <div class="text-5xl mb-3">🚛</div>
-                    <h4 class="text-lg font-bold text-emerald-300">Forfait Flotte</h4>
-                    <p class="text-slate-400 text-sm mt-1">Abonnement mensuel — flotte complète</p>
-                </div>
-                <div class="text-center my-4 py-3 bg-emerald-500/10 rounded-xl border border-emerald-500/30">
-                    <span class="text-4xl font-extrabold text-emerald-400">25 000</span>
-                    <span class="text-slate-400 text-sm"> FCFA</span>
-                    <span class="text-slate-500 text-xs block mt-0.5">/ mois</span>
-                    <p class="text-slate-500 text-xs mt-1">26 010 FCFA frais Mobile Money inclus</p>
-                </div>
-                <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
-                    <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> <span class="text-emerald-200 font-medium">Agents illimités</span></li>
-                    <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> <span class="text-emerald-200 font-medium">Rapports illimités</span></li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Renouvellement mensuel</li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Support prioritaire</li>
-                    <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> <span class="text-emerald-200 font-medium">Idéal pour les grandes flottes</span></li>
-                </ul>
-                <a href="https://erpbbfef.mychariow.shop/prd_flotte" target="_blank" rel="noopener"
-                   class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3 px-4 rounded-lg text-center transition-all block group-hover:shadow-lg group-hover:shadow-emerald-500/30">
-                    S'abonner via Chariow →
-                </a>
-            </div>
-
-            <!-- ── Tarif à l'Unité ── -->
-            <div class="bg-gradient-to-b from-slate-800 to-violet-900/20 rounded-xl border border-violet-500/60 p-6 flex flex-col hover:border-violet-400 transition-all group shadow-xl shadow-violet-500/5 relative">
-                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span class="bg-violet-600 text-white text-xs font-bold px-4 py-1 rounded-full tracking-wide">🏢 B2B MENSUEL</span>
-                </div>
-                <div class="text-center mb-4 mt-2">
-                    <div class="text-5xl mb-3">👤</div>
-                    <h4 class="text-lg font-bold text-violet-300">Tarif à l'Unité</h4>
-                    <p class="text-slate-400 text-sm mt-1">Abonnement mensuel — par agent</p>
-                </div>
-                <div class="text-center my-4 py-3 bg-violet-500/10 rounded-xl border border-violet-500/30">
-                    <span class="text-4xl font-extrabold text-violet-400">30 000</span>
-                    <span class="text-slate-400 text-sm"> FCFA</span>
-                    <span class="text-slate-500 text-xs block mt-0.5">/ agent / mois</span>
-                    <p class="text-slate-500 text-xs mt-1">31 192 FCFA frais Mobile Money inclus</p>
-                </div>
-                <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-1">
-                    <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> <span class="text-violet-200 font-medium">Limite d'agents = quantité achetée</span></li>
-                    <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Rapports inclus pour ces agents</li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Renouvellement mensuel</li>
-                    <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Clé reçue par email</li>
-                    <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> <span class="text-violet-200 font-medium">Flexible selon votre flotte</span></li>
-                    <li class="flex items-center gap-2"><span class="text-slate-400 text-xs">ex: 5 agents = 150 000 FCFA/mois</span></li>
-                </ul>
-                <a href="https://erpbbfef.mychariow.shop/prd_unite" target="_blank" rel="noopener"
-                   class="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-bold py-3 px-4 rounded-lg text-center transition-all block group-hover:shadow-lg group-hover:shadow-violet-500/30">
-                    S'abonner via Chariow →
-                </a>
-            </div>
-
-        </div>
-
-        <!-- Formulaire d'activation de clé -->
+        <!-- Activation de clé de licence -->
         <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
             <h3 class="text-lg font-bold mb-2 flex items-center gap-2">
                 <span>🔑</span> Activer une clé de licence
@@ -284,7 +194,6 @@
                     <p class="text-slate-500 text-xs mt-1">Copiez la clé depuis votre email et collez-la ici.</p>
                 </div>
 
-                <!-- Message résultat -->
                 <div id="licenceMessage" class="hidden px-4 py-3 rounded-lg text-sm font-medium"></div>
 
                 <button
@@ -302,15 +211,15 @@
             </div>
         </div>
 
-        <!-- Info freemium -->
+        <!-- Limites selon le plan -->
         <div class="mt-6 bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
             <h4 class="text-sm font-semibold text-slate-300 mb-2">ℹ️ Limites selon votre plan</h4>
             <ul class="text-xs text-slate-400 space-y-1">
-                <li>• <strong class="text-white">Plan gratuit</strong> : <strong class="text-white">1 appareil</strong> à suivre, 1 impression gratuite/jour</li>
-                <li>• <strong class="text-white">Pack 20 / Pack 40</strong> : jusqu'à <strong class="text-white">10 appareils</strong> + rapports crédités</li>
-                <li>• <strong class="text-white">Pack Illimité</strong> : agents et rapports illimités (permanent)</li>
+                <li>• <strong class="text-white">Plan gratuit</strong> : 1 appareil, 1 impression/jour</li>
+                <li>• <strong class="text-white">Particulier Premium</strong> : 1 appareil, rapports illimités</li>
+                <li>• <strong class="text-white">Suivi Élève / Étudiant</strong> : agents selon quantité achetée, rapports illimités</li>
                 <li>• <strong class="text-white">Forfait Flotte</strong> : agents et rapports illimités (mensuel)</li>
-                <li>• <strong class="text-white">Tarif à l'Unité</strong> : limite = quantité d'agents achetée (mensuel)</li>
+                <li>• <strong class="text-white">Accès Illimité</strong> : agents et rapports illimités (permanent)</li>
             </ul>
         </div>
 

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nom de l'application -->
+    <string name="app_name">GPS Tracker Agent</string>
+
+    <!-- Description affichée dans Paramètres > Administrateurs de l'appareil -->
+    <string name="admin_description">
+        GPS Tracker Agent utilise les droits d\'administrateur pour assurer
+        le suivi de flotte en continu. Ces droits empêchent la désinstallation
+        non autorisée et garantissent la disponibilité permanente du service.
+    </string>
+
+    <!-- Message affiché quand l'utilisateur tente de désactiver l'admin -->
+    <string name="admin_disable_warning">
+        Cette application est gérée par votre administrateur d\'entreprise.
+        La désactivation n\'est pas autorisée. Contactez votre administrateur
+        si vous avez besoin d\'assistance.
+    </string>
+
+    <!-- Notification foreground service -->
+    <string name="notification_channel_name">GPS Tracker</string>
+    <string name="notification_channel_description">Suivi GPS en arrière-plan</string>
+    <string name="notification_title">GPS Tracker actif</string>
+    <string name="notification_text">Suivi de position en cours…</string>
+
+    <!-- Messages d'état -->
+    <string name="status_tracking_active">✅ Tracking actif</string>
+    <string name="status_pending">⏳ En attente d\'activation</string>
+    <string name="status_not_registered">⏸ Non enregistré</string>
+
+    <!-- Boutons -->
+    <string name="btn_register">S\'enregistrer</string>
+    <string name="btn_registering">Enregistrement…</string>
+</resources>

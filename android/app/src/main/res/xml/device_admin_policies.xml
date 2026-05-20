@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Politiques Device Admin déclarées pour GPS Tracker Agent.
+
+    Ces balises <uses-policies> indiquent au système Android quelles
+    capacités administratives notre AdminReceiver peut exercer.
+
+    Requises pour le mode Device Owner (enrôlement QR Code) :
+      - wipe-data          : effacement à distance (commande MDM)
+      - limit-password     : politique de mot de passe
+      - watch-login        : surveillance des tentatives de connexion
+      - reset-password     : réinitialisation du mot de passe
+      - force-lock         : verrouillage forcé de l'écran
+      - expire-password    : expiration du mot de passe
+      - encrypted-storage  : chiffrement du stockage
+      - disable-camera     : désactivation de la caméra (optionnel)
+      - disable-keyguard-features : contrôle de l'écran de verrouillage
+-->
+<device-admin>
+    <uses-policies>
+        <!-- Effacement à distance des données de l'appareil -->
+        <wipe-data />
+
+        <!-- Politique de complexité du mot de passe -->
+        <limit-password />
+
+        <!-- Surveillance des tentatives de connexion échouées -->
+        <watch-login />
+
+        <!-- Réinitialisation du mot de passe par l'admin -->
+        <reset-password />
+
+        <!-- Verrouillage immédiat de l'écran -->
+        <force-lock />
+
+        <!-- Expiration automatique du mot de passe -->
+        <expire-password />
+
+        <!-- Chiffrement obligatoire du stockage -->
+        <encrypted-storage />
+
+        <!-- Contrôle des fonctionnalités de l'écran de verrouillage -->
+        <disable-keyguard-features />
+    </uses-policies>
+</device-admin>

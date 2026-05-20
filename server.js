@@ -936,7 +936,7 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
       if (droits.abonnementActif && droits.typeAbonnement === 'abonnement_unite') {
         message = `Limite atteinte. Vous avez atteint le nombre maximal d'agents inclus dans votre abonnement actuel (${droits.quantiteAgents} agents). Veuillez ajuster votre quantité sur Chariow ou passer au Forfait Flotte Illimitée pour ajouter de nouveaux agents.`;
       } else if (droits.typePack === 'pack_20' || droits.typePack === 'pack_40') {
-        message = `Limite atteinte. Les packs de rapports (Pack 20 / Pack 40) sont limités à ${FREEMIUM.MAX_AGENTS_PACK} agents maximum. Passez au Forfait Flotte (25 000 FCFA/mois) ou au Tarif à l'Unité pour gérer plus d'agents.`;
+        message = `Limite atteinte. Passez au Forfait Flotte B2B (25 000 FCFA/mois) ou à l'Accès Illimité (20 000 FCFA) pour gérer plus d'agents.`;
       } else if (userStatus === USER_STATUS.FREE_STRICT) {
         message = `Limite atteinte. Plan gratuit : ${FREEMIUM.MAX_AGENTS_FREE} seul appareil suivi. Activez votre licence sur Chariow pour lever les limites.`;
       } else {

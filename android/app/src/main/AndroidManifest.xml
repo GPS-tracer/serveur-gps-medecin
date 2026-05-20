@@ -1,22 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- ═══════════════════════════════════════════════════════════════
+         PERMISSIONS LOCALISATION
+         ═══════════════════════════════════════════════════════════════ -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         PERMISSIONS SERVICE FOREGROUND
+         ═══════════════════════════════════════════════════════════════ -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         PERMISSIONS SYSTÈME
+         ═══════════════════════════════════════════════════════════════ -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- ═══════════════════════════════════════════════════════════════
+         PERMISSIONS DEVICE ADMIN / MDM
+         Requises pour le mode Device Owner (enrôlement QR Code)
+         ═══════════════════════════════════════════════════════════════ -->
+    <uses-permission android:name="android.permission.BIND_DEVICE_ADMIN" />
+
+    <!-- Permet de démarrer des activités depuis un BroadcastReceiver (provisioning) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:allowBackup="false"
-        android:label="GPS Tracker"
+        android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
-                
+        android:theme="@style/AppTheme"
+        android:testOnly="false">
+
+        <!-- ─────────────────────────────────────────────────────────
+             ACTIVITÉS
+             ───────────────────────────────────────────────────────── -->
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -31,18 +56,68 @@
             android:name=".OnboardingActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/AppTheme"/>
+            android:theme="@style/AppTheme" />
+
+        <activity
+            android:name=".TrialExpiredActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
+        <!-- ─────────────────────────────────────────────────────────
+             SERVICE GPS (Foreground)
+             ───────────────────────────────────────────────────────── -->
 
         <service
             android:name=".LocationService"
             android:exported="false"
             android:foregroundServiceType="location" />
 
+        <!-- ─────────────────────────────────────────────────────────
+             RECEIVER BOOT
+             ───────────────────────────────────────────────────────── -->
+
         <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ─────────────────────────────────────────────────────────
+             DEVICE ADMIN RECEIVER — CŒUR DU MODE DEVICE OWNER
+             
+             Déclaration obligatoire pour :
+               1. L'enrôlement QR Code (Android Enterprise / Device Owner)
+               2. L'application des politiques MDM (restrictions utilisateur)
+               3. La protection anti-désinstallation
+             
+             android:permission="android.permission.BIND_DEVICE_ADMIN"
+               → Seul le système Android peut envoyer des intents à ce receiver.
+                 Empêche toute application tierce de l'invoquer directement.
+             ───────────────────────────────────────────────────────── -->
+
+        <receiver
+            android:name=".AdminReceiver"
+            android:label="@string/app_name"
+            android:description="@string/admin_description"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:exported="true">
+
+            <!-- Lien vers les politiques déclarées dans res/xml/device_admin_policies.xml -->
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin_policies" />
+
+            <intent-filter>
+                <!-- Activation classique Device Admin -->
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+
+                <!-- Déclenché à la fin du provisioning QR Code (Device Owner) -->
+                <action android:name="android.app.action.PROFILE_PROVISIONING_COMPLETE" />
+
+                <!-- Déclenché quand le Device Owner est configuré (Android 7+) -->
+                <action android:name="android.app.action.DEVICE_OWNER_CHANGED" />
             </intent-filter>
         </receiver>
 

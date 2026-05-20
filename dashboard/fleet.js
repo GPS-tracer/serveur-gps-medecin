@@ -245,18 +245,17 @@ function showFreemiumBlock(limitData) {
 
     const upgradeHtml = estAbonnementUnite
         ? `<div class="flex flex-col gap-2 mt-3">
-               <a href="licence.html" class="inline-block bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">👤 Ajuster mon abonnement sur Chariow</a>
-               <a href="licence.html" class="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">🚛 Forfait Flotte Illimitée — 26 010 FCFA/mois</a>
+               <a href="licence.html" class="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">🚛 Forfait Flotte B2B — 25 000 FCFA/mois (agents illimités)</a>
+               <a href="licence.html" class="inline-block bg-yellow-600 hover:bg-yellow-500 text-slate-900 font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">♾️ Accès Illimité — 20 000 FCFA (permanent)</a>
            </div>`
         : estGratuit
         ? `<div class="flex flex-col gap-2 mt-3">
-               <a href="licence.html" class="inline-block bg-sky-600 hover:bg-sky-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">📄 Pack 20 rapports — 590 FCFA (jusqu'à 10 appareils)</a>
-               <a href="licence.html" class="inline-block bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">👤 Tarif à l'Unité — 31 192 FCFA/mois</a>
-               <a href="licence.html" class="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">🚛 Forfait Flotte Illimitée — 26 010 FCFA/mois</a>
+               <a href="licence.html" class="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">🚛 Forfait Flotte B2B — 25 000 FCFA/mois (agents illimités)</a>
+               <a href="licence.html" class="inline-block bg-yellow-600 hover:bg-yellow-500 text-slate-900 font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">♾️ Accès Illimité — 20 000 FCFA (permanent)</a>
            </div>`
         : `<div class="flex flex-col gap-2 mt-3">
-               <a href="licence.html" class="inline-block bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">👤 Tarif à l'Unité — 31 192 FCFA/mois par agent</a>
-               <a href="licence.html" class="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">🚛 Forfait Flotte Illimitée — 26 010 FCFA/mois</a>
+               <a href="licence.html" class="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">🚛 Forfait Flotte B2B — 25 000 FCFA/mois (agents illimités)</a>
+               <a href="licence.html" class="inline-block bg-yellow-600 hover:bg-yellow-500 text-slate-900 font-semibold px-4 py-2 rounded-lg transition-all text-xs text-center">♾️ Accès Illimité — 20 000 FCFA (permanent)</a>
            </div>`;
 
     const div = document.createElement('div');
