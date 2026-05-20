@@ -4,82 +4,72 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Inscription — GPS Tracker</title>
-  <script>window.tailwind={corePlugins:{preflight:true}}</script>
-  <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
-  <style>body{margin:0;background:#0f172a;color:#f1f5f9;font-family:system-ui,sans-serif}*{box-sizing:border-box}</style>
+  <link rel="preload" href="register-hub.css" as="style">
+  <link rel="stylesheet" href="register-hub.css">
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen flex items-center justify-center p-4">
+<body class="register-hub">
 
-  <div class="w-full max-w-2xl">
+  <div class="register-hub__wrap">
 
-    <!-- Header -->
-    <div class="text-center mb-10">
-      <div class="text-5xl mb-3">🛰️</div>
-      <h1 class="text-4xl font-bold text-white mb-2">GPS Tracker</h1>
-      <p class="text-slate-400">Choisissez votre type de compte pour commencer</p>
-      <p id="intentRegisterBanner" class="hidden mt-4 text-sm text-sky-300 bg-sky-500/10 border border-sky-500/30 rounded-lg px-4 py-2"></p>
-    </div>
+    <header class="register-hub__header">
+      <div class="register-hub__logo" aria-hidden="true">🛰️</div>
+      <h1 class="register-hub__title">GPS Tracker</h1>
+      <p class="register-hub__subtitle">Choisissez votre type de compte pour commencer</p>
+      <p id="intentRegisterBanner" class="register-hub__intent hidden" role="status"></p>
+    </header>
 
-    <!-- Cartes de choix -->
-    <div class="space-y-4">
+    <nav class="register-hub__cards" aria-label="Types de compte">
 
-      <!-- Entreprise -->
-      <a href="register-entreprise.html"
-         class="flex items-center gap-5 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-700 hover:border-sky-500 rounded-2xl p-6 transition-all group shadow-lg">
-        <div class="text-5xl flex-shrink-0">🏢</div>
-        <div class="flex-1 min-w-0">
-          <h2 class="text-lg font-bold text-white group-hover:text-sky-400 transition-colors">Entreprise / Institution</h2>
-          <p class="text-slate-400 text-sm mt-1">Gérez votre flotte de véhicules ou d'agents. Tableau de bord complet, rapports PDF, géofencing.</p>
-          <div class="flex flex-wrap gap-2 mt-3">
-            <span class="px-2 py-0.5 bg-sky-500/20 text-sky-400 text-xs rounded-full">Flotte</span>
-            <span class="px-2 py-0.5 bg-sky-500/20 text-sky-400 text-xs rounded-full">Rapports</span>
-            <span class="px-2 py-0.5 bg-sky-500/20 text-sky-400 text-xs rounded-full">Multi-agents</span>
-          </div>
-        </div>
-        <span class="text-slate-500 group-hover:text-sky-400 text-2xl transition-colors">→</span>
+      <a href="register-entreprise.html" class="register-hub__card register-hub__card--entreprise">
+        <span class="register-hub__card-icon" aria-hidden="true">🏢</span>
+        <span class="register-hub__card-body">
+          <span class="register-hub__card-title">Entreprise / Institution</span>
+          <span class="register-hub__card-desc">Gérez votre flotte de véhicules ou d'agents. Tableau de bord complet, rapports PDF, géofencing.</span>
+          <span class="register-hub__tags">
+            <span class="register-hub__tag">Flotte</span>
+            <span class="register-hub__tag">Rapports</span>
+            <span class="register-hub__tag">Multi-agents</span>
+          </span>
+        </span>
+        <span class="register-hub__card-arrow" aria-hidden="true">→</span>
       </a>
 
-      <!-- Étudiant -->
-      <a href="register-etudiant.html"
-         class="flex items-center gap-5 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-700 hover:border-indigo-500 rounded-2xl p-6 transition-all group shadow-lg">
-        <div class="text-5xl flex-shrink-0">🎓</div>
-        <div class="flex-1 min-w-0">
-          <h2 class="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors">Étudiant</h2>
-          <p class="text-slate-400 text-sm mt-1">Suivi de présence universitaire. Votre établissement ou votre famille suit votre assiduité en temps réel.</p>
-          <div class="flex flex-wrap gap-2 mt-3">
-            <span class="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 text-xs rounded-full">Assiduité</span>
-            <span class="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 text-xs rounded-full">3 000 FCFA/mois</span>
-            <span class="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 text-xs rounded-full">Rapport PDF</span>
-          </div>
-        </div>
-        <span class="text-slate-500 group-hover:text-indigo-400 text-2xl transition-colors">→</span>
+      <a href="register-etudiant.html" class="register-hub__card register-hub__card--etudiant">
+        <span class="register-hub__card-icon" aria-hidden="true">🎓</span>
+        <span class="register-hub__card-body">
+          <span class="register-hub__card-title">Étudiant</span>
+          <span class="register-hub__card-desc">Suivi de présence universitaire. Votre établissement ou votre famille suit votre assiduité en temps réel.</span>
+          <span class="register-hub__tags">
+            <span class="register-hub__tag">Assiduité</span>
+            <span class="register-hub__tag">3 000 FCFA/mois</span>
+            <span class="register-hub__tag">Rapport PDF</span>
+          </span>
+        </span>
+        <span class="register-hub__card-arrow" aria-hidden="true">→</span>
       </a>
 
-      <!-- Élève -->
-      <a href="register-eleve.html"
-         class="flex items-center gap-5 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-700 hover:border-cyan-500 rounded-2xl p-6 transition-all group shadow-lg">
-        <div class="text-5xl flex-shrink-0">🎒</div>
-        <div class="flex-1 min-w-0">
-          <h2 class="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">Élève (École primaire / Secondaire)</h2>
-          <p class="text-slate-400 text-sm mt-1">Suivi scolaire activé par un parent ou tuteur légal. Saisissez le code reçu par email pour lier votre téléphone.</p>
-          <div class="flex flex-wrap gap-2 mt-3">
-            <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded-full">Suivi parental</span>
-            <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded-full">3 000 FCFA/mois</span>
-            <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded-full">Présence</span>
-          </div>
-        </div>
-        <span class="text-slate-500 group-hover:text-cyan-400 text-2xl transition-colors">→</span>
+      <a href="register-eleve.html" class="register-hub__card register-hub__card--eleve">
+        <span class="register-hub__card-icon" aria-hidden="true">🎒</span>
+        <span class="register-hub__card-body">
+          <span class="register-hub__card-title">Élève (École primaire / Secondaire)</span>
+          <span class="register-hub__card-desc">Suivi scolaire activé par un parent ou tuteur légal. Saisissez le code reçu par email pour lier votre téléphone.</span>
+          <span class="register-hub__tags">
+            <span class="register-hub__tag">Suivi parental</span>
+            <span class="register-hub__tag">3 000 FCFA/mois</span>
+            <span class="register-hub__tag">Présence</span>
+          </span>
+        </span>
+        <span class="register-hub__card-arrow" aria-hidden="true">→</span>
       </a>
 
-    </div>
+    </nav>
 
-    <!-- Lien connexion -->
-    <p class="text-center text-slate-500 text-sm mt-8">
+    <p class="register-hub__foot">
       Vous avez déjà un compte ?
-      <a href="login.html" class="text-sky-400 hover:text-sky-300 font-medium transition-colors ml-1">Se connecter</a>
+      <a href="login.html">Se connecter</a>
     </p>
 
-    <p class="text-center text-slate-600 text-xs mt-4">© 2026 GPS Tracker — Tous droits réservés</p>
+    <p class="register-hub__copy">© 2026 GPS Tracker — Tous droits réservés</p>
   </div>
 
   <script type="module" src="register-intent-banner.js"></script>

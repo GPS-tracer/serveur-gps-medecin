@@ -397,12 +397,14 @@ body.nav-open {
 }
 .offer-card--free { border-color: rgba(148,163,184,.45); }
 /* ── Page achat-auth (login vs inscription) ── */
-.achat-auth-body {
+body.achat-auth-body {
   min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
+  background: #0f172a;
+  color: #f1f5f9;
 }
 .achat-auth-main {
   width: 100%;
