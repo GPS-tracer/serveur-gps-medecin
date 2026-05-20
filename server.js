@@ -79,11 +79,11 @@ const FREEMIUM = {
   PACK_PRICES: {
     pack_20:              590,   // FCFA frais Chariow inclus (net ~490)
     pack_40:             1180,   // FCFA frais Chariow inclus (net ~1 000)
-    illimite:           23550,   // FCFA frais Chariow inclus (net 20 000)
-    abonnement_flotte:  26010,   // FCFA frais Chariow inclus (net 25 000 / mois)
+    illimite:           20000,   // FCFA — Pack Accès Illimité Premium (prd_7hj1hc)
+    abonnement_flotte:  25000,   // FCFA/mois — Forfait Flotte (prd_zvj2cv)
     abonnement_unite:   31192,   // FCFA frais Chariow inclus (net 30 000 / agent / mois)
-    suivi_eleve:          311,   // FCFA frais Chariow inclus (net ~200 / élève / mois)
-    suivi_etudiant:      1047,   // FCFA frais Chariow inclus (net ~900 / étudiant / mois)
+    suivi_eleve:         3000,   // FCFA/mois — Licence Élève Mensuelle (prd_aotwqf)
+    suivi_etudiant:      3000,   // FCFA/mois — Licence Étudiant Mensuelle (prd_tv5t2h)
   },
   // Durée d'un abonnement mensuel en millisecondes
   ABONNEMENT_DUREE_MS: 30 * 24 * 60 * 60 * 1000, // 30 jours
@@ -93,8 +93,8 @@ const FREEMIUM = {
 const TYPES_PACKS_VALIDES = [
   'pack_20', 'pack_40', 'illimite',
   'abonnement_flotte', 'abonnement_unite',
-  'suivi_eleve',      // abonnement suivi scolaire élève    — 311 FCFA/mois
-  'suivi_etudiant',   // abonnement suivi scolaire étudiant — 1 047 FCFA/mois
+  'suivi_eleve',      // abonnement suivi scolaire élève    — 3 000 FCFA/mois
+  'suivi_etudiant',   // abonnement suivi scolaire étudiant — 3 000 FCFA/mois
 ];
 
 // Types d'abonnements mensuels (ont une date d'expiration de 30 jours)
@@ -301,8 +301,8 @@ const initialiserBonusDemarrage = creerProfilFreemiumGratuit;
  * │ illimite (typePack) │ ∞        │ ∞            │ Pack permanent           │
  * │ abonnement_flotte   │ ∞        │ ∞            │ Mensuel B2B flotte       │
  * │ abonnement_unite    │ ∞        │ quantite     │ Mensuel B2B par agent    │
- * │ suivi_eleve         │ ∞        │ quantite     │ 311 FCFA/mois — élève    │
- * │ suivi_etudiant      │ ∞        │ quantite     │ 1 047 FCFA/mois — étud.  │
+ * │ suivi_eleve         │ ∞        │ quantite     │ 3 000 FCFA/mois — élève  │
+ * │ suivi_etudiant      │ ∞        │ quantite     │ 3 000 FCFA/mois — étud.  │
  * └─────────────────────┴──────────┴──────────────┴──────────────────────────┘
  *
  * Convention RTDB (inchangée) :
@@ -1536,10 +1536,10 @@ app.post('/api/rapport/generer', requireAuth, async (req, res) => {
       if (!droits.estSuiviScolaire) {
         return res.status(403).json({
           error:   'abonnement_scolaire_requis',
-          message: 'Les rapports d\'assiduité scolaire nécessitent un abonnement "Suivi Élève" (311 FCFA/mois) ou "Suivi Étudiant" (1 047 FCFA/mois) actif.',
+          message: 'Les rapports d\'assiduité scolaire nécessitent un abonnement "Suivi Élève" (3 000 FCFA/mois) ou "Suivi Étudiant" (3 000 FCFA/mois) actif.',
           offres: [
-            { label: 'Suivi Élève',    prix: '311 FCFA/mois',   url: 'https://erpbbfef.mychariow.shop/prd_eleve'   },
-            { label: 'Suivi Étudiant', prix: '1 047 FCFA/mois', url: 'https://erpbbfef.mychariow.shop/prd_etudiant' },
+            { label: 'Suivi Élève',    prix: '3 000 FCFA/mois',  url: `https://erpbbfef.mychariow.shop/${CHARIOW_PRODUCTS.ELEVE_MENSUEL}`    },
+            { label: 'Suivi Étudiant', prix: '3 000 FCFA/mois',  url: `https://erpbbfef.mychariow.shop/${CHARIOW_PRODUCTS.ETUDIANT_MENSUEL}` },
           ],
           canBuy: true,
         });
