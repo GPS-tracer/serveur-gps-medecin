@@ -157,14 +157,14 @@ function refreshHistoryTrail() {
   if (latlngs.length === 0) {
     clearHistoryPolyline();
     lastTrailSelection = "";
-    historyTrailMeta.textContent = "No history points for this day.";
+    historyTrailMeta.textContent = "Aucun point GPS pour ce jour.";
     return;
   }
 
   if (latlngs.length === 1) {
     clearHistoryPolyline();
     lastTrailSelection = "";
-    historyTrailMeta.textContent = "1 point — need 2+ to draw a line.";
+    historyTrailMeta.textContent = "1 point — il en faut au moins 2 pour tracer un trajet.";
     if (selectionChanged) {
       map.flyTo(latlngs[0], Math.max(map.getZoom(), 14), {
         duration: 0.85,
@@ -195,7 +195,7 @@ function refreshHistoryTrail() {
     historyPolyline.setLatLngs(latlngs);
   }
 
-  historyTrailMeta.textContent = `${latlngs.length} points — polyline shown.`;
+  historyTrailMeta.textContent = `${latlngs.length} points — trajet affiché.`;
 }
 
 function syncHistoryAgentOptions(agentIds) {
@@ -293,7 +293,7 @@ function buildPopupHtml(agentId, lastUpdateRaw, address, name, phone) {
   return (
     '<div class="agent-popup-inner">' +
     `<div class="agent-popup__id">${label}</div>` +
-    `<div class="agent-popup__label">Last update</div>` +
+    `<div class="agent-popup__label">Dernière mise à jour</div>` +
     `<div class="agent-popup__time">${when}</div>` +
     tel + addr +
     "</div>"

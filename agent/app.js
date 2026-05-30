@@ -5,6 +5,7 @@
 
 import { sendLocation } from "../shared/firebase.js";
 
+const companyIdInput = document.getElementById("companyId");
 const deviceIdInput = document.getElementById("deviceId");
 const agentNameInput = document.getElementById("agentName");
 const agentPhoneInput = document.getElementById("agentPhone");
@@ -31,6 +32,7 @@ const MAX_QUEUE_LENGTH = 800;
 const DEVICE_STORAGE_KEY = "gps-tracker-device-id";
 const AGENT_NAME_KEY = "gps-tracker-agent-name";
 const AGENT_PHONE_KEY = "gps-tracker-agent-phone";
+const COMPANY_ID_KEY = "gps-tracker-company-id";
 
 let watchId = null;
 /** Last time we recorded a point for throttling (send or enqueue) */
@@ -127,6 +129,7 @@ function loadOrCreateDeviceId() {
     id = `device-${crypto.randomUUID().slice(0, 8)}`;
     localStorage.setItem(DEVICE_STORAGE_KEY, id);
   }
+  companyIdInput.value = localStorage.getItem(COMPANY_ID_KEY) || "";
   deviceIdInput.value = id;
   agentNameInput.value = localStorage.getItem(AGENT_NAME_KEY) || "";
   agentPhoneInput.value = localStorage.getItem(AGENT_PHONE_KEY) || "";
@@ -135,7 +138,7 @@ function loadOrCreateDeviceId() {
 function setConnection(connected) {
   connectionBadge.classList.toggle("connection--connected", connected);
   connectionBadge.classList.toggle("connection--disconnected", !connected);
-  connectionText.textContent = connected ? "Connected" : "Disconnected";
+  connectionText.textContent = connected ? "Connecté" : "Déconnecté";
 }
 
 function setDetailStatus(text, variant = "neutral") {
@@ -200,9 +203,11 @@ async function maybeSendToFirebase(agentId, lat, lng) {
   const now = Date.now();
   if (now - lastRecordedAt < SEND_INTERVAL_MS) return;
 
+  const companyId = localStorage.getItem(COMPANY_ID_KEY) || "";
   const meta = {
     name: localStorage.getItem(AGENT_NAME_KEY) || "",
     phone: localStorage.getItem(AGENT_PHONE_KEY) || "",
+    ...(companyId ? { companyId } : {}),
   };
   const entry = { agentId, lat, lng, timestamp: now, meta };
   lastRecordedAt = now;
@@ -211,7 +216,7 @@ async function maybeSendToFirebase(agentId, lat, lng) {
     enqueuePoint(entry);
     setConnection(false);
     setDetailStatus(
-      `Offline — saved locally (${getPendingCount()} pending). Will sync when online.`,
+      `Hors ligne — sauvegardé localement (${getPendingCount()} en attente). Synchronisation à la reconnexion.`,
       "warn"
     );
     return;
@@ -222,7 +227,7 @@ async function maybeSendToFirebase(agentId, lat, lng) {
     lastSentEl.textContent = formatTime(new Date(now));
     setConnection(true);
     setDetailStatus(
-      `Synced (${Math.round(SEND_INTERVAL_MS / 1000)}s min. interval)`,
+      `Synchronisé (intervalle min. ${Math.round(SEND_INTERVAL_MS / 1000)}s)`,
       "neutral"
     );
     await flushPendingQueue();
@@ -232,7 +237,7 @@ async function maybeSendToFirebase(agentId, lat, lng) {
     enqueuePoint(entry);
     setConnection(false);
     setDetailStatus(
-      `Sync failed — saved locally (${getPendingCount()} pending). ${e.message || e}`,
+      `Échec de synchro — sauvegardé localement (${getPendingCount()} en attente). ${e.message || e}`,
       "warn"
     );
   }
@@ -244,8 +249,8 @@ function refreshStatusAfterFlush() {
   if (pending > 0) {
     setDetailStatus(
       navigator.onLine
-        ? `Synced with backlog — ${pending} still pending (retrying…)`
-        : `Offline — ${pending} pending.`,
+        ? `Synchronisé avec file d'attente — ${pending} encore en attente (nouvelle tentative…)`
+        : `Hors ligne — ${pending} en attente.`,
       "warn"
     );
     return;
@@ -253,19 +258,26 @@ function refreshStatusAfterFlush() {
   if (activeAgentId && watchId != null) {
     setConnection(true);
     setDetailStatus(
-      `Synced (${Math.round(SEND_INTERVAL_MS / 1000)}s min. interval)`,
+      `Synchronisé (intervalle min. ${Math.round(SEND_INTERVAL_MS / 1000)}s)`,
       "neutral"
     );
   }
 }
 
 function start() {
-  const agentId = deviceIdInput.value.trim();
-  if (!agentId) {
-    setDetailStatus("Enter a device ID.", "error");
+  const companyId = companyIdInput.value.trim();
+  if (!companyId) {
+    setDetailStatus("Veuillez saisir l'ID Société.", "error");
     setConnection(false);
     return;
   }
+  const agentId = deviceIdInput.value.trim();
+  if (!agentId) {
+    setDetailStatus("Veuillez saisir un Device ID.", "error");
+    setConnection(false);
+    return;
+  }
+  localStorage.setItem(COMPANY_ID_KEY, companyId);
   localStorage.setItem(DEVICE_STORAGE_KEY, agentId);
   const agentName = agentNameInput.value.trim();
   const agentPhone = agentPhoneInput.value.trim();
@@ -286,8 +298,8 @@ function start() {
   const pending = getPendingCount();
   setDetailStatus(
     pending > 0 && navigator.onLine
-      ? `Acquiring GPS… (${pending} offline points will sync)`
-      : "Acquiring GPS…",
+      ? `Acquisition GPS… (${pending} points hors ligne seront synchronisés)`
+      : "Acquisition GPS en cours…",
     "neutral"
   );
   btnStart.disabled = true;
@@ -338,8 +350,8 @@ function stop() {
   const n = getPendingCount();
   setDetailStatus(
     n > 0
-      ? `Stopped — ${n} point(s) still in storage; open the app online to sync.`
-      : "Stopped — press Start to track again",
+      ? `Arrêté — ${n} point(s) en attente ; ouvrez l'application en ligne pour synchroniser.`
+      : "Arrêté — appuyez sur Démarrer pour reprendre le suivi",
     n > 0 ? "warn" : "neutral"
   );
 }
@@ -366,8 +378,8 @@ function wireNetworkListeners() {
     if (activeAgentId && watchId != null) {
       setDetailStatus(
         n > 0
-          ? `Offline — ${n} pending in storage.`
-          : "Offline — new fixes will be saved locally.",
+          ? `Hors ligne — ${n} point(s) en attente dans la mémoire locale.`
+          : "Hors ligne — les nouvelles positions seront sauvegardées localement.",
         "warn"
       );
     }
@@ -383,13 +395,13 @@ if (navigator.onLine) {
   flushPendingQueue().then(() => {
     const n = getPendingCount();
     if (n > 0) {
-      setDetailStatus(`Ready — ${n} offline point(s) queued; will sync when possible.`, "warn");
+      setDetailStatus(`Prêt — ${n} point(s) hors ligne en file d'attente ; synchronisation dès que possible.`, "warn");
     }
   });
 } else {
   const n = getPendingCount();
   if (n > 0) {
-    setDetailStatus(`Offline — ${n} point(s) waiting to sync.`, "warn");
+    setDetailStatus(`Hors ligne — ${n} point(s) en attente de synchronisation.`, "warn");
   }
 }
 

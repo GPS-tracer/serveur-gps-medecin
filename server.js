@@ -26,7 +26,12 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   const localPath  = './firebase-service-account.json';
   const fs = require('fs');
   const filePath = fs.existsSync(secretPath) ? secretPath : localPath;
-  serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  try {
+    serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (e) {
+    console.error(`❌ Impossible de lire le fichier service account (${filePath}):`, e.message);
+    process.exit(1);
+  }
 }
 
 admin.initializeApp({
@@ -58,6 +63,36 @@ async function requireAuth(req, res, next) {
     res.status(401).json({ error: 'Token invalide' });
   }
 }
+
+// [ADMIN SUPRÊME] — Middleware de sécurisation exclusif pour le rôle Administrateur Suprême
+async function requireSuperadmin(req, res, next) {
+  // Option A : Authentification par secret admin (rétrocompatibilité et scripts de test)
+  const secret = req.headers['x-admin-secret'];
+  if (secret && secret === process.env.ADMIN_SECRET) {
+    return next();
+  }
+
+  // Option B : Authentification par Firebase ID Token (Bearer) + vérification du rôle dans Firebase RTDB
+  const header = req.headers.authorization || '';
+  const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) {
+    return res.status(403).json({ error: 'Accès refusé. Secret ou token admin requis.' });
+  }
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    const companyId = decoded.uid;
+    const profil = await lireProfilSociete(companyId);
+    if (profil.role === 'superadmin') {
+      req.user = decoded;
+      return next();
+    }
+    return res.status(403).json({ error: 'Accès interdit. Rôle superadmin requis.' });
+  } catch (err) {
+    return res.status(401).json({ error: 'Token invalide ou expiré.' });
+  }
+}
+
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTES FREEMIUM & ABONNEMENTS
@@ -275,7 +310,10 @@ async function creerProfilFreemiumGratuit(companyId, company = {}) {
     createdAt:         company.createdAt || dateCreation,
   };
 
-  await db.ref(`companies/${companyId}`).update(patch);
+  await Promise.all([
+    db.ref(`companies/${companyId}`).update(patch),
+    db.ref(`societes/${companyId}`).update(patch),
+  ]);
   return patch;
 }
 
@@ -1000,12 +1038,7 @@ app.get('/api/agents/check-limit/:companyId', requireAuth, async (req, res) => {
 //         quantite_agents: number (requis pour abonnement_unite) }
 //   OU  { key: "...", type_pack: "..." }  (clé unique)
 // ─────────────────────────────────────────────────────────────
-app.post('/api/admin/licence/import', async (req, res) => {
-  const secret = req.headers['x-admin-secret'];
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Accès refusé' });
-  }
-
+app.post('/api/admin/licence/import', requireSuperadmin, async (req, res) => {
   const { type_pack, key, keys, quantite_agents } = req.body;
 
   if (!TYPES_PACKS_VALIDES.includes(type_pack)) {
@@ -1055,6 +1088,7 @@ app.post('/api/admin/licence/import', async (req, res) => {
   for (let i = 0; i < normalized.length; i += BATCH_SIZE) {
     const chunk = normalized.slice(i, i + BATCH_SIZE);
     const batch = firestore.batch();
+    let chunkCreated = 0;
 
     for (const k of chunk) {
       const docRef = firestore.collection('licences').doc(k);
@@ -1075,9 +1109,10 @@ app.post('/api/admin/licence/import', async (req, res) => {
         date_expiration:  null,
       });
       results.created.push(k);
+      chunkCreated++;
     }
 
-    if (results.created.length > 0) {
+    if (chunkCreated > 0) {
       await batch.commit();
     }
   }
@@ -1099,12 +1134,7 @@ app.post('/api/admin/licence/import', async (req, res) => {
 // Header: x-admin-secret: <ADMIN_SECRET>
 // Body: { type_pack, count: 1, quantite_agents: N (pour abonnement_unite) }
 // ─────────────────────────────────────────────────────────────
-app.post('/api/admin/licence/generate', async (req, res) => {
-  const secret = req.headers['x-admin-secret'];
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Accès refusé' });
-  }
-
+app.post('/api/admin/licence/generate', requireSuperadmin, async (req, res) => {
   const { type_pack, count = 1, quantite_agents } = req.body;
 
   if (!TYPES_PACKS_VALIDES.includes(type_pack)) {
@@ -1347,6 +1377,48 @@ async function verifierAbonnementsExpires() {
   let traites = 0;
   let erreurs  = 0;
 
+  // Vérifier les abonnements scolaires expirés directement dans le RTDB
+  // (ils ne passent pas par le champ Firestore statut_abonnement)
+  try {
+    const societesSnap = await db.ref('societes').get();
+    if (societesSnap.exists()) {
+      for (const [companyId, societe] of Object.entries(societesSnap.val())) {
+        const scolaireExpire = societe.abonnement_scolaire_expire;
+        if (!scolaireExpire) continue;
+        if (Number(scolaireExpire) < maintenant.getTime()) {
+          try {
+            await ecrireLicenceDual(companyId, {
+              abonnement_actif: false,
+              type_abonnement:  null,
+              est_illimite:     false,
+              quantite_agents:  null,
+            });
+            await Promise.all([
+              db.ref(`societes/${companyId}`).update({ abonnement_scolaire_expire: null, abonnement_scolaire_type: null }),
+              db.ref(`companies/${companyId}`).update({ abonnement_scolaire_expire: null, abonnement_scolaire_type: null }),
+            ]);
+            await db.ref(`companies/${companyId}/notifications`).push({
+              type:      'abonnement_expire',
+              typePack:  societe.abonnement_scolaire_type || 'suivi_scolaire',
+              expiredAt: maintenant.toISOString(),
+              message:   `Votre abonnement scolaire a expiré. Renouvelez pour continuer le suivi.`,
+              lu:        false,
+              createdAt: maintenant.toISOString(),
+            });
+            console.log(`🔒 Abonnement scolaire expiré → société ${companyId}`);
+            traites++;
+          } catch (errDoc) {
+            console.error(`❌ Cron scolaire : erreur société ${companyId}:`, errDoc.message);
+            erreurs++;
+          }
+        }
+      }
+    }
+  } catch (errRtdb) {
+    console.error('❌ Cron scolaire : erreur lecture RTDB:', errRtdb.message);
+    erreurs++;
+  }
+
   try {
     // Requête Firestore : abonnements actifs dont la date d'expiration est passée
     const snapshot = await firestore
@@ -1356,43 +1428,37 @@ async function verifierAbonnementsExpires() {
       .get();
 
     if (snapshot.empty) {
-      console.log('✅ Cron : aucun abonnement expiré trouvé.');
-      return { traites: 0, erreurs: 0 };
-    }
+      console.log('✅ Cron Firestore : aucun abonnement expiré trouvé.');
+    } else {
+      console.log(`⚠️ Cron : ${snapshot.size} abonnement(s) expiré(s) à traiter.`);
 
-    console.log(`⚠️ Cron : ${snapshot.size} abonnement(s) expiré(s) à traiter.`);
+      for (const doc of snapshot.docs) {
+        const data      = doc.data();
+        const companyId = data.utilise_par;
 
-    // Traiter chaque abonnement expiré
-    for (const doc of snapshot.docs) {
-      const data      = doc.data();
-      const companyId = data.utilise_par;
+        try {
+          await doc.ref.update({ statut_abonnement: 'expire' });
 
-      try {
-        // 1. Marquer l'abonnement comme expiré dans Firestore
-        await doc.ref.update({ statut_abonnement: 'expire' });
+          if (companyId) {
+            await appliquerFreemiumRestreint(companyId);
 
-        // 2. Réappliquer le mode Freemium restreint dans le RTDB
-        if (companyId) {
-          await appliquerFreemiumRestreint(companyId);
+            await db.ref(`companies/${companyId}/notifications`).push({
+              type:      'abonnement_expire',
+              typePack:  data.type_pack,
+              expiredAt: maintenant.toISOString(),
+              message:   `Votre abonnement ${data.type_pack === 'abonnement_flotte' ? 'Forfait Flotte' : 'Tarif à l\'Unité'} a expiré. Renouvelez pour continuer à profiter de tous vos avantages.`,
+              lu:        false,
+              createdAt: maintenant.toISOString(),
+            });
 
-          // 3. Enregistrer une notification de relance dans le RTDB
-          //    (le dashboard peut lire ce nœud pour afficher une bannière)
-          await db.ref(`companies/${companyId}/notifications`).push({
-            type:      'abonnement_expire',
-            typePack:  data.type_pack,
-            expiredAt: maintenant.toISOString(),
-            message:   `Votre abonnement ${data.type_pack === 'abonnement_flotte' ? 'Forfait Flotte' : 'Tarif à l\'Unité'} a expiré. Renouvelez pour continuer à profiter de tous vos avantages.`,
-            lu:        false,
-            createdAt: maintenant.toISOString(),
-          });
+            console.log(`🔔 Notification de relance créée → société ${companyId}`);
+          }
 
-          console.log(`🔔 Notification de relance créée → société ${companyId}`);
+          traites++;
+        } catch (errDoc) {
+          console.error(`❌ Cron : erreur traitement doc ${doc.id}:`, errDoc.message);
+          erreurs++;
         }
-
-        traites++;
-      } catch (errDoc) {
-        console.error(`❌ Cron : erreur traitement doc ${doc.id}:`, errDoc.message);
-        erreurs++;
       }
     }
 
@@ -1420,11 +1486,7 @@ console.log('⏰ Cron d\'expiration des abonnements planifié (01h00 UTC quotidi
 // Header: x-admin-secret: <ADMIN_SECRET>
 // Utile pour les tests ou un déclenchement forcé depuis Render
 // ─────────────────────────────────────────────────────────────
-app.post('/api/admin/cron/check-expirations', async (req, res) => {
-  const secret = req.headers['x-admin-secret'];
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Accès refusé' });
-  }
+app.post('/api/admin/cron/check-expirations', requireSuperadmin, async (req, res) => {
 
   try {
     const result = await verifierAbonnementsExpires();
@@ -1711,11 +1773,7 @@ app.post('/api/rapport/generer', requireAuth, async (req, res) => {
 // GET /api/admin/stats
 // Header: x-admin-secret: <ADMIN_SECRET>
 // ─────────────────────────────────────────────────────────────
-app.get('/api/admin/stats', async (req, res) => {
-  const secret = req.headers['x-admin-secret'];
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Accès refusé' });
-  }
+app.get('/api/admin/stats', requireSuperadmin, async (req, res) => {
 
   try {
     // Compter les sociétés dans le RTDB
@@ -1757,11 +1815,7 @@ app.get('/api/admin/stats', async (req, res) => {
 // Crée une notification RTDB dans companies/{id}/notifications
 // pour chaque société dont l'abonnement expire dans 7, 3 ou 1 jour.
 // ─────────────────────────────────────────────────────────────
-app.post('/api/admin/notifications/expiration', async (req, res) => {
-  const secret = req.headers['x-admin-secret'];
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Accès refusé' });
-  }
+app.post('/api/admin/notifications/expiration', requireSuperadmin, async (req, res) => {
 
   const maintenant = new Date();
   const compteurs  = { j7: 0, j3: 0, j1: 0, total: 0 };
@@ -1927,11 +1981,14 @@ app.post('/api/geofencing/:companyId/check', requireAuth, async (req, res) => {
       const etatPrecedentSnap = await db.ref(`societes/${companyId}/agents/${agentId}/geofenceStates/${zoneId}`).get();
       const etaitDedans = etatPrecedentSnap.val()?.dedans ?? false;
 
-      // Détecter les transitions
+      // Détecter la transition pour cette zone uniquement
+      let alerteCourante = null;
       if (estDedans && !etaitDedans && zone.alertOnEnter) {
-        alertes.push({ zoneId, zoneName: zone.name, type: 'entree', distanceMetres: Math.round(dist) });
+        alerteCourante = { zoneId, zoneName: zone.name, type: 'entree', distanceMetres: Math.round(dist) };
+        alertes.push(alerteCourante);
       } else if (!estDedans && etaitDedans && zone.alertOnExit) {
-        alertes.push({ zoneId, zoneName: zone.name, type: 'sortie', distanceMetres: Math.round(dist) });
+        alerteCourante = { zoneId, zoneName: zone.name, type: 'sortie', distanceMetres: Math.round(dist) };
+        alertes.push(alerteCourante);
       }
 
       // Mettre à jour l'état dans le RTDB
@@ -1940,16 +1997,15 @@ app.post('/api/geofencing/:companyId/check', requireAuth, async (req, res) => {
         updatedAt: Date.now(),
       });
 
-      // Créer une notification RTDB si alerte
-      if (alertes.length > 0) {
-        const derniere = alertes[alertes.length - 1];
+      // Créer une notification RTDB uniquement si cette zone a déclenché une alerte
+      if (alerteCourante) {
         await db.ref(`companies/${companyId}/notifications`).push({
-          type:      `geofence_${derniere.type}`,
+          type:      `geofence_${alerteCourante.type}`,
           agentId,
           agentNom:  agent.name || agentId,
           zoneId,
           zoneName:  zone.name,
-          message:   `${agent.name || agentId} ${derniere.type === 'entree' ? 'est entré dans' : 'a quitté'} la zone "${zone.name}"`,
+          message:   `${agent.name || agentId} ${alerteCourante.type === 'entree' ? 'est entré dans' : 'a quitté'} la zone "${zone.name}"`,
           lu:        false,
           createdAt: new Date().toISOString(),
         });
@@ -2174,6 +2230,121 @@ app.get('/api/health', (req, res) => {
     ts:     Date.now(),
   });
 });
+
+// [ADMIN SUPRÊME] — Route ping pour calculer la latence en temps réel
+app.get('/api/ping', (req, res) => {
+  res.json({ status: "ok", timestamp: Date.now() });
+});
+
+// [ADMIN SUPRÊME] — Route pour obtenir l'historique complet et les activations de licences
+app.get('/api/admin/licences', requireSuperadmin, async (req, res) => {
+  try {
+    const snapshot = await firestore
+      .collection('licences')
+      .orderBy('date_creation', 'desc')
+      .get();
+      
+    const licences = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      licences.push({
+        ...data,
+        date_creation: data.date_creation ? (data.date_creation.toDate ? data.date_creation.toDate().toISOString() : new Date(data.date_creation).toISOString()) : null,
+        date_activation: data.date_activation ? (data.date_activation.toDate ? data.date_activation.toDate().toISOString() : new Date(data.date_activation).toISOString()) : null,
+        date_expiration: data.date_expiration ? (data.date_expiration.toDate ? data.date_expiration.toDate().toISOString() : new Date(data.date_expiration).toISOString()) : null,
+      });
+    });
+    
+    res.json({ success: true, licences });
+  } catch (err) {
+    console.error('admin get licences error:', err);
+    res.status(500).json({ error: 'Erreur serveur lors de la récupération des licences' });
+  }
+});
+
+// [ADMIN SUPRÊME] — Route pour rechercher un compte par email, ID ou nom de société
+app.get('/api/admin/accounts/search', requireSuperadmin, async (req, res) => {
+  const query = (req.query.query || '').trim().toLowerCase();
+  if (!query) {
+    return res.status(400).json({ error: 'Paramètre "query" de recherche obligatoire' });
+  }
+  
+  try {
+    const companiesSnap = await db.ref('companies').get();
+    if (!companiesSnap.exists()) {
+      return res.json({ success: true, accounts: [] });
+    }
+    
+    const accounts = [];
+    const companies = companiesSnap.val();
+    
+    for (const uid of Object.keys(companies)) {
+      const comp = companies[uid];
+      const email = (comp.email || '').toLowerCase();
+      const compName = (comp.companyName || comp.name || '').toLowerCase();
+      
+      if (uid.toLowerCase().includes(query) || email.includes(query) || compName.includes(query)) {
+        accounts.push({
+          uid,
+          companyName: comp.companyName || comp.name || 'Sans Nom',
+          email: comp.email || 'Pas d\'email',
+          role: comp.role || 'company',
+          validated: comp.validated || false,
+          status: comp.status || 'active',
+          createdAt: comp.createdAt || comp.date_creation || null,
+        });
+      }
+    }
+    
+    res.json({ success: true, accounts });
+  } catch (err) {
+    console.error('admin search accounts error:', err);
+    res.status(500).json({ error: 'Erreur serveur lors de la recherche de comptes' });
+  }
+});
+
+// [ADMIN SUPRÊME] — Route pour valider un compte utilisateur (rôle partner / validé)
+app.post('/api/admin/accounts/validate', requireSuperadmin, async (req, res) => {
+  const { companyId } = req.body;
+  if (!companyId) {
+    return res.status(400).json({ error: 'Identifiant companyId obligatoire' });
+  }
+  
+  try {
+    await Promise.all([
+      db.ref(`companies/${companyId}`).update({ validated: true, role: 'partner' }),
+      db.ref(`societes/${companyId}`).update({ validated: true, role: 'partner' })
+    ]);
+    
+    console.log(`🔒 [ADMIN SUPRÊME] Compte validé : ${companyId}`);
+    res.json({ success: true, message: 'Compte validé avec succès' });
+  } catch (err) {
+    console.error('admin validate account error:', err);
+    res.status(500).json({ error: 'Erreur serveur lors de la validation' });
+  }
+});
+
+// [ADMIN SUPRÊME] — Route pour révoquer la validation d'un compte utilisateur
+app.post('/api/admin/accounts/revoke', requireSuperadmin, async (req, res) => {
+  const { companyId } = req.body;
+  if (!companyId) {
+    return res.status(400).json({ error: 'Identifiant companyId obligatoire' });
+  }
+  
+  try {
+    await Promise.all([
+      db.ref(`companies/${companyId}`).update({ validated: false, role: 'company' }),
+      db.ref(`societes/${companyId}`).update({ validated: false, role: 'company' })
+    ]);
+    
+    console.log(`🔓 [ADMIN SUPRÊME] Validation révoquée : ${companyId}`);
+    res.json({ success: true, message: 'Validation révoquée avec succès' });
+  } catch (err) {
+    console.error('admin revoke account error:', err);
+    res.status(500).json({ error: 'Erreur serveur lors de la révocation' });
+  }
+});
+
 
 // ─────────────────────────────────────────────────────────────
 // Fichiers statiques

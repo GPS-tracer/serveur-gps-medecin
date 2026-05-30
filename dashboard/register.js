@@ -35,7 +35,7 @@ logoInput.addEventListener('change', (e) => {
         reader.onload = (e) => {
             logoImage.src = e.target.result;
             logoImage.classList.remove('hidden');
-            logoPreview.querySelector('svg').classList.add('hidden');
+            logoPreview.querySelector('svg')?.classList.add('hidden');
         };
         reader.readAsDataURL(file);
     }

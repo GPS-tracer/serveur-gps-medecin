@@ -84,6 +84,15 @@ function assertValidAgentId(agentId) {
   return id;
 }
 
+function assertValidCoordinates(latitude, longitude) {
+  if (typeof latitude !== "number" || !Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+    throw new Error(`sendLocation: latitude invalide (${latitude}). Doit être entre -90 et 90.`);
+  }
+  if (typeof longitude !== "number" || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    throw new Error(`sendLocation: longitude invalide (${longitude}). Doit être entre -180 et 180.`);
+  }
+}
+
 function normalizeTimestamp(timestamp) {
   if (typeof timestamp === "number" && Number.isFinite(timestamp)) {
     return timestamp;
@@ -105,6 +114,7 @@ function normalizeTimestamp(timestamp) {
  */
 export async function sendLocation(agentId, latitude, longitude, timestamp, meta = {}) {
   const id       = assertValidAgentId(agentId);
+  assertValidCoordinates(latitude, longitude);
   const ts       = normalizeTimestamp(timestamp);
   const tsKey    = String(ts);
   const companyId = meta.companyId || null;

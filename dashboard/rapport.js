@@ -9,7 +9,7 @@
  *  - Historique des rapports générés (RTDB companies/{id}/rapportsHistory)
  */
 
-import { auth, db } from '../shared/firebase.js';
+import { auth, db, agentsPath } from '../shared/firebase.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { brancherBoutonDeconnexion } from './deconnexion.js';
 import { exigerSessionDashboard } from './auth-session.js';
@@ -72,12 +72,11 @@ brancherBoutonDeconnexion('#btnSignOutMobile');
 // ─── Charger les agents de la société ────────────────────────
 async function chargerAgents() {
   try {
-    const snap = await get(ref(db, 'agents'));
+    const snap = await get(ref(db, agentsPath(currentUser.uid)));
     if (!snap.exists()) return;
 
     const all = snap.val();
     const mesAgents = Object.entries(all)
-      .filter(([, a]) => a.companyId === currentUser.uid)
       .sort(([, a], [, b]) => (a.name || '').localeCompare(b.name || ''));
 
     agentSelect.innerHTML = '<option value="">— Sélectionnez un agent —</option>';
