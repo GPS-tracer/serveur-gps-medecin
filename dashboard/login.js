@@ -57,10 +57,10 @@ let currentUser      = null;
 let pollingInterval  = null; // intervalle de vérification email
 
 // ── Si déjà connecté et vérifié → dashboard directement ──────
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user && user.emailVerified) {
     stopPolling();
-    redirigerApresLogin();
+    await redirigerApresLogin();
   }
 });
 
@@ -126,7 +126,6 @@ form.addEventListener("submit", async (e) => {
     redirigerApresLogin();
 
   } catch (err) {
-    currentUser = null;
     verificationWarning.classList.add("hidden");
     stopPolling();
 
@@ -186,7 +185,6 @@ function startPolling() {
     }
   }, 3000);
 }
-
 function stopPolling() {
   if (pollingInterval) {
     clearInterval(pollingInterval);

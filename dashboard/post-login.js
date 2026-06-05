@@ -1,17 +1,21 @@
 /**
  * Redirection après connexion — intention d'achat ou dashboard.
+ * Si le compte a role = "superadmin" → redirige vers admin.html
  */
 import {
   aIntentAchatEnAttente,
   PAGE_CATALOGUE,
   PAGE_DASHBOARD_DEFAUT,
 } from './intent-achat.js';
+import { auth, db } from '../shared/firebase.js';
+import { get, ref } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
 const PAGES_AUTORISEES = new Set([
   'index.html',
   'fleet.html',
   'rapport.html',
   'licence.html',
+  'admin.html',
 ]);
 
 /**
@@ -37,10 +41,25 @@ export function lireRedirectApresLogin(defaut = PAGE_DASHBOARD_DEFAUT) {
 
 /**
  * Après auth réussie :
- * - produit en attente → licence.html (catalogue)
- * - sinon → fleet.html ou ?redirect=
+ * - superadmin           → admin.html
+ * - produit en attente   → licence.html (catalogue)
+ * - sinon                → fleet.html ou ?redirect=
  */
-export function redirigerApresLogin(defaut = PAGE_DASHBOARD_DEFAUT) {
+export async function redirigerApresLogin(defaut = PAGE_DASHBOARD_DEFAUT) {
+  // Vérifier si l'utilisateur connecté est superadmin
+  try {
+    const user = auth.currentUser;
+    if (user) {
+      const snap = await get(ref(db, `companies/${user.uid}/role`));
+      if (snap.exists() && snap.val() === 'superadmin') {
+        window.location.replace('admin.html');
+        return;
+      }
+    }
+  } catch {
+    // En cas d'erreur réseau, continuer avec la redirection normale
+  }
+
   if (aIntentAchatEnAttente()) {
     window.location.replace(PAGE_CATALOGUE);
     return;
