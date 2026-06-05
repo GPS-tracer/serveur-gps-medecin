@@ -73,6 +73,18 @@
             android:foregroundServiceType="location" />
 
         <!-- ─────────────────────────────────────────────────────────
+             SERVICE PROTECTION ANTIVOL / DESTRUCTION À DISTANCE
+             [DESTRUCTION] — Écoute les commandes DESTROY depuis Firebase
+             et détecte les tentatives de désinstallation forcée.
+             Fonctionnalité payante (option "Antivol Avancé").
+             ───────────────────────────────────────────────────────── -->
+
+        <service
+            android:name=".DestructionMonitorService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- ─────────────────────────────────────────────────────────
              RECEIVER BOOT
              ───────────────────────────────────────────────────────── -->
 

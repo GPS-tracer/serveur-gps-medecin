@@ -13,20 +13,37 @@
       color: #f1f5f9;
       font-family: system-ui, sans-serif;
     }
-    * {
-      box-sizing: border-box;
+    * { box-sizing: border-box; }
+
+    /* Transition douce du splash */
+    #splash-admin {
+      transition: opacity 0.5s ease;
+    }
+    #splash-admin.fade-out {
+      opacity: 0;
+      pointer-events: none;
     }
   </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen">
 
-  <!-- Écran de garde exclusif [ADMIN SUPRÊME] — masquage complet par défaut -->
-  <div id="securityShield" class="fixed inset-0 bg-slate-950 z-[9999] flex flex-col items-center justify-center gap-4 transition-opacity duration-500">
-    <div class="flex flex-col items-center gap-3">
-      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
-      <p class="text-slate-300 text-sm font-semibold tracking-widest uppercase">Vérification de l'accès sécurisé...</p>
-      <p class="text-slate-500 text-xs">Administrateur Suprême uniquement</p>
-    </div>
+  <!-- ══════════════════════════════════════════════════════════
+       [ADMIN SUPRÊME] — Splash screen avec logo GPS-Tracker
+       Identique au pattern de index.html : logo + spinner + statut
+       Remplace l'ancien spinner "Vérification accès" qui affichait
+       le texte brut du serveur Render pendant le cold-start.
+  ══════════════════════════════════════════════════════════ -->
+  <div id="splash-admin"
+    class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950 gap-6 px-6">
+    <img src="../gpstracker.png" alt="GPS Tracker Logo"
+      class="w-24 h-24 object-contain rounded-2xl shadow-xl shadow-red-500/10" />
+    <div class="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin"
+      aria-hidden="true"></div>
+    <p class="text-white text-base font-semibold tracking-wide">GPS Tracker</p>
+    <p id="splash-admin-status" class="text-slate-400 text-sm text-center max-w-xs">
+      Initialisation de la connexion sécurisée…
+    </p>
+    <p class="text-slate-600 text-xs">Administration Suprême</p>
   </div>
 
   <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
@@ -94,6 +111,101 @@
 
     <div id="adminCatalogueChariow" class="mb-8"></div>
 
+    <!-- ══════════════════════════════════════════════════════════
+         [ADMIN SUPRÊME] — Vue globale de tous les clients
+         Le super admin voit TOUS les comptes de l'application
+    ══════════════════════════════════════════════════════════ -->
+    <div class="bg-slate-800 rounded-xl border border-red-900/40 p-6 mb-6 shadow-lg">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-red-400 flex items-center gap-2">👁️ Vue Globale — Tous les Clients</h3>
+          <p class="text-slate-400 text-xs mt-0.5">Liste complète de tous les comptes inscrits sur la plateforme GPS Tracker.</p>
+        </div>
+        <div class="flex gap-2 w-full sm:w-auto">
+          <input type="text" id="clientsFilterInput" placeholder="Filtrer par nom, email, rôle..."
+            class="w-full sm:w-56 px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-red-500" />
+          <button id="btnRefreshClients"
+            class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs transition-all whitespace-nowrap">
+            🔄 Actualiser
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto border border-slate-700 rounded-lg bg-slate-900/40 max-h-[480px]">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-800 border-b border-slate-700 text-slate-300 font-semibold tracking-wider uppercase">
+              <th class="p-3">Société / Email</th>
+              <th class="p-3">UID</th>
+              <th class="p-3">Rôle</th>
+              <th class="p-3">Abonnement</th>
+              <th class="p-3">Inscription</th>
+              <th class="p-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="allClientsTableBody" class="divide-y divide-slate-800/80 text-slate-300">
+            <tr>
+              <td colspan="6" class="p-6 text-center text-slate-500 font-medium">Chargement des clients...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-slate-600 text-xs mt-2 text-right">
+        <span id="clientsCount">—</span> compte(s) chargé(s)
+      </p>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         [ADMIN SUPRÊME] — Destruction à distance (FONCTIONNALITÉ PAYANTE)
+         Activée uniquement lorsqu'une alerte de désinstallation forcée est reçue
+    ══════════════════════════════════════════════════════════ -->
+    <div class="bg-slate-800 rounded-xl border border-rose-900/50 p-6 mb-6 shadow-lg">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="p-2 bg-rose-500/20 rounded-lg">
+          <span class="text-2xl">💣</span>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-rose-400 flex items-center gap-2">
+            Destruction à Distance
+            <span class="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full font-bold border border-amber-500/30">PAYANT</span>
+          </h3>
+          <p class="text-slate-400 text-xs mt-0.5">
+            Déclenche un processus de destruction système lorsqu'une désinstallation forcée est détectée.
+            Cette fonctionnalité est réservée aux clients ayant souscrit l'option "Antivol Avancé".
+          </p>
+        </div>
+      </div>
+
+      <!-- Alertes de désinstallation forcée reçues -->
+      <div class="mb-4">
+        <h4 class="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+          🚨 Alertes de Désinstallation Forcée
+          <span id="uninstallAlertBadge" class="hidden px-2 py-0.5 bg-rose-500 text-white text-xs rounded-full font-bold animate-pulse">0</span>
+        </h4>
+        <div id="uninstallAlertsContainer" class="space-y-2 max-h-60 overflow-y-auto">
+          <p class="text-slate-500 text-xs italic p-3 bg-slate-900/30 rounded-lg">
+            Aucune alerte de désinstallation forcée en cours.
+          </p>
+        </div>
+      </div>
+
+      <!-- Destruction manuelle (sur un agent spécifique) -->
+      <div class="border-t border-slate-700/50 pt-4">
+        <h4 class="text-sm font-semibold text-slate-300 mb-3">Destruction Manuelle ciblée</h4>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input type="text" id="destructionTargetId" placeholder="UID Agent ou Device ID cible..."
+            class="flex-1 px-4 py-2.5 bg-slate-700/40 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500" />
+          <input type="text" id="destructionRaison" placeholder="Raison (ex: désinstallation forcée détectée)"
+            class="flex-1 px-4 py-2.5 bg-slate-700/40 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500" />
+          <button id="btnDestructionManuelle"
+            class="px-5 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-lg text-sm transition-all flex items-center gap-2 whitespace-nowrap border border-rose-500/40">
+            💣 Activer la Destruction
+          </button>
+        </div>
+        <div id="destructionMessage" class="hidden rounded-lg px-4 py-3 text-sm mt-3"></div>
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
       <!-- [ADMIN SUPRÊME] — Recherche & Validation de Comptes (Partenariats) -->
@@ -111,7 +223,6 @@
 
         <div id="searchMessage" class="hidden rounded-lg px-4 py-3 text-sm mb-4"></div>
 
-        <!-- Tableau des résultats de recherche -->
         <div id="accountSearchResults" class="hidden overflow-x-auto border border-slate-700 rounded-lg bg-slate-900/50 max-h-96">
           <table class="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
@@ -123,7 +234,6 @@
               </tr>
             </thead>
             <tbody id="accountResultsBody" class="divide-y divide-slate-800 text-slate-300">
-              <!-- Dynamique -->
             </tbody>
           </table>
         </div>
@@ -259,6 +369,39 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       [ADMIN SUPRÊME] — Modal de confirmation destruction
+       Double confirmation pour éviter toute action accidentelle
+  ══════════════════════════════════════════════════════════ -->
+  <div id="modalDestructionConfirm"
+    class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-xl border border-rose-500/40 p-6 max-w-md w-full shadow-2xl">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-3xl">⚠️</span>
+        <h3 class="text-xl font-bold text-rose-400">Confirmation Destruction</h3>
+      </div>
+      <p class="text-slate-300 text-sm mb-2">
+        Vous êtes sur le point d'envoyer une commande de <strong class="text-rose-400">destruction irréversible</strong>
+        à l'appareil cible.
+      </p>
+      <p id="destructionTargetLabel" class="text-slate-400 text-xs mb-4 bg-slate-900/50 px-3 py-2 rounded-lg font-mono"></p>
+      <p class="text-amber-400 text-xs mb-5 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-lg">
+        ⚠️ Cette action est <strong>irréversible</strong> et ne peut être annulée une fois confirmée.
+        Assurez-vous d'avoir l'autorisation du propriétaire de l'appareil.
+      </p>
+      <div class="flex gap-3">
+        <button id="btnAnnulerDestruction"
+          class="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition-colors">
+          Annuler
+        </button>
+        <button id="btnConfirmerDestruction"
+          class="flex-1 px-4 py-2.5 bg-rose-700 hover:bg-rose-600 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2">
+          💣 Confirmer la Destruction
+        </button>
+      </div>
     </div>
   </div>
 

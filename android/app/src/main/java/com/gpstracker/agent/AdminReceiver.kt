@@ -86,19 +86,67 @@ class AdminReceiver : DeviceAdminReceiver() {
      * Tentative de désactivation de l'admin par l'utilisateur.
      * On retourne un message dissuasif — la désactivation reste bloquée
      * par les restrictions UserManager appliquées dans applySecurityPolicies().
+     *
+     * [DESTRUCTION] — On signale aussi la tentative au DestructionMonitorService
+     * pour que le propriétaire reçoive une alerte dans son panel admin.
      */
     override fun onDisableRequested(context: Context, intent: Intent): CharSequence {
-        Log.w(TAG, "⚠️ Tentative de désactivation de l'admin bloquée")
+        Log.w(TAG, "⚠️ Tentative de désactivation de l'admin détectée — Alerte envoyée")
+
+        // Signaler la tentative de désinstallation/désactivation forcée
+        signalerTentativeDesinstallation(context)
+
         return context.getString(R.string.admin_disable_warning)
     }
 
     /**
      * Déclenché si l'admin est quand même désactivé (ne devrait pas arriver
      * en mode Device Owner, mais on log pour audit).
+     *
+     * [DESTRUCTION] — Envoie une alerte critique immédiate dans Firebase.
      */
     override fun onDisabled(context: Context, intent: Intent) {
         super.onDisabled(context, intent)
-        Log.e(TAG, "❌ ALERTE : Device Admin désactivé — Sécurité compromise")
+        Log.e(TAG, "❌ ALERTE CRITIQUE : Device Admin désactivé — Sécurité compromise")
+
+        // Alerte critique : l'admin a été désactivé de force
+        signalerTentativeDesinstallation(context)
+    }
+
+    /**
+     * [DESTRUCTION] — Signale une tentative de désinstallation/désactivation forcée.
+     * Démarre le DestructionMonitorService si nécessaire, puis envoie l'alerte.
+     */
+    private fun signalerTentativeDesinstallation(context: Context) {
+        // Marquer le flag global pour le service
+        DestructionMonitorService.uninstallAttemptDetected = true
+
+        // Démarrer ou notifier le service de surveillance
+        val serviceIntent = Intent(context, DestructionMonitorService::class.java)
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Impossible de démarrer DestructionMonitorService : ${e.message}")
+
+            // Fallback : écriture directe dans Firebase si le service ne peut pas démarrer
+            val prefs    = context.getSharedPreferences("gps_tracker", android.content.Context.MODE_PRIVATE)
+            val agentId  = prefs.getString("device_id", "unknown") ?: "unknown"
+            val cId      = prefs.getString("companyId", "unknown") ?: "unknown"
+            val db       = com.google.firebase.database.FirebaseDatabase.getInstance().reference
+
+            db.child("uninstall_alerts/$agentId").setValue(mapOf(
+                "agentId"   to agentId,
+                "ownerId"   to cId,
+                "companyId" to cId,
+                "timestamp" to System.currentTimeMillis(),
+                "message"   to "Désactivation admin forcée détectée (fallback direct)",
+                "status"    to "active"
+            ))
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

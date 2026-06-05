@@ -1,36 +1,47 @@
 /**
  * admin.js — Panneau d'administration GPS Tracker
- * 
- * [ADMIN SUPRÊME] — Version ultra-sécurisée avec authentification unifiée,
- * vérification stricte du rôle superadmin dans Firebase RTDB, utilisation de jetons
- * Firebase ID Token (Bearer) pour les requêtes backend, et widgets de supervision en temps réel.
+ *
+ * [ADMIN SUPRÊME] — Version ultra-sécurisée avec :
+ *  - Splash GPS-Tracker + waitForServerWake (plus d'affichage brut Render)
+ *  - Vérification stricte du rôle superadmin dans Firebase RTDB
+ *  - Vue globale de tous les clients de la plateforme
+ *  - Fonctionnalité "Destruction à distance" (payante, sur alerte désinstallation)
+ *  - Bearer token Firebase pour toutes les requêtes backend
+ *  - Supervision serveur Render en temps réel
  */
 
-// [ADMIN SUPRÊME] — Importations des dépendances Firebase (SDK modulaire) et de la configuration partagée
+// [ADMIN SUPRÊME] — Importations Firebase SDK modulaire
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { get, ref, onValue, set, push, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { auth, db } from "../shared/firebase.js";
 import { genererTableauAdminChariowHtml } from './chariow-paiement.js';
 
-// [ADMIN SUPRÊME] — Récupération des éléments DOM pour la supervision et le catalogue
+// [ADMIN SUPRÊME] — Import du module de réveil serveur (évite l'affichage brut Render)
+import { waitForServerWake } from './splash-wake.js';
+
+// ── Éléments DOM — Splash ──────────────────────────────────────────────
+const splashAdmin       = document.getElementById('splash-admin');
+const splashAdminStatus = document.getElementById('splash-admin-status');
+
+// ── Éléments DOM — Catalogue & Panel ──────────────────────────────────
 const adminCatalogueChariow = document.getElementById('adminCatalogueChariow');
-const adminPanel       = document.getElementById('adminPanel');
 
-// [ADMIN SUPRÊME] — Récupération des éléments DOM pour l'affichage des statistiques globales
-const statSocietes       = document.getElementById('statSocietes');
-const statAbonnements    = document.getElementById('statAbonnements');
+// ── Éléments DOM — Stats globales ──────────────────────────────────────
+const statSocietes        = document.getElementById('statSocietes');
+const statAbonnements     = document.getElementById('statAbonnements');
 const statClesDisponibles = document.getElementById('statClesDisponibles');
-const statClesUtilisees  = document.getElementById('statClesUtilisees');
+const statClesUtilisees   = document.getElementById('statClesUtilisees');
 
-// [ADMIN SUPRÊME] — Récupération des éléments DOM pour la section Importation de clés Chariow
-const importTypePack      = document.getElementById('importTypePack');
-const importKeys          = document.getElementById('importKeys');
-const importMessage       = document.getElementById('importMessage');
-const btnImport           = document.getElementById('btnImport');
-const quantiteAgentsRow   = document.getElementById('quantiteAgentsRow');
+// ── Éléments DOM — Import de clés ──────────────────────────────────────
+const importTypePack       = document.getElementById('importTypePack');
+const importKeys           = document.getElementById('importKeys');
+const importMessage        = document.getElementById('importMessage');
+const btnImport            = document.getElementById('btnImport');
+const quantiteAgentsRow    = document.getElementById('quantiteAgentsRow');
 const importQuantiteAgents = document.getElementById('importQuantiteAgents');
 
-// [ADMIN SUPRÊME] — Récupération des éléments DOM pour la section Génération de clés de test
+// ── Éléments DOM — Génération de clés ──────────────────────────────────
 const genTypePack       = document.getElementById('genTypePack');
 const genCount          = document.getElementById('genCount');
 const genMessage        = document.getElementById('genMessage');
@@ -39,16 +50,13 @@ const btnGenerate       = document.getElementById('btnGenerate');
 const genQuantiteRow    = document.getElementById('genQuantiteRow');
 const genQuantiteAgents = document.getElementById('genQuantiteAgents');
 
-// [ADMIN SUPRÊME] — Récupération des éléments DOM pour la section Cron manuel
-const cronMessage = document.getElementById('cronMessage');
-const btnCron     = document.getElementById('btnCron');
-
-// [ADMIN SUPRÊME] — Récupération des éléments DOM pour la section Notifications d'expiration
+// ── Éléments DOM — Cron & Notifs ────────────────────────────────────────
+const cronMessage  = document.getElementById('cronMessage');
+const btnCron      = document.getElementById('btnCron');
 const notifMessage = document.getElementById('notifMessage');
 const btnNotif     = document.getElementById('btnNotif');
 
-// [ADMIN SUPRÊME] — Récupération des nouveaux éléments DOM de l'Administrateur Suprême (sécurité, supervision, gestion)
-const securityShield       = document.getElementById('securityShield');
+// ── Éléments DOM — Supervision & Sécurité ──────────────────────────────
 const pingStatus           = document.getElementById('pingStatus');
 const accountSearchInput   = document.getElementById('accountSearchInput');
 const btnSearchAccount     = document.getElementById('btnSearchAccount');
@@ -59,90 +67,134 @@ const licenceFilterInput   = document.getElementById('licenceFilterInput');
 const btnRefreshLicences   = document.getElementById('btnRefreshLicences');
 const licencesTableBody    = document.getElementById('licencesTableBody');
 
-// [ADMIN SUPRÊME] — Variables d'état globales pour conserver le jeton d'authentification et les licences chargées
-let adminToken = null;
-let allLicences = [];
+// [ADMIN SUPRÊME] — Éléments DOM — Vue globale clients
+const allClientsTableBody = document.getElementById('allClientsTableBody');
+const clientsFilterInput  = document.getElementById('clientsFilterInput');
+const btnRefreshClients   = document.getElementById('btnRefreshClients');
+const clientsCount        = document.getElementById('clientsCount');
 
-// [ADMIN SUPRÊME] — Affichage ou masquage dynamique de la quantité d'agents requis pour les packs spécifiques
-[importTypePack, genTypePack].forEach((sel) => {
-  sel.addEventListener('change', () => {
-    const needsQty = ['suivi_eleve', 'suivi_etudiant'].includes(sel.value);
-    if (sel === importTypePack) quantiteAgentsRow.classList.toggle('hidden', !needsQty);
-    if (sel === genTypePack)    genQuantiteRow.classList.toggle('hidden', !needsQty);
+// [ADMIN SUPRÊME] — Éléments DOM — Destruction à distance
+const uninstallAlertsContainer = document.getElementById('uninstallAlertsContainer');
+const uninstallAlertBadge      = document.getElementById('uninstallAlertBadge');
+const destructionTargetId      = document.getElementById('destructionTargetId');
+const destructionRaison        = document.getElementById('destructionRaison');
+const btnDestructionManuelle   = document.getElementById('btnDestructionManuelle');
+const destructionMessage       = document.getElementById('destructionMessage');
+const modalDestructionConfirm  = document.getElementById('modalDestructionConfirm');
+const destructionTargetLabel   = document.getElementById('destructionTargetLabel');
+const btnAnnulerDestruction    = document.getElementById('btnAnnulerDestruction');
+const btnConfirmerDestruction  = document.getElementById('btnConfirmerDestruction');
+
+// ── Variables d'état globales ───────────────────────────────────────────
+let adminToken   = null;
+let allLicences  = [];
+let allClients   = [];
+let pendingDestructionTarget = null;
+let pendingDestructionRaison = null;
+
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — ÉTAPE 1 : Réveil du serveur Render avant toute auth
+// Affiche le logo GPS-Tracker pendant le cold-start du serveur Render
+// (plus d'affichage du texte brut "Render" au chargement de la page)
+// ══════════════════════════════════════════════════════════════════════════
+(async () => {
+  // Mise à jour du statut dans le splash GPS-Tracker
+  const setStatus = (msg) => {
+    if (splashAdminStatus) splashAdminStatus.textContent = msg;
+  };
+
+  setStatus("Réveil du serveur sécurisé… Veuillez patienter.");
+
+  await waitForServerWake({
+    onStatus: setStatus,
+    maxAttempts: 25,
+    intervalMs: 2000,
+    requestTimeoutMs: 12000,
   });
-});
 
-// [ADMIN SUPRÊME] — Écouteur d'état Firebase Auth avec validation obligatoire du rôle 'superadmin' dans la base RTDB
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    console.log("[ADMIN SUPRÊME] — Utilisateur non connecté. Redirection vers la page de connexion.");
-    window.location.replace('login.html?redirect=admin.html');
-    return;
-  }
-  
-  if (!user.emailVerified) {
-    console.log("[ADMIN SUPRÊME] — Email non validé. Redirection et déconnexion.");
-    const { deconnecter } = await import("./deconnexion.js");
-    await deconnecter("login.html");
-    return;
-  }
+  setStatus("Serveur prêt. Vérification de votre session admin…");
 
-  try {
-    // Lecture directe du nœud profil société dans la base de données temps réel
-    const snap = await get(ref(db, `companies/${user.uid}`));
-    if (!snap.exists()) {
-      console.log("[ADMIN SUPRÊME] — Aucun profil de société existant dans RTDB. Accès refusé.");
-      window.location.replace('index.html');
+  // [ADMIN SUPRÊME] — ÉTAPE 2 : Vérification Firebase Auth + rôle superadmin
+  // Exécuté APRÈS le réveil serveur pour garantir que les appels API fonctionnent
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      console.log("[ADMIN SUPRÊME] — Non connecté → redirection login.");
+      window.location.replace('login.html?redirect=admin.html');
       return;
     }
 
-    const companyData = snap.val();
-    if (companyData.role !== 'superadmin') {
-      console.log("[ADMIN SUPRÊME] — Rôle insuffisant (" + (companyData.role || 'aucun') + "). Redirection vers le tableau de bord standard.");
-      window.location.replace('index.html');
+    if (!user.emailVerified) {
+      console.log("[ADMIN SUPRÊME] — Email non vérifié → déconnexion.");
+      const { deconnecter } = await import("./deconnexion.js");
+      await deconnecter("login.html");
       return;
     }
 
-    // Récupération du jeton d'identité Firebase pour authentifier les appels API
-    adminToken = await user.getIdToken();
-    console.log("[ADMIN SUPRÊME] — Accès autorisé et authentifié.");
+    try {
+      setStatus("Vérification des privilèges administrateur…");
 
-    // Retrait en douceur de l'écran de garde de sécurité
-    if (securityShield) {
-      securityShield.classList.add('opacity-0');
-      securityShield.classList.add('pointer-events-none');
-      setTimeout(() => {
-        securityShield.classList.add('hidden');
-      }, 500);
+      // Lecture du profil depuis RTDB pour vérifier le rôle
+      const snap = await get(ref(db, `companies/${user.uid}`));
+      if (!snap.exists()) {
+        console.log("[ADMIN SUPRÊME] — Profil introuvable. Accès refusé.");
+        window.location.replace('index.html');
+        return;
+      }
+
+      const companyData = snap.val();
+      if (companyData.role !== 'superadmin') {
+        console.log(`[ADMIN SUPRÊME] — Rôle insuffisant (${companyData.role || 'aucun'}). Accès refusé.`);
+        window.location.replace('index.html');
+        return;
+      }
+
+      // Récupération du token pour les appels API sécurisés
+      adminToken = await user.getIdToken();
+      console.log("[ADMIN SUPRÊME] — Accès autorisé.");
+
+      // Retrait en douceur du splash GPS-Tracker
+      if (splashAdmin) {
+        splashAdmin.classList.add('fade-out');
+        setTimeout(() => splashAdmin.classList.add('hidden'), 500);
+      }
+
+      // Initialisation complète du panneau admin
+      initialiserPanneauAdmin();
+
+    } catch (err) {
+      console.error("[ADMIN SUPRÊME] — Erreur de validation :", err);
+      window.location.replace('index.html');
     }
+  });
+})();
 
-    // Initialisation complète de l'interface d'administration
-    initialiserPanneauAdmin();
-
-  } catch (err) {
-    console.error("[ADMIN SUPRÊME] — Erreur lors de la validation des accès :", err);
-    window.location.replace('index.html');
-  }
-});
-
-// [ADMIN SUPRÊME] — Fonction d'initialisation centrale pour charger toutes les données de l'interface
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Initialisation centrale du panneau
+// ══════════════════════════════════════════════════════════════════════════
 function initialiserPanneauAdmin() {
+  // Injection du catalogue Chariow
   if (adminCatalogueChariow) {
     adminCatalogueChariow.innerHTML = genererTableauAdminChariowHtml();
   }
 
-  // Chargement des données statistiques et de l'historique global
+  // Chargement des données
   chargerStats();
   chargerLicences();
+  chargerTousLesClients();
 
-  // Association de tous les écouteurs d'événements
+  // Écoute temps réel des alertes de désinstallation forcée
+  ecouterAlertesDesinstallation();
+
+  // Association des écouteurs d'événements
   configurerEcouteurs();
 
-  // Démarrage de la surveillance de la latence du serveur en temps réel
+  // Surveillance serveur Render (ping toutes les 15 secondes)
   demarrerSupervisionServeur();
 }
 
-// [ADMIN SUPRÊME] — Lancement du processus de ping toutes les 15 secondes pour mesurer la latence du serveur principal Render
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Supervision serveur Render (ping /api/ping)
+// ══════════════════════════════════════════════════════════════════════════
 function demarrerSupervisionServeur() {
   async function executerPing() {
     const debut = performance.now();
@@ -150,26 +202,26 @@ function demarrerSupervisionServeur() {
       const res = await fetch('/api/ping');
       const fin = performance.now();
       const latence = Math.round(fin - debut);
-      
+
       if (res.ok) {
         if (pingStatus) {
           pingStatus.innerHTML = `
-            <span class="inline-block h-3.5 w-3.5 bg-emerald-500 rounded-full" id="pingIndicator"></span>
+            <span class="inline-block h-3.5 w-3.5 bg-emerald-500 rounded-full"></span>
             Serveur Connecté (${latence}ms)
           `;
         }
       } else {
         if (pingStatus) {
           pingStatus.innerHTML = `
-            <span class="inline-block h-3.5 w-3.5 bg-yellow-500 rounded-full animate-pulse" id="pingIndicator"></span>
+            <span class="inline-block h-3.5 w-3.5 bg-yellow-500 rounded-full animate-pulse"></span>
             Réponse serveur anormale (${res.status})
           `;
         }
       }
-    } catch (err) {
+    } catch {
       if (pingStatus) {
         pingStatus.innerHTML = `
-          <span class="inline-block h-3.5 w-3.5 bg-red-500 rounded-full animate-pulse" id="pingIndicator"></span>
+          <span class="inline-block h-3.5 w-3.5 bg-red-500 rounded-full animate-pulse"></span>
           Serveur Inaccessible
         `;
       }
@@ -180,49 +232,43 @@ function demarrerSupervisionServeur() {
   setInterval(executerPing, 15000);
 }
 
-// [ADMIN SUPRÊME] — Appel à l'API sécurisée pour récupérer les statistiques d'utilisation globales
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Statistiques globales Firebase
+// ══════════════════════════════════════════════════════════════════════════
 async function chargerStats() {
   try {
     const res = await fetch('/api/admin/stats', {
-      headers: {
-        'Authorization': `Bearer ${adminToken}`,
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' }
     });
     if (!res.ok) return;
     const data = await res.json();
 
-    if (statSocietes) statSocietes.textContent = data.totalSocietes ?? '—';
-    if (statAbonnements) statAbonnements.textContent = data.abonnementsActifs ?? '—';
-    if (statClesDisponibles) statClesDisponibles.textContent = data.clesDisponibles ?? '—';
-    if (statClesUtilisees) statClesUtilisees.textContent = data.clesUtilisees ?? '—';
+    if (statSocietes)        statSocietes.textContent        = data.totalSocietes     ?? '—';
+    if (statAbonnements)     statAbonnements.textContent     = data.abonnementsActifs ?? '—';
+    if (statClesDisponibles) statClesDisponibles.textContent = data.clesDisponibles   ?? '—';
+    if (statClesUtilisees)   statClesUtilisees.textContent   = data.clesUtilisees     ?? '—';
   } catch (err) {
-    console.error("[ADMIN SUPRÊME] — Impossible de récupérer les statistiques :", err);
+    console.error("[ADMIN SUPRÊME] — Statistiques :", err);
   }
 }
 
-// [ADMIN SUPRÊME] — Chargement de la liste historique de l'ensemble des licences enregistrées dans Firestore
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Historique global des licences
+// ══════════════════════════════════════════════════════════════════════════
 async function chargerLicences() {
   if (licencesTableBody) {
     licencesTableBody.innerHTML = `
-      <tr>
-        <td colspan="6" class="p-6 text-center text-slate-500 font-medium">Chargement des licences...</td>
-      </tr>
+      <tr><td colspan="6" class="p-6 text-center text-slate-500">Chargement des licences...</td></tr>
     `;
   }
 
   try {
     const res = await fetch('/api/admin/licences', {
-      headers: {
-        'Authorization': `Bearer ${adminToken}`,
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' }
     });
-    if (!res.ok) {
-      throw new Error(`Erreur HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
     const data = await res.json();
-    
+
     if (data.success && Array.isArray(data.licences)) {
       allLicences = data.licences;
       renderLicencesTable(allLicences);
@@ -230,63 +276,277 @@ async function chargerLicences() {
       throw new Error("Format de réponse invalide");
     }
   } catch (err) {
-    console.error("[ADMIN SUPRÊME] — Impossible de récupérer la liste des licences :", err);
+    console.error("[ADMIN SUPRÊME] — Licences :", err);
     if (licencesTableBody) {
       licencesTableBody.innerHTML = `
-        <tr>
-          <td colspan="6" class="p-6 text-center text-red-400 font-medium">⚠️ Erreur lors du chargement des licences</td>
-        </tr>
+        <tr><td colspan="6" class="p-6 text-center text-red-400">⚠️ Erreur lors du chargement des licences</td></tr>
       `;
     }
   }
 }
 
-// [ADMIN SUPRÊME] — Affichage formaté des licences dans le tableau HTML avec des badges et boutons d'action
-function renderLicencesTable(licences) {
-  if (!licencesTableBody) return;
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Vue globale de TOUS les clients de l'application
+// Lit directement depuis Firebase RTDB le nœud "companies"
+// ══════════════════════════════════════════════════════════════════════════
+async function chargerTousLesClients() {
+  if (allClientsTableBody) {
+    allClientsTableBody.innerHTML = `
+      <tr><td colspan="6" class="p-6 text-center text-slate-500">Chargement des clients...</td></tr>
+    `;
+  }
 
-  if (licences.length === 0) {
-    licencesTableBody.innerHTML = `
-      <tr>
-        <td colspan="6" class="p-6 text-center text-slate-400 font-medium">Aucune clé de licence enregistrée.</td>
-      </tr>
+  try {
+    // Tentative via API backend d'abord (plus sécurisé)
+    const res = await fetch('/api/admin/clients', {
+      headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.clients)) {
+        allClients = data.clients;
+        renderAllClientsTable(allClients);
+        return;
+      }
+    }
+
+    // Fallback : lecture directe depuis RTDB (superadmin peut lire tout "companies")
+    const snap = await get(ref(db, 'companies'));
+    if (!snap.exists()) {
+      allClientsTableBody.innerHTML = `
+        <tr><td colspan="6" class="p-6 text-center text-slate-400">Aucun client enregistré.</td></tr>
+      `;
+      return;
+    }
+
+    const clientsMap = snap.val();
+    allClients = Object.entries(clientsMap).map(([uid, data]) => ({
+      uid,
+      companyName: data.companyName || data.email?.split('@')[0] || 'Inconnu',
+      email:       data.email || '—',
+      role:        data.role  || 'company',
+      validated:   data.validated || false,
+      typePack:    data.licence?.typePack || 'free',
+      createdAt:   data.createdAt || null,
+    }));
+
+    renderAllClientsTable(allClients);
+
+  } catch (err) {
+    console.error("[ADMIN SUPRÊME] — Clients :", err);
+    if (allClientsTableBody) {
+      allClientsTableBody.innerHTML = `
+        <tr><td colspan="6" class="p-6 text-center text-red-400">⚠️ Erreur lors du chargement des clients</td></tr>
+      `;
+    }
+  }
+}
+
+// ── Rendu du tableau de tous les clients ───────────────────────────────
+function renderAllClientsTable(clients) {
+  if (!allClientsTableBody) return;
+
+  if (clientsCount) clientsCount.textContent = clients.length;
+
+  if (clients.length === 0) {
+    allClientsTableBody.innerHTML = `
+      <tr><td colspan="6" class="p-6 text-center text-slate-400">Aucun client enregistré.</td></tr>
     `;
     return;
   }
 
-  const translatedPacks = {
-    illimite: 'Accès Illimité',
-    abonnement_flotte: 'Forfait Flotte B2B',
-    suivi_eleve: 'Suivi Élève',
-    suivi_etudiant: 'Suivi Étudiant'
+  const packColors = {
+    illimite:         'bg-emerald-500/20 text-emerald-400',
+    abonnement_flotte:'bg-sky-500/20 text-sky-400',
+    suivi_eleve:      'bg-cyan-500/20 text-cyan-400',
+    suivi_etudiant:   'bg-indigo-500/20 text-indigo-400',
+    free:             'bg-slate-700 text-slate-400',
+  };
+  const roleColors = {
+    superadmin: 'bg-red-500/20 text-red-400',
+    partner:    'bg-indigo-500/20 text-indigo-400',
+    school:     'bg-cyan-500/20 text-cyan-400',
+    company:    'bg-slate-700 text-slate-300',
   };
 
-  licencesTableBody.innerHTML = licences.map(lic => {
-    const packLabel = translatedPacks[lic.type_pack] || lic.type_pack;
-    const isUsed = lic.statut === 'utilise';
-    
-    const statutBadge = isUsed 
-      ? `<span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full font-bold text-xs">Utilisé</span>`
-      : `<span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full font-bold text-xs">Disponible</span>`;
-      
-    const formattedAct = lic.date_activation ? formatterDate(lic.date_activation) : '—';
-    const formattedExp = lic.date_expiration ? formatterDate(lic.date_expiration) : '—';
-    const client = lic.utilise_par || '—';
+  allClientsTableBody.innerHTML = clients.map(c => {
+    const packCls = packColors[c.typePack] || packColors.free;
+    const roleCls = roleColors[c.role]     || roleColors.company;
+    const dateInsc = c.createdAt ? formatterDate(c.createdAt) : '—';
 
     return `
       <tr class="hover:bg-slate-800/40 border-b border-slate-800/60 transition-colors">
-        <td class="p-3 font-mono font-bold text-slate-200 select-all">${escapeHtml(lic.cle_licence)}</td>
-        <td class="p-3 font-medium text-slate-300">${escapeHtml(packLabel)}</td>
-        <td class="p-3">${statutBadge}</td>
-        <td class="p-3 font-mono text-slate-400 select-all">${escapeHtml(client)}</td>
-        <td class="p-3 text-slate-400">${escapeHtml(formattedAct)}</td>
-        <td class="p-3 text-slate-400">${escapeHtml(formattedExp)}</td>
+        <td class="p-3">
+          <div class="font-semibold text-slate-100 text-xs">${escapeHtml(c.companyName)}</div>
+          <div class="text-slate-500 text-xs">${escapeHtml(c.email)}</div>
+        </td>
+        <td class="p-3 font-mono text-slate-500 text-xs select-all">${escapeHtml(c.uid)}</td>
+        <td class="p-3">
+          <span class="px-2 py-0.5 rounded-full text-xs font-bold ${roleCls}">${escapeHtml((c.role || 'company').toUpperCase())}</span>
+        </td>
+        <td class="p-3">
+          <span class="px-2 py-0.5 rounded-full text-xs font-bold ${packCls}">${escapeHtml(c.typePack || 'free')}</span>
+        </td>
+        <td class="p-3 text-slate-400 text-xs">${escapeHtml(dateInsc)}</td>
+        <td class="p-3 text-right">
+          <div class="flex justify-end gap-1">
+            <button data-uid="${escapeHtml(c.uid)}" data-action="destruct-client"
+              title="Envoyer commande destruction à cet agent"
+              class="px-2 py-1 bg-rose-700/60 hover:bg-rose-700 text-white rounded text-xs font-semibold transition-colors">
+              💣
+            </button>
+            ${!c.validated ? `
+              <button data-uid="${escapeHtml(c.uid)}" class="btn-validate px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold transition-colors">
+                ✓ Valider
+              </button>
+            ` : `
+              <button data-uid="${escapeHtml(c.uid)}" class="btn-revoke px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-semibold transition-colors">
+                ✕ Révoquer
+              </button>
+            `}
+          </div>
+        </td>
       </tr>
     `;
   }).join('');
 }
 
-// [ADMIN SUPRÊME] — Recherche de comptes utilisateurs dans Firebase par email, nom ou UID
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Écoute temps réel des alertes de désinstallation forcée
+// L'agent Android écrit dans RTDB : uninstall_alerts/{agentId}
+// quand il détecte une tentative de désinstallation forcée
+// ══════════════════════════════════════════════════════════════════════════
+function ecouterAlertesDesinstallation() {
+  onValue(ref(db, 'uninstall_alerts'), (snap) => {
+    if (!snap.exists()) {
+      if (uninstallAlertsContainer) {
+        uninstallAlertsContainer.innerHTML = `
+          <p class="text-slate-500 text-xs italic p-3 bg-slate-900/30 rounded-lg">
+            Aucune alerte de désinstallation forcée en cours.
+          </p>
+        `;
+      }
+      if (uninstallAlertBadge) uninstallAlertBadge.classList.add('hidden');
+      return;
+    }
+
+    const alertes = [];
+    snap.forEach((child) => {
+      alertes.push({ id: child.key, ...child.val() });
+    });
+
+    // Filtre uniquement les alertes non traitées
+    const actives = alertes.filter(a => a.status !== 'treated');
+
+    if (uninstallAlertBadge) {
+      if (actives.length > 0) {
+        uninstallAlertBadge.textContent = actives.length;
+        uninstallAlertBadge.classList.remove('hidden');
+      } else {
+        uninstallAlertBadge.classList.add('hidden');
+      }
+    }
+
+    if (!uninstallAlertsContainer) return;
+
+    if (actives.length === 0) {
+      uninstallAlertsContainer.innerHTML = `
+        <p class="text-slate-500 text-xs italic p-3 bg-slate-900/30 rounded-lg">
+          Aucune alerte active. Toutes les alertes ont été traitées.
+        </p>
+      `;
+      return;
+    }
+
+    uninstallAlertsContainer.innerHTML = actives.map(a => `
+      <div class="flex items-start justify-between gap-3 p-3 bg-rose-950/40 border border-rose-800/40 rounded-lg">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-rose-400 text-xs font-bold">🚨 DÉSINSTALLATION FORCÉE</span>
+            <span class="text-slate-500 text-xs">${escapeHtml(formatterDate(a.timestamp || a.ts || Date.now()))}</span>
+          </div>
+          <p class="text-slate-200 text-xs font-mono truncate">Agent : ${escapeHtml(a.agentId || a.deviceId || a.id || '—')}</p>
+          <p class="text-slate-400 text-xs">Propriétaire : ${escapeHtml(a.ownerId || a.companyId || '—')}</p>
+          ${a.message ? `<p class="text-slate-500 text-xs italic mt-1">${escapeHtml(a.message)}</p>` : ''}
+        </div>
+        <div class="flex flex-col gap-1 flex-shrink-0">
+          <button data-alert-id="${escapeHtml(a.id)}" data-agent-id="${escapeHtml(a.agentId || a.id)}"
+            class="btn-destroy-alert px-3 py-1.5 bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold rounded transition-colors whitespace-nowrap">
+            💣 Détruire
+          </button>
+          <button data-alert-id="${escapeHtml(a.id)}"
+            class="btn-dismiss-alert px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded transition-colors">
+            Ignorer
+          </button>
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Destruction à distance
+// Écrit une commande dans RTDB : destruction_commands/{agentId}
+// L'agent Android lit ce nœud et exécute la destruction si la commande existe
+// ══════════════════════════════════════════════════════════════════════════
+function ouvrirModalDestruction(targetId, raison) {
+  pendingDestructionTarget = targetId;
+  pendingDestructionRaison = raison || 'Commande admin';
+
+  if (destructionTargetLabel) {
+    destructionTargetLabel.textContent = `Cible : ${targetId} — Raison : ${raison || 'Commande admin'}`;
+  }
+  if (modalDestructionConfirm) {
+    modalDestructionConfirm.classList.remove('hidden');
+  }
+}
+
+async function executerDestructionDistante(targetId, raison) {
+  try {
+    // [ADMIN SUPRÊME] — Écriture dans RTDB nœud destruction_commands
+    // L'agent Android surveille ce nœud et déclenche la destruction
+    await set(ref(db, `destruction_commands/${targetId}`), {
+      command:     'DESTROY',
+      reason:      raison || 'Forced uninstall detected',
+      issuedBy:    'superadmin',
+      issuedAt:    Date.now(),
+      status:      'pending',
+    });
+
+    // Tentative via API backend pour logging côté serveur
+    try {
+      await fetch('/api/admin/destruction/trigger', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type':  'application/json',
+        },
+        body: JSON.stringify({ targetId, raison }),
+      });
+    } catch {
+      // Non bloquant : la commande RTDB est déjà écrite
+    }
+
+    showMsg(destructionMessage,
+      `💣 Commande de destruction envoyée à l'appareil "${targetId}". L'agent recevra l'ordre au prochain wake-up.`,
+      'error'
+    );
+
+    // Marquer l'alerte comme traitée si elle existait
+    try {
+      await set(ref(db, `uninstall_alerts/${targetId}/status`), 'treated');
+    } catch { /* pas d'alerte associée */ }
+
+  } catch (err) {
+    console.error("[ADMIN SUPRÊME] — Destruction :", err);
+    showMsg(destructionMessage, `❌ Erreur lors de l'envoi de la commande : ${err.message}`, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Recherche de comptes
+// ══════════════════════════════════════════════════════════════════════════
 async function rechercherCompte() {
   if (!accountSearchInput) return;
   const query = accountSearchInput.value.trim();
@@ -295,23 +555,16 @@ async function rechercherCompte() {
     return;
   }
 
-  if (btnSearchAccount) {
-    btnSearchAccount.disabled = true;
-    btnSearchAccount.textContent = 'Recherche…';
-  }
-  if (searchMessage) searchMessage.classList.add('hidden');
+  if (btnSearchAccount) { btnSearchAccount.disabled = true; btnSearchAccount.textContent = 'Recherche…'; }
+  if (searchMessage)     searchMessage.classList.add('hidden');
   if (accountSearchResults) accountSearchResults.classList.add('hidden');
 
   try {
-    const res = await fetch(`/api/admin/accounts/search?query=${encodeURIComponent(query)}`, {
-      headers: {
-        'Authorization': `Bearer ${adminToken}`,
-        'Content-Type': 'application/json'
-      }
+    const res  = await fetch(`/api/admin/accounts/search?query=${encodeURIComponent(query)}`, {
+      headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' }
     });
-
     const data = await res.json();
-    
+
     if (!res.ok) {
       showMsg(searchMessage, data.error || 'Erreur lors de la recherche.', 'error');
       return;
@@ -325,352 +578,424 @@ async function rechercherCompte() {
   } catch (err) {
     showMsg(searchMessage, 'Erreur réseau : ' + err.message, 'error');
   } finally {
-    if (btnSearchAccount) {
-      btnSearchAccount.disabled = false;
-      btnSearchAccount.textContent = 'Rechercher';
-    }
+    if (btnSearchAccount) { btnSearchAccount.disabled = false; btnSearchAccount.textContent = 'Rechercher'; }
   }
 }
 
-// [ADMIN SUPRÊME] — Rendu HTML dynamique de la liste des comptes trouvés après recherche
 function renderSearchResults(accounts) {
   if (!accountResultsBody) return;
 
   if (accounts.length === 0) {
     accountResultsBody.innerHTML = `
-      <tr>
-        <td colspan="4" class="p-6 text-center text-slate-400 font-medium">Aucun compte trouvé correspondant à la recherche.</td>
-      </tr>
+      <tr><td colspan="4" class="p-6 text-center text-slate-400">Aucun compte trouvé.</td></tr>
     `;
     if (accountSearchResults) accountSearchResults.classList.remove('hidden');
     return;
   }
 
-  accountResultsBody.innerHTML = accounts.map(acc => {
-    return `
-      <tr class="hover:bg-slate-800/40 border-b border-slate-800 transition-colors">
-        <td class="p-3">
-          <div class="font-semibold text-slate-100">${escapeHtml(acc.companyName)}</div>
-          <div class="text-xs text-slate-400">${escapeHtml(acc.email)}</div>
-        </td>
-        <td class="p-3 font-mono text-slate-400 select-all">${escapeHtml(acc.uid)}</td>
-        <td class="p-3">
-          <div class="flex items-center gap-2">
-            <span class="px-2 py-0.5 rounded-full text-xs font-bold ${acc.role === 'partner' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-700 text-slate-300'}">
-              ${escapeHtml(acc.role.toUpperCase())}
-            </span>
-            <span class="px-2 py-0.5 rounded-full text-xs font-bold ${acc.validated ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}">
-              ${acc.validated ? 'Validé' : 'Non Validé'}
-            </span>
-          </div>
-        </td>
-        <td class="p-3 text-right">
-          <div class="flex justify-end gap-2">
-            ${!acc.validated ? `
-              <button data-uid="${acc.uid}" class="btn-validate px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold transition-colors">
-                Valider
-              </button>
-            ` : `
-              <button data-uid="${acc.uid}" class="btn-revoke px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-semibold transition-colors">
-                Révoquer
-              </button>
-            `}
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
+  accountResultsBody.innerHTML = accounts.map(acc => `
+    <tr class="hover:bg-slate-800/40 border-b border-slate-800 transition-colors">
+      <td class="p-3">
+        <div class="font-semibold text-slate-100">${escapeHtml(acc.companyName)}</div>
+        <div class="text-xs text-slate-400">${escapeHtml(acc.email)}</div>
+      </td>
+      <td class="p-3 font-mono text-slate-400 select-all text-xs">${escapeHtml(acc.uid)}</td>
+      <td class="p-3">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="px-2 py-0.5 rounded-full text-xs font-bold ${acc.role === 'partner' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-700 text-slate-300'}">
+            ${escapeHtml(acc.role.toUpperCase())}
+          </span>
+          <span class="px-2 py-0.5 rounded-full text-xs font-bold ${acc.validated ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}">
+            ${acc.validated ? 'Validé' : 'Non Validé'}
+          </span>
+        </div>
+      </td>
+      <td class="p-3 text-right">
+        <div class="flex justify-end gap-2">
+          ${!acc.validated
+            ? `<button data-uid="${acc.uid}" class="btn-validate px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold transition-colors">Valider</button>`
+            : `<button data-uid="${acc.uid}" class="btn-revoke px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-semibold transition-colors">Révoquer</button>`
+          }
+        </div>
+      </td>
+    </tr>
+  `).join('');
 
   if (accountSearchResults) accountSearchResults.classList.remove('hidden');
 }
 
-// [ADMIN SUPRÊME] — Action sécurisée de modification de rôle (Validation en Partenaire ou Révocation en Société standard)
+// ── Modification de statut compte (validate / revoke) ─────────────────
 async function modifierStatutCompte(companyId, action, button) {
   const originalText = button.textContent;
-  button.disabled = true;
+  button.disabled    = true;
   button.textContent = 'En cours…';
   if (searchMessage) searchMessage.classList.add('hidden');
 
   try {
-    const endpoint = `/api/admin/accounts/${action}`;
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${adminToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ companyId })
+    const res  = await fetch(`/api/admin/accounts/${action}`, {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ companyId }),
     });
-
     const data = await res.json();
 
     if (!res.ok) {
-      showMsg(searchMessage, data.error || 'Une erreur est survenue lors de l\'opération.', 'error');
+      showMsg(searchMessage, data.error || 'Erreur lors de l\'opération.', 'error');
     } else {
       showMsg(searchMessage, `✅ ${data.message || 'Action effectuée avec succès.'}`, 'success');
-      
-      // Rafraîchir les statistiques et relancer la recherche pour actualiser l'état
       await chargerStats();
       await rechercherCompte();
+      await chargerTousLesClients();
     }
   } catch (err) {
     showMsg(searchMessage, 'Erreur réseau : ' + err.message, 'error');
   } finally {
-    button.disabled = false;
+    button.disabled    = false;
     button.textContent = originalText;
   }
 }
 
-// [ADMIN SUPRÊME] — Configuration des boutons d'administration de licences et de tâches
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Rendu tableau licences
+// ══════════════════════════════════════════════════════════════════════════
+function renderLicencesTable(licences) {
+  if (!licencesTableBody) return;
+
+  if (licences.length === 0) {
+    licencesTableBody.innerHTML = `
+      <tr><td colspan="6" class="p-6 text-center text-slate-400">Aucune clé de licence enregistrée.</td></tr>
+    `;
+    return;
+  }
+
+  const translatedPacks = {
+    illimite:          'Accès Illimité',
+    abonnement_flotte: 'Forfait Flotte B2B',
+    suivi_eleve:       'Suivi Élève',
+    suivi_etudiant:    'Suivi Étudiant',
+  };
+
+  licencesTableBody.innerHTML = licences.map(lic => {
+    const packLabel  = translatedPacks[lic.type_pack] || lic.type_pack;
+    const isUsed     = lic.statut === 'utilise';
+    const statutBadge = isUsed
+      ? `<span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full font-bold text-xs">Utilisé</span>`
+      : `<span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full font-bold text-xs">Disponible</span>`;
+
+    return `
+      <tr class="hover:bg-slate-800/40 border-b border-slate-800/60 transition-colors">
+        <td class="p-3 font-mono font-bold text-slate-200 select-all text-xs">${escapeHtml(lic.cle_licence)}</td>
+        <td class="p-3 font-medium text-slate-300 text-xs">${escapeHtml(packLabel)}</td>
+        <td class="p-3">${statutBadge}</td>
+        <td class="p-3 font-mono text-slate-400 select-all text-xs">${escapeHtml(lic.utilise_par || '—')}</td>
+        <td class="p-3 text-slate-400 text-xs">${escapeHtml(lic.date_activation ? formatterDate(lic.date_activation) : '—')}</td>
+        <td class="p-3 text-slate-400 text-xs">${escapeHtml(lic.date_expiration ? formatterDate(lic.date_expiration) : '—')}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Configuration de tous les écouteurs d'événements
+// ══════════════════════════════════════════════════════════════════════════
 function configurerEcouteurs() {
-  
-  // Rafraîchissement manuel de l'historique des clés
-  if (btnRefreshLicences) {
-    btnRefreshLicences.addEventListener('click', chargerLicences);
-  }
 
-  // Lancement manuel de la recherche de compte
-  if (btnSearchAccount) {
-    btnSearchAccount.addEventListener('click', rechercherCompte);
-  }
-  
-  if (accountSearchInput) {
-    accountSearchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') rechercherCompte();
+  // ── Visibilité champs quantité agents ───────────────────────────────
+  [importTypePack, genTypePack].forEach((sel) => {
+    sel?.addEventListener('change', () => {
+      const needsQty = ['suivi_eleve', 'suivi_etudiant'].includes(sel.value);
+      if (sel === importTypePack) quantiteAgentsRow?.classList.toggle('hidden', !needsQty);
+      if (sel === genTypePack)   genQuantiteRow?.classList.toggle('hidden', !needsQty);
     });
-  }
+  });
 
-  // Écouteur d'action de validation / révocation par délégation d'événement sur la table des résultats
-  if (accountResultsBody) {
-    accountResultsBody.addEventListener('click', async (e) => {
-      const validateBtn = e.target.closest('.btn-validate');
-      const revokeBtn   = e.target.closest('.btn-revoke');
-      
-      if (validateBtn) {
-        const companyId = validateBtn.dataset.uid;
-        await modifierStatutCompte(companyId, 'validate', validateBtn);
-      } else if (revokeBtn) {
-        const companyId = revokeBtn.dataset.uid;
-        await modifierStatutCompte(companyId, 'revoke', revokeBtn);
-      }
-    });
-  }
+  // ── Rafraîchissement licences ───────────────────────────────────────
+  btnRefreshLicences?.addEventListener('click', chargerLicences);
 
-  // Import de clés de licences collées par l'admin
-  if (btnImport) {
-    btnImport.addEventListener('click', async () => {
-      const type_pack = importTypePack.value;
-      const rawKeys   = importKeys.value.trim();
+  // ── Rafraîchissement clients ────────────────────────────────────────
+  btnRefreshClients?.addEventListener('click', chargerTousLesClients);
 
-      if (!rawKeys) { showMsg(importMessage, 'Collez au moins une clé.', 'error'); return; }
+  // ── Filtre clients ──────────────────────────────────────────────────
+  clientsFilterInput?.addEventListener('input', () => {
+    const f = clientsFilterInput.value.trim().toLowerCase();
+    if (!f) { renderAllClientsTable(allClients); return; }
+    renderAllClientsTable(allClients.filter(c =>
+      (c.companyName || '').toLowerCase().includes(f) ||
+      (c.email || '').toLowerCase().includes(f) ||
+      (c.role || '').toLowerCase().includes(f) ||
+      (c.typePack || '').toLowerCase().includes(f) ||
+      (c.uid || '').toLowerCase().includes(f)
+    ));
+  });
 
-      const keys = rawKeys.split('\n').map((k) => k.trim()).filter(Boolean);
-      const body = { type_pack, keys };
-      if (['suivi_eleve', 'suivi_etudiant'].includes(type_pack)) {
-        body.quantite_agents = parseInt(importQuantiteAgents.value, 10) || 1;
-      }
+  // ── Actions délégation sur tableau clients ──────────────────────────
+  allClientsTableBody?.addEventListener('click', async (e) => {
+    const destroyBtn = e.target.closest('[data-action="destruct-client"]');
+    const validateBtn = e.target.closest('.btn-validate');
+    const revokeBtn   = e.target.closest('.btn-revoke');
 
-      btnImport.disabled    = true;
-      btnImport.textContent = 'Import en cours…';
+    if (destroyBtn) {
+      const uid = destroyBtn.dataset.uid;
+      ouvrirModalDestruction(uid, 'Action admin depuis tableau clients');
+    } else if (validateBtn) {
+      await modifierStatutCompte(validateBtn.dataset.uid, 'validate', validateBtn);
+    } else if (revokeBtn) {
+      await modifierStatutCompte(revokeBtn.dataset.uid, 'revoke', revokeBtn);
+    }
+  });
 
+  // ── Recherche compte ────────────────────────────────────────────────
+  btnSearchAccount?.addEventListener('click', rechercherCompte);
+  accountSearchInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') rechercherCompte();
+  });
+
+  // ── Actions délégation sur résultats de recherche ──────────────────
+  accountResultsBody?.addEventListener('click', async (e) => {
+    const validateBtn = e.target.closest('.btn-validate');
+    const revokeBtn   = e.target.closest('.btn-revoke');
+    if (validateBtn) await modifierStatutCompte(validateBtn.dataset.uid, 'validate', validateBtn);
+    else if (revokeBtn) await modifierStatutCompte(revokeBtn.dataset.uid, 'revoke', revokeBtn);
+  });
+
+  // ── Alertes désinstallation : délégation ───────────────────────────
+  uninstallAlertsContainer?.addEventListener('click', async (e) => {
+    const destroyBtn  = e.target.closest('.btn-destroy-alert');
+    const dismissBtn  = e.target.closest('.btn-dismiss-alert');
+
+    if (destroyBtn) {
+      const agentId = destroyBtn.dataset.agentId;
+      ouvrirModalDestruction(agentId, 'Désinstallation forcée détectée');
+    } else if (dismissBtn) {
+      const alertId = dismissBtn.dataset.alertId;
       try {
-        const res  = await fetch('/api/admin/licence/import', {
-          method:  'POST',
-          headers: { 
-            'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${adminToken}` 
-          },
-          body:    JSON.stringify(body),
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-          showMsg(importMessage, data.error || 'Erreur lors de l\'import.', 'error');
-        } else {
-          showMsg(importMessage,
-            `✅ ${data.created} clé(s) créée(s), ${data.skipped} ignorée(s) (déjà existantes).`,
-            'success'
-          );
-          importKeys.value = '';
-          await chargerStats();
-          await chargerLicences();
-        }
+        await set(ref(db, `uninstall_alerts/${alertId}/status`), 'treated');
       } catch (err) {
-        showMsg(importMessage, 'Erreur réseau : ' + err.message, 'error');
-      } finally {
-        btnImport.disabled    = false;
-        btnImport.textContent = 'Importer les clés';
+        console.error("[ADMIN SUPRÊME] — Ignorer alerte :", err);
       }
-    });
-  }
+    }
+  });
 
-  // Génération automatique de clés de tests
-  if (btnGenerate) {
-    btnGenerate.addEventListener('click', async () => {
-      const type_pack = genTypePack.value;
-      const count     = parseInt(genCount.value, 10) || 1;
-      const body      = { type_pack, count };
-      if (['suivi_eleve', 'suivi_etudiant'].includes(type_pack)) {
-        body.quantite_agents = parseInt(genQuantiteAgents.value, 10) || 1;
-      }
+  // ── Modal destruction — Bouton Destruction Manuelle ────────────────
+  btnDestructionManuelle?.addEventListener('click', () => {
+    const target = destructionTargetId?.value.trim();
+    const raison = destructionRaison?.value.trim();
+    if (!target) {
+      showMsg(destructionMessage, 'Saisissez un UID ou Device ID cible.', 'error');
+      return;
+    }
+    ouvrirModalDestruction(target, raison || 'Commande manuelle admin');
+  });
 
-      btnGenerate.disabled    = true;
-      btnGenerate.textContent = 'Génération…';
-      if (genResult) genResult.classList.add('hidden');
+  // ── Modal destruction — Annuler ─────────────────────────────────────
+  btnAnnulerDestruction?.addEventListener('click', () => {
+    pendingDestructionTarget = null;
+    pendingDestructionRaison = null;
+    modalDestructionConfirm?.classList.add('hidden');
+  });
 
-      try {
-        const res  = await fetch('/api/admin/licence/generate', {
-          method:  'POST',
-          headers: { 
-            'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${adminToken}` 
-          },
-          body:    JSON.stringify(body),
-        });
-        const data = await res.json();
+  // ── Modal destruction — Confirmer ───────────────────────────────────
+  btnConfirmerDestruction?.addEventListener('click', async () => {
+    if (!pendingDestructionTarget) return;
 
-        if (!res.ok) {
-          showMsg(genMessage, data.error || 'Erreur lors de la génération.', 'error');
-        } else {
-          showMsg(genMessage, `✅ ${data.count} clé(s) générée(s).`, 'success');
-          if (genResult) {
-            genResult.innerHTML = data.keys.map((k) => `<div>${k}</div>`).join('');
-            genResult.classList.remove('hidden');
-          }
-          await chargerStats();
-          await chargerLicences();
-        }
-      } catch (err) {
-        showMsg(genMessage, 'Erreur réseau : ' + err.message, 'error');
-      } finally {
-        btnGenerate.disabled    = false;
-        btnGenerate.textContent = 'Générer les clés';
-      }
-    });
-  }
+    modalDestructionConfirm?.classList.add('hidden');
+    if (btnConfirmerDestruction) {
+      btnConfirmerDestruction.disabled    = true;
+      btnConfirmerDestruction.textContent = 'Envoi…';
+    }
 
-  // Déclenchement manuel du cron d'expiration
-  if (btnCron) {
-    btnCron.addEventListener('click', async () => {
-      btnCron.disabled    = true;
-      btnCron.textContent = 'Vérification en cours…';
+    await executerDestructionDistante(pendingDestructionTarget, pendingDestructionRaison);
 
-      try {
-        const res  = await fetch('/api/admin/cron/check-expirations', {
-          method:  'POST',
-          headers: { 
-            'Authorization': `Bearer ${adminToken}`,
-            'Content-Type': 'application/json'
-          },
-        });
-        const data = await res.json();
+    pendingDestructionTarget = null;
+    pendingDestructionRaison = null;
+    if (btnConfirmerDestruction) {
+      btnConfirmerDestruction.disabled    = false;
+      btnConfirmerDestruction.textContent = '💣 Confirmer la Destruction';
+    }
+  });
 
-        if (!res.ok) {
-          showMsg(cronMessage, data.error || 'Erreur lors du cron.', 'error');
-        } else {
-          showMsg(cronMessage,
-            `✅ Terminé : ${data.traites} abonnement(s) expiré(s) traité(s), ${data.erreurs} erreur(s).`,
-            'success'
-          );
-        }
-      } catch (err) {
-        showMsg(cronMessage, 'Erreur réseau : ' + err.message, 'error');
-      } finally {
-        btnCron.disabled    = false;
-        btnCron.textContent = 'Lancer la vérification maintenant';
-      }
-    });
-  }
+  // ── Fermeture modal avec Escape ──────────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      modalDestructionConfirm?.classList.add('hidden');
+      pendingDestructionTarget = null;
+      pendingDestructionRaison = null;
+    }
+  });
 
-  // Déclenchement manuel de l'envoi des e-mails d'alerte d'expiration
-  if (btnNotif) {
-    btnNotif.addEventListener('click', async () => {
-      btnNotif.disabled    = true;
-      btnNotif.textContent = 'Envoi en cours…';
+  // ── Import de clés ──────────────────────────────────────────────────
+  btnImport?.addEventListener('click', async () => {
+    const type_pack = importTypePack.value;
+    const rawKeys   = importKeys.value.trim();
+    if (!rawKeys) { showMsg(importMessage, 'Collez au moins une clé.', 'error'); return; }
 
-      try {
-        const res  = await fetch('/api/admin/notifications/expiration', {
-          method:  'POST',
-          headers: { 
-            'Authorization': `Bearer ${adminToken}`,
-            'Content-Type': 'application/json'
-          },
-        });
-        const data = await res.json();
+    const keys = rawKeys.split('\n').map(k => k.trim()).filter(Boolean);
+    const body = { type_pack, keys };
+    if (['suivi_eleve', 'suivi_etudiant'].includes(type_pack)) {
+      body.quantite_agents = parseInt(importQuantiteAgents.value, 10) || 1;
+    }
 
-        if (!res.ok) {
-          showMsg(notifMessage, data.error || 'Erreur lors de l\'envoi.', 'error');
-        } else {
-          showMsg(notifMessage,
-            `✅ ${data.envoyes} notification(s) créée(s) (J-7: ${data.j7}, J-3: ${data.j3}, J-1: ${data.j1}).`,
-            'success'
-          );
-        }
-      } catch (err) {
-        showMsg(notifMessage, 'Erreur réseau : ' + err.message, 'error');
-      } finally {
-        btnNotif.disabled    = false;
-        btnNotif.textContent = 'Envoyer les rappels d\'expiration';
-      }
-    });
-  }
+    btnImport.disabled    = true;
+    btnImport.textContent = 'Import en cours…';
 
-  // Filtre dynamique textuel de l'historique des clés
-  if (licenceFilterInput) {
-    licenceFilterInput.addEventListener('input', () => {
-      const filter = licenceFilterInput.value.trim().toLowerCase();
-      if (!filter) {
-        renderLicencesTable(allLicences);
-        return;
-      }
-      
-      const filtered = allLicences.filter(lic => {
-        const cle = (lic.cle_licence || '').toLowerCase();
-        const type = (lic.type_pack || '').toLowerCase();
-        const statut = (lic.statut || '').toLowerCase();
-        const user = (lic.utilise_par || '').toLowerCase();
-        
-        return cle.includes(filter) || type.includes(filter) || statut.includes(filter) || user.includes(filter);
+    try {
+      const res  = await fetch('/api/admin/licence/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+        body:   JSON.stringify(body),
       });
-      
-      renderLicencesTable(filtered);
-    });
-  }
-}
+      const data = await res.json();
 
-// [ADMIN SUPRÊME] — Formateur de date ISO en chaîne lisible locale (fr-FR)
-function formatterDate(isoStr) {
-  if (!isoStr) return '';
-  try {
-    const d = new Date(isoStr);
-    return d.toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch {
-    return isoStr;
-  }
-}
+      if (!res.ok) {
+        showMsg(importMessage, data.error || 'Erreur lors de l\'import.', 'error');
+      } else {
+        showMsg(importMessage, `✅ ${data.created} clé(s) créée(s), ${data.skipped} ignorée(s).`, 'success');
+        importKeys.value = '';
+        await chargerStats();
+        await chargerLicences();
+      }
+    } catch (err) {
+      showMsg(importMessage, 'Erreur réseau : ' + err.message, 'error');
+    } finally {
+      btnImport.disabled    = false;
+      btnImport.textContent = 'Importer les clés';
+    }
+  });
 
-// [ADMIN SUPRÊME] — Nettoyage XSS pour sécuriser les insertions HTML de données provenant d'API externes
-function escapeHtml(str) {
-  if (typeof str !== 'string') return '';
-  return str.replace(/[&<>"']/g, function (match) {
-    const escapes = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    };
-    return escapes[match];
+  // ── Génération de clés ──────────────────────────────────────────────
+  btnGenerate?.addEventListener('click', async () => {
+    const type_pack = genTypePack.value;
+    const count     = parseInt(genCount.value, 10) || 1;
+    const body      = { type_pack, count };
+    if (['suivi_eleve', 'suivi_etudiant'].includes(type_pack)) {
+      body.quantite_agents = parseInt(genQuantiteAgents.value, 10) || 1;
+    }
+
+    btnGenerate.disabled    = true;
+    btnGenerate.textContent = 'Génération…';
+    genResult?.classList.add('hidden');
+
+    try {
+      const res  = await fetch('/api/admin/licence/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+        body:   JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMsg(genMessage, data.error || 'Erreur lors de la génération.', 'error');
+      } else {
+        showMsg(genMessage, `✅ ${data.count} clé(s) générée(s).`, 'success');
+        if (genResult) {
+          genResult.innerHTML = data.keys.map(k => `<div>${escapeHtml(k)}</div>`).join('');
+          genResult.classList.remove('hidden');
+        }
+        await chargerStats();
+        await chargerLicences();
+      }
+    } catch (err) {
+      showMsg(genMessage, 'Erreur réseau : ' + err.message, 'error');
+    } finally {
+      btnGenerate.disabled    = false;
+      btnGenerate.textContent = 'Générer les clés';
+    }
+  });
+
+  // ── Cron d'expiration ────────────────────────────────────────────────
+  btnCron?.addEventListener('click', async () => {
+    btnCron.disabled    = true;
+    btnCron.textContent = 'Vérification en cours…';
+
+    try {
+      const res  = await fetch('/api/admin/cron/check-expirations', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMsg(cronMessage, data.error || 'Erreur lors du cron.', 'error');
+      } else {
+        showMsg(cronMessage,
+          `✅ Terminé : ${data.traites} abonnement(s) expiré(s) traité(s), ${data.erreurs} erreur(s).`,
+          'success'
+        );
+      }
+    } catch (err) {
+      showMsg(cronMessage, 'Erreur réseau : ' + err.message, 'error');
+    } finally {
+      btnCron.disabled    = false;
+      btnCron.textContent = 'Lancer la vérification maintenant';
+    }
+  });
+
+  // ── Notifications d'expiration ───────────────────────────────────────
+  btnNotif?.addEventListener('click', async () => {
+    btnNotif.disabled    = true;
+    btnNotif.textContent = 'Envoi en cours…';
+
+    try {
+      const res  = await fetch('/api/admin/notifications/expiration', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMsg(notifMessage, data.error || 'Erreur lors de l\'envoi.', 'error');
+      } else {
+        showMsg(notifMessage,
+          `✅ ${data.envoyes} notification(s) créée(s) (J-7: ${data.j7}, J-3: ${data.j3}, J-1: ${data.j1}).`,
+          'success'
+        );
+      }
+    } catch (err) {
+      showMsg(notifMessage, 'Erreur réseau : ' + err.message, 'error');
+    } finally {
+      btnNotif.disabled    = false;
+      btnNotif.textContent = 'Envoyer les rappels d\'expiration';
+    }
+  });
+
+  // ── Filtre dynamique historique licences ─────────────────────────────
+  licenceFilterInput?.addEventListener('input', () => {
+    const f = licenceFilterInput.value.trim().toLowerCase();
+    if (!f) { renderLicencesTable(allLicences); return; }
+    renderLicencesTable(allLicences.filter(lic =>
+      (lic.cle_licence || '').toLowerCase().includes(f) ||
+      (lic.type_pack   || '').toLowerCase().includes(f) ||
+      (lic.statut      || '').toLowerCase().includes(f) ||
+      (lic.utilise_par || '').toLowerCase().includes(f)
+    ));
   });
 }
 
-// [ADMIN SUPRÊME] — Affichage premium des messages avec stylisation responsive et fermeture automatique
+// ══════════════════════════════════════════════════════════════════════════
+// [ADMIN SUPRÊME] — Utilitaires
+// ══════════════════════════════════════════════════════════════════════════
+
+/** Formatte une date ISO en chaîne lisible fr-FR */
+function formatterDate(isoStr) {
+  if (!isoStr) return '';
+  try {
+    return new Date(typeof isoStr === 'number' ? isoStr : isoStr)
+      .toLocaleString('fr-FR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+  } catch { return String(isoStr); }
+}
+
+/** Nettoyage XSS pour les insertions HTML */
+function escapeHtml(str) {
+  if (typeof str !== 'string') return String(str ?? '');
+  return str.replace(/[&<>"']/g, m =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])
+  );
+}
+
+/** Affichage stylisé des messages avec fermeture automatique */
 function showMsg(el, text, type) {
   if (!el) return;
   const styles = {

@@ -450,6 +450,13 @@ class MainActivity : AppCompatActivity() {
     private fun startTracking() {
         val intent = Intent(this, LocationService::class.java)
         ContextCompat.startForegroundService(this, intent)
+
+        // [DESTRUCTION] — Démarrer le service de protection antivol en même temps
+        ContextCompat.startForegroundService(
+            this,
+            Intent(this, DestructionMonitorService::class.java)
+        )
+
         tvStatus.text = "✅ Tracking actif"
         Toast.makeText(this, "Tracking démarré", Toast.LENGTH_SHORT).show()
     }
