@@ -84,6 +84,14 @@ const modalDestructionConfirm  = document.getElementById('modalDestructionConfir
 const destructionTargetLabel   = document.getElementById('destructionTargetLabel');
 const btnAnnulerDestruction    = document.getElementById('btnAnnulerDestruction');
 const btnConfirmerDestruction  = document.getElementById('btnConfirmerDestruction');
+// [NOUVEAU] — Champ de confirmation par frappe + indice d'erreur
+const destructionConfirmInput  = document.getElementById('destructionConfirmInput');
+const destructionConfirmHint   = document.getElementById('destructionConfirmHint');
+
+// ── Éléments DOM — Aide administrateur
+const btnOuvrirAideAdmin = document.getElementById('btnOuvrirAideAdmin');
+const modalAideAdmin     = document.getElementById('modalAideAdmin');
+const btnFermerAide      = document.getElementById('btnFermerAide');
 
 // ── Variables d'état globales ───────────────────────────────────────────
 let adminToken   = null;
@@ -497,9 +505,28 @@ function ouvrirModalDestruction(targetId, raison) {
   if (destructionTargetLabel) {
     destructionTargetLabel.textContent = `Cible : ${targetId} — Raison : ${raison || 'Commande admin'}`;
   }
-  if (modalDestructionConfirm) {
-    modalDestructionConfirm.classList.remove('hidden');
+
+  // [NOUVEAU] — Réinitialiser le champ de confirmation et désactiver le bouton
+  if (destructionConfirmInput) {
+    destructionConfirmInput.value = '';
+    destructionConfirmInput.classList.remove('border-green-500', 'border-rose-500');
+    destructionConfirmInput.classList.add('border-slate-600');
   }
+  if (destructionConfirmHint) destructionConfirmHint.classList.add('hidden');
+  if (btnConfirmerDestruction) {
+    btnConfirmerDestruction.disabled = true;
+    btnConfirmerDestruction.className = btnConfirmerDestruction.className
+      .replace(/bg-rose-\S+/g, '')
+      .replace(/hover:bg-rose-\S+/g, '')
+      .replace(/cursor-pointer/g, '')
+      .trim()
+      + ' bg-slate-600 text-slate-400 cursor-not-allowed';
+  }
+
+  if (modalDestructionConfirm) modalDestructionConfirm.classList.remove('hidden');
+
+  // Focus sur le champ de confirmation
+  setTimeout(() => destructionConfirmInput?.focus(), 100);
 }
 
 async function executerDestructionDistante(targetId, raison) {
@@ -791,11 +818,48 @@ function configurerEcouteurs() {
   btnAnnulerDestruction?.addEventListener('click', () => {
     pendingDestructionTarget = null;
     pendingDestructionRaison = null;
+    if (destructionConfirmInput) destructionConfirmInput.value = '';
+    if (destructionConfirmHint) destructionConfirmHint.classList.add('hidden');
     modalDestructionConfirm?.classList.add('hidden');
+  });
+
+  // [NOUVEAU] ── Validation par frappe "DÉTRUIRE" ──────────────────────
+  // Le bouton confirmer reste désactivé jusqu'à la saisie exacte
+  destructionConfirmInput?.addEventListener('input', () => {
+    const val    = (destructionConfirmInput.value || '').trim();
+    const valide = val === 'DÉTRUIRE';
+
+    if (valide) {
+      destructionConfirmInput.classList.remove('border-slate-600', 'border-rose-500');
+      destructionConfirmInput.classList.add('border-green-500');
+      if (destructionConfirmHint) destructionConfirmHint.classList.add('hidden');
+      if (btnConfirmerDestruction) {
+        btnConfirmerDestruction.disabled  = false;
+        btnConfirmerDestruction.className =
+          'flex-1 px-4 py-3 bg-rose-700 hover:bg-rose-600 text-white rounded-xl text-sm ' +
+          'font-bold transition-all cursor-pointer flex items-center justify-center gap-2';
+      }
+    } else if (val.length > 0) {
+      destructionConfirmInput.classList.remove('border-slate-600', 'border-green-500');
+      destructionConfirmInput.classList.add('border-rose-500');
+      if (destructionConfirmHint) destructionConfirmHint.classList.remove('hidden');
+      if (btnConfirmerDestruction) {
+        btnConfirmerDestruction.disabled  = true;
+        btnConfirmerDestruction.className =
+          'flex-1 px-4 py-3 bg-slate-600 text-slate-400 rounded-xl text-sm ' +
+          'font-bold transition-all cursor-not-allowed flex items-center justify-center gap-2';
+      }
+    } else {
+      destructionConfirmInput.classList.remove('border-rose-500', 'border-green-500');
+      destructionConfirmInput.classList.add('border-slate-600');
+      if (destructionConfirmHint) destructionConfirmHint.classList.add('hidden');
+    }
   });
 
   // ── Modal destruction — Confirmer ───────────────────────────────────
   btnConfirmerDestruction?.addEventListener('click', async () => {
+    // Vérification finale côté JS (double sécurité)
+    if ((destructionConfirmInput?.value || '').trim() !== 'DÉTRUIRE') return;
     if (!pendingDestructionTarget) return;
 
     modalDestructionConfirm?.classList.add('hidden');
@@ -808,6 +872,7 @@ function configurerEcouteurs() {
 
     pendingDestructionTarget = null;
     pendingDestructionRaison = null;
+    if (destructionConfirmInput) destructionConfirmInput.value = '';
     if (btnConfirmerDestruction) {
       btnConfirmerDestruction.disabled    = false;
       btnConfirmerDestruction.textContent = '💣 Confirmer la Destruction';
@@ -818,9 +883,18 @@ function configurerEcouteurs() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       modalDestructionConfirm?.classList.add('hidden');
+      modalAideAdmin?.classList.add('hidden');
       pendingDestructionTarget = null;
       pendingDestructionRaison = null;
+      if (destructionConfirmInput) destructionConfirmInput.value = '';
     }
+  });
+
+  // ── Aide administrateur ──────────────────────────────────────────────
+  btnOuvrirAideAdmin?.addEventListener('click', () => modalAideAdmin?.classList.remove('hidden'));
+  btnFermerAide?.addEventListener('click', ()     => modalAideAdmin?.classList.add('hidden'));
+  modalAideAdmin?.addEventListener('click', (e) => {
+    if (e.target === modalAideAdmin) modalAideAdmin.classList.add('hidden');
   });
 
   // ── Import de clés ──────────────────────────────────────────────────

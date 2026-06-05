@@ -55,6 +55,11 @@
         <span class="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full font-bold">SUPERADMIN</span>
       </div>
       <div class="flex items-center gap-2">
+        <button id="btnOuvrirAideAdmin"
+          class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm flex items-center gap-1.5 transition-colors text-slate-300 hover:text-white border border-slate-600">
+          <span class="text-base">❓</span>
+          <span class="hidden sm:inline">Aide</span>
+        </button>
         <a href="index.html" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm flex items-center gap-1 transition-colors">
           <span>← Dashboard</span>
         </a>
@@ -373,34 +378,194 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════════
-       [ADMIN SUPRÊME] — Modal de confirmation destruction
-       Double confirmation pour éviter toute action accidentelle
+       [ADMIN SUPRÊME] — Modal destruction RENFORCÉ
+       Triple confirmation : lecture avertissement + frappe texte
   ══════════════════════════════════════════════════════════ -->
   <div id="modalDestructionConfirm"
-    class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
-    <div class="bg-slate-800 rounded-xl border border-rose-500/40 p-6 max-w-md w-full shadow-2xl">
-      <div class="flex items-center gap-3 mb-4">
-        <span class="text-3xl">⚠️</span>
-        <h3 class="text-xl font-bold text-rose-400">Confirmation Destruction</h3>
+    class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-2xl border border-rose-500/50 p-6 max-w-lg w-full shadow-2xl">
+
+      <!-- En-tête danger -->
+      <div class="flex items-center gap-3 mb-4 pb-4 border-b border-rose-900/40">
+        <div class="w-12 h-12 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center flex-shrink-0 text-2xl animate-pulse">
+          💣
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-rose-400">Destruction à distance</h3>
+          <p class="text-slate-400 text-xs">Action irréversible — Confirmation obligatoire</p>
+        </div>
       </div>
-      <p class="text-slate-300 text-sm mb-2">
-        Vous êtes sur le point d'envoyer une commande de <strong class="text-rose-400">destruction irréversible</strong>
-        à l'appareil cible.
-      </p>
-      <p id="destructionTargetLabel" class="text-slate-400 text-xs mb-4 bg-slate-900/50 px-3 py-2 rounded-lg font-mono"></p>
-      <p class="text-amber-400 text-xs mb-5 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-lg">
-        ⚠️ Cette action est <strong>irréversible</strong> et ne peut être annulée une fois confirmée.
-        Assurez-vous d'avoir l'autorisation du propriétaire de l'appareil.
-      </p>
+
+      <!-- Ce qui va se passer -->
+      <div class="bg-rose-950/40 border border-rose-800/50 rounded-xl p-4 mb-4 text-sm space-y-2">
+        <p class="text-rose-300 font-semibold text-xs uppercase tracking-wide mb-2">⚠️ Ce qui va se passer :</p>
+        <div class="flex items-start gap-2 text-slate-300 text-xs">
+          <span class="text-rose-400 mt-0.5">▸</span>
+          Une commande <code class="bg-slate-900 px-1 rounded">DESTROY</code> est envoyée à l'appareil via Firebase
+        </div>
+        <div class="flex items-start gap-2 text-slate-300 text-xs">
+          <span class="text-rose-400 mt-0.5">▸</span>
+          L'appareil effectuera une <strong>remise à zéro usine complète</strong> dès la prochaine connexion
+        </div>
+        <div class="flex items-start gap-2 text-slate-300 text-xs">
+          <span class="text-rose-400 mt-0.5">▸</span>
+          Toutes les données, photos et applications seront <strong>définitivement effacées</strong>
+        </div>
+        <div class="flex items-start gap-2 text-slate-300 text-xs">
+          <span class="text-rose-400 mt-0.5">▸</span>
+          Cette action <strong class="text-rose-400">ne peut pas être annulée</strong> une fois confirmée
+        </div>
+      </div>
+
+      <!-- Appareil cible -->
+      <p id="destructionTargetLabel"
+        class="text-slate-400 text-xs mb-4 bg-slate-900/60 border border-slate-700 px-3 py-2 rounded-lg font-mono break-all"></p>
+
+      <!-- Confirmation par frappe -->
+      <div class="mb-5">
+        <label class="block text-slate-300 text-sm font-semibold mb-2">
+          Tapez <span class="text-rose-400 font-mono bg-rose-950/50 px-2 py-0.5 rounded select-none">DÉTRUIRE</span> pour confirmer
+        </label>
+        <input id="destructionConfirmInput"
+          type="text"
+          placeholder="Tapez DÉTRUIRE ici..."
+          autocomplete="off"
+          class="w-full px-4 py-3 bg-slate-900 border-2 border-slate-600 rounded-lg text-white text-sm
+                 focus:outline-none focus:border-rose-500 transition-colors placeholder-slate-600 font-mono tracking-wider" />
+        <p id="destructionConfirmHint" class="text-slate-600 text-xs mt-1 hidden">
+          ❌ Le texte ne correspond pas. Tapez exactement <strong class="text-rose-400">DÉTRUIRE</strong>.
+        </p>
+      </div>
+
+      <!-- Boutons -->
       <div class="flex gap-3">
         <button id="btnAnnulerDestruction"
-          class="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition-colors">
-          Annuler
+          class="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm font-semibold transition-colors">
+          ✕ Annuler
         </button>
-        <button id="btnConfirmerDestruction"
-          class="flex-1 px-4 py-2.5 bg-rose-700 hover:bg-rose-600 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2">
+        <button id="btnConfirmerDestruction" disabled
+          class="flex-1 px-4 py-3 bg-slate-600 text-slate-400 rounded-xl text-sm font-bold
+                 transition-all cursor-not-allowed flex items-center justify-center gap-2"
+          data-active-class="bg-rose-700 hover:bg-rose-600 text-white cursor-pointer">
           💣 Confirmer la Destruction
         </button>
+      </div>
+      <p class="text-slate-600 text-xs text-center mt-3">
+        Cette action est réservée à l'Administrateur Suprême et laisse une trace dans les journaux.
+      </p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       [ADMIN SUPRÊME] — Modal d'aide
+  ══════════════════════════════════════════════════════════ -->
+  <div id="modalAideAdmin"
+    class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-2xl border border-slate-600 p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-xl font-bold text-white flex items-center gap-2">📖 Guide Administrateur Suprême</h3>
+        <button id="btnFermerAide"
+          class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors text-lg">
+          ✕
+        </button>
+      </div>
+
+      <div class="space-y-5 text-sm">
+
+        <!-- Étape 1 -->
+        <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-sky-500">
+          <p class="font-bold text-sky-400 mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-sky-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+            Supervision du serveur
+          </p>
+          <p class="text-slate-300 text-xs leading-relaxed">
+            Le premier bloc affiche l'état du serveur Render en temps réel (ping toutes les 15 secondes).
+            Si le serveur est rouge, il est en cours de réveil (cold-start ~30 secondes sur le plan gratuit).
+            Le bloc Firebase confirme la connexion à la base de données.
+          </p>
+        </div>
+
+        <!-- Étape 2 -->
+        <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-red-500">
+          <p class="font-bold text-red-400 mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+            Vue Globale — Tous les clients
+          </p>
+          <p class="text-slate-300 text-xs leading-relaxed">
+            Ce tableau liste <strong>tous les comptes</strong> inscrits sur la plateforme.
+            Vous pouvez filtrer par nom, email, rôle ou abonnement.
+            Le bouton 💣 envoie une commande de destruction à distance vers un agent spécifique.
+            Les boutons ✓ Valider et ✕ Révoquer modifient le statut de partenariat d'une société.
+          </p>
+        </div>
+
+        <!-- Étape 3 -->
+        <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-rose-500">
+          <p class="font-bold text-rose-400 mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+            Destruction à distance (Antivol Avancé)
+          </p>
+          <p class="text-slate-300 text-xs leading-relaxed mb-2">
+            Quand un agent force la désinstallation, une alerte apparaît automatiquement ici.
+            Vous pouvez déclencher la destruction de trois façons :
+          </p>
+          <ul class="text-slate-400 text-xs space-y-1 ml-3">
+            <li>▸ <strong class="text-white">Depuis une alerte</strong> : cliquer sur "💣 Détruire" sur la carte d'alerte</li>
+            <li>▸ <strong class="text-white">Depuis le tableau clients</strong> : cliquer sur 💣 sur la ligne de l'agent</li>
+            <li>▸ <strong class="text-white">Manuellement</strong> : saisir l'UID ou Device ID + raison + cliquer "Activer la Destruction"</li>
+          </ul>
+          <p class="text-amber-400 text-xs mt-2 bg-amber-950/30 border border-amber-800/30 rounded-lg px-3 py-2">
+            ⚠️ Une double confirmation est obligatoire : vous devrez taper <strong>DÉTRUIRE</strong> pour valider.
+            Cette fonctionnalité est payante (option "Antivol Avancé").
+          </p>
+        </div>
+
+        <!-- Étape 4 -->
+        <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-amber-500">
+          <p class="font-bold text-amber-400 mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-amber-500 text-slate-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
+            Gestion des licences Chariow
+          </p>
+          <p class="text-slate-300 text-xs leading-relaxed">
+            <strong class="text-white">Importer</strong> : collez les clés reçues de Chariow (une par ligne au format XXXX-XXXX-XXXX-XXXX),
+            sélectionnez le type de pack et cliquez "Importer".
+            <br><br>
+            <strong class="text-white">Générer</strong> : créez des clés de test pour valider le système.
+            Ces clés sont fonctionnelles mais identifiées comme "test".
+            <br><br>
+            Le tableau <strong class="text-white">Historique</strong> affiche toutes les clés avec leur statut (disponible/utilisé)
+            et le client qui les a activées.
+          </p>
+        </div>
+
+        <!-- Étape 5 -->
+        <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-emerald-500">
+          <p class="font-bold text-emerald-400 mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">5</span>
+            Partenariats & Validation de comptes
+          </p>
+          <p class="text-slate-300 text-xs leading-relaxed">
+            Recherchez une société par email, UID ou nom.
+            Le bouton <strong class="text-emerald-400">Valider</strong> attribue le rôle "partner" — permet des avantages tarifaires.
+            Le bouton <strong class="text-red-400">Révoquer</strong> retire ce statut.
+            Utile pour les écoles communautaires, institutions publiques et partenaires commerciaux.
+          </p>
+        </div>
+
+        <!-- Étape 6 -->
+        <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-violet-500">
+          <p class="font-bold text-violet-400 mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-violet-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">6</span>
+            Cron & Notifications d'expiration
+          </p>
+          <p class="text-slate-300 text-xs leading-relaxed">
+            <strong class="text-white">Cron d'expiration</strong> : vérifie tous les abonnements expirés et les désactive.
+            S'exécute automatiquement à 01h00 UTC chaque nuit, mais vous pouvez le lancer manuellement ici.
+            <br><br>
+            <strong class="text-white">Notifications d'expiration</strong> : envoie des rappels email aux sociétés
+            dont l'abonnement expire dans 7, 3 ou 1 jour.
+          </p>
+        </div>
       </div>
     </div>
   </div>

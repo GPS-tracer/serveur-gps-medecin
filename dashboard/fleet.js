@@ -589,5 +589,25 @@ if (IS_FLEET_PAGE) {
       pendingAgentToApprove = null;
     }
   });
+
+  // ── Aide flotte ──────────────────────────────────────────────
+  document.getElementById('btnOuvrirAideFlotte')?.addEventListener('click', () => {
+    document.getElementById('modalAideFlotte')?.classList.remove('hidden');
+  });
+  document.getElementById('btnFermerAideFlotte')?.addEventListener('click', () => {
+    document.getElementById('modalAideFlotte')?.classList.add('hidden');
+  });
+  document.getElementById('modalAideFlotte')?.addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modalAideFlotte')) {
+      document.getElementById('modalAideFlotte').classList.add('hidden');
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.getElementById('approveModal')?.classList.add('hidden');
+      document.getElementById('modalAideFlotte')?.classList.add('hidden');
+      pendingAgentToApprove = null;
+    }
+  });
 }
 
