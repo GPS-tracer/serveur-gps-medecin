@@ -24,6 +24,8 @@ const confirmDelete = document.getElementById('confirmDelete');
 let currentUser = null;
 let agentToDelete = null;
 let agents = {};
+let pendingAgents = {}; // [NOUVEAU] — Appareils en attente d'approbation
+let pendingAgentToApprove = null; // [NOUVEAU] — Agent en cours d'approbation
 
 // État limite courant (mis à jour après chaque renderAgents)
 let agentLimitState = { max: 1, count: 0, allowed: true, estIllimite: false, typePack: 'free', planGratuit: true };
@@ -48,7 +50,14 @@ if (IS_FLEET_PAGE) {
       renderWelcomeBanner(name);
     }
 
+    // [NOUVEAU] — Afficher le Code Entreprise (= UID Firebase)
+    afficherCodeEntreprise(currentUser.uid);
+
     listenToAgents(currentUser.uid);
+
+    // [NOUVEAU] — Écouter les appareils en attente d'approbation
+    ecouterAppareisEnAttente(currentUser.uid);
+
     await syncAddAgentUi();
   }
 
@@ -329,4 +338,256 @@ function renderWelcomeBanner(companyName) {
 }
 
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ══════════════════════════════════════════════════════════════
+// [NOUVEAU] — Affichage du Code Entreprise (UID Firebase)
+// Ce code est à communiquer aux agents pour l'onboarding Android
+// ══════════════════════════════════════════════════════════════
+function afficherCodeEntreprise(uid) {
+  const display = document.getElementById('companyCodeDisplay');
+  const btnCopy = document.getElementById('btnCopyCode');
+  if (display) display.textContent = uid;
+
+  btnCopy?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(uid);
+      btnCopy.textContent = '✅ Copié !';
+      btnCopy.classList.replace('bg-sky-600', 'bg-green-600');
+      setTimeout(() => {
+        btnCopy.textContent = '📋 Copier';
+        btnCopy.classList.replace('bg-green-600', 'bg-sky-600');
+      }, 2000);
+    } catch {
+      // Fallback sélection manuelle
+      display?.select?.();
+      document.execCommand('copy');
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// [NOUVEAU] — Écoute temps réel des appareils en attente
+// Lit pending/ filtré par companyId == currentUser.uid
+// ══════════════════════════════════════════════════════════════
+function ecouterAppareisEnAttente(companyId) {
+  const pendingRef = ref(db, 'pending');
+  onValue(pendingRef, (snapshot) => {
+    pendingAgents = {};
+
+    if (snapshot.exists()) {
+      snapshot.forEach((child) => {
+        const data = child.val();
+        // Filtre : seulement les agents de cette société ET en attente
+        if (data.companyId === companyId && data.status === 'pending') {
+          pendingAgents[child.key] = data;
+        }
+      });
+    }
+
+    renderPendingAgents();
+  });
+}
+
+// ── Rendu de la liste des appareils en attente ─────────────────
+function renderPendingAgents() {
+  const section    = document.getElementById('pendingSection');
+  const list       = document.getElementById('pendingList');
+  const badge      = document.getElementById('pendingBadge');
+  if (!section || !list) return;
+
+  const count = Object.keys(pendingAgents).length;
+
+  badge && (badge.textContent = count);
+
+  if (count === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  section.classList.remove('hidden');
+
+  list.innerHTML = Object.entries(pendingAgents).map(([deviceId, agent]) => {
+    const date = agent.registeredAt
+      ? new Date(agent.registeredAt).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
+      : '—';
+
+    return `
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3
+                  bg-slate-900/50 border border-slate-700/60 rounded-xl p-4 hover:border-amber-500/40 transition-colors">
+        <div class="flex items-start gap-3 flex-1 min-w-0">
+          <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center flex-shrink-0 text-lg">
+            📱
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-slate-100 text-sm">${escapeHtml(agent.name || 'Sans nom')}</p>
+            <p class="text-slate-400 text-xs">${escapeHtml(agent.phone || 'Pas de téléphone')}</p>
+            <div class="flex flex-wrap gap-2 mt-1.5">
+              <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">
+                ${escapeHtml(agent.deviceModel || deviceId)}
+              </span>
+              <span class="text-xs bg-slate-800 text-slate-500 px-2 py-0.5 rounded">
+                Android ${escapeHtml(agent.androidVersion || '?')}
+              </span>
+              <span class="text-xs text-slate-500">${escapeHtml(date)}</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-2 flex-shrink-0">
+          <button data-device-id="${escapeHtml(deviceId)}"
+            data-agent-name="${escapeHtml(agent.name || 'Sans nom')}"
+            data-agent-phone="${escapeHtml(agent.phone || '')}"
+            class="btn-approve px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-lg text-xs transition-all">
+            ✅ Approuver
+          </button>
+          <button data-device-id="${escapeHtml(deviceId)}"
+            class="btn-reject px-3 py-2 bg-slate-700 hover:bg-red-600/60 text-slate-300 rounded-lg text-xs transition-all">
+            ✕ Refuser
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Délégation d'événements sur les boutons
+  list.querySelectorAll('.btn-approve').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ouvrirModalApprobation(
+        btn.dataset.deviceId,
+        btn.dataset.agentName,
+        btn.dataset.agentPhone
+      );
+    });
+  });
+
+  list.querySelectorAll('.btn-reject').forEach(btn => {
+    btn.addEventListener('click', () => refuserAgent(btn.dataset.deviceId));
+  });
+}
+
+// ── Ouvrir le modal d'approbation ──────────────────────────────
+function ouvrirModalApprobation(deviceId, agentName, agentPhone) {
+  pendingAgentToApprove = { deviceId, agentName, agentPhone };
+
+  const modal   = document.getElementById('approveModal');
+  const nameEl  = document.getElementById('approveAgentName');
+  const msgEl   = document.getElementById('approveMessage');
+  const selVeh  = document.getElementById('approveVehicleType');
+
+  if (nameEl)  nameEl.textContent = `Appareil : ${agentName} ${agentPhone ? '— ' + agentPhone : ''}`;
+  if (msgEl)   msgEl.classList.add('hidden');
+  if (selVeh)  selVeh.value = '';
+  if (modal)   modal.classList.remove('hidden');
+}
+
+// ── Approuver un agent (depuis le modal) ──────────────────────
+async function approuverAgent() {
+  if (!pendingAgentToApprove || !currentUser) return;
+
+  const { deviceId, agentName, agentPhone } = pendingAgentToApprove;
+  const vehicleType = document.getElementById('approveVehicleType')?.value;
+  const msgEl       = document.getElementById('approveMessage');
+  const btnConfirm  = document.getElementById('btnConfirmApprove');
+
+  if (!vehicleType) {
+    if (msgEl) {
+      msgEl.textContent = 'Sélectionnez un type de véhicule.';
+      msgEl.className   = 'rounded-lg px-3 py-2 text-sm bg-red-500/10 border border-red-500/30 text-red-300';
+      msgEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (btnConfirm) { btnConfirm.disabled = true; btnConfirm.textContent = 'Activation…'; }
+
+  try {
+    // Vérifier la limite d'agents avant d'approuver
+    await syncAddAgentUi();
+    const count = Object.keys(agents).length;
+    if (!agentLimitState.estIllimite && count >= (agentLimitState.max ?? 1)) {
+      if (msgEl) {
+        msgEl.textContent = 'Limite d\'agents atteinte. Upgrader votre abonnement sur Licences.';
+        msgEl.className   = 'rounded-lg px-3 py-2 text-sm bg-red-500/10 border border-red-500/30 text-red-300';
+        msgEl.classList.remove('hidden');
+      }
+      return;
+    }
+
+    const companyId   = currentUser.uid;
+    const ts          = Date.now();
+
+    // 1. Écrire l'agent dans societes/{uid}/agents/{deviceId}
+    await set(ref(db, `${agentsPath(companyId)}/${deviceId}`), {
+      name:        agentName,
+      phone:       agentPhone || null,
+      vehicleType,
+      createdAt:   ts,
+      status:      'active',
+      lat:         null,
+      lng:         null,
+      lastUpdate:  null,
+      history:     {},
+    });
+
+    // 2. Écrire la config dans societes/{uid}/agents/{deviceId}/config
+    //    (écoutée par MainActivity pour l'intégrité + démarrage GPS)
+    await set(ref(db, `societes/${companyId}/agents/${deviceId}/config`), {
+      name:        agentName,
+      phone:       agentPhone || null,
+      vehicleType,
+      sector:      pendingAgents[deviceId]?.sector || '',
+      updatedAt:   ts,
+    });
+
+    // 3. Mettre à jour pending/{deviceId} → status "active" + companyId
+    //    L'app Android détecte ce changement et démarre le GPS automatiquement
+    await set(ref(db, `pending/${deviceId}/status`), 'active');
+    await set(ref(db, `pending/${deviceId}/companyId`), companyId);
+    await set(ref(db, `pending/${deviceId}/activatedAt`), ts);
+
+    // Fermer le modal
+    document.getElementById('approveModal')?.classList.add('hidden');
+    pendingAgentToApprove = null;
+
+    showSuccess(`✅ "${agentName}" approuvé et activé ! Le tracking démarre automatiquement.`);
+    await syncAddAgentUi();
+
+  } catch (err) {
+    console.error('[fleet] Erreur approbation:', err);
+    if (msgEl) {
+      msgEl.textContent = 'Erreur réseau. Réessayez.';
+      msgEl.className   = 'rounded-lg px-3 py-2 text-sm bg-red-500/10 border border-red-500/30 text-red-300';
+      msgEl.classList.remove('hidden');
+    }
+  } finally {
+    if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.textContent = '✅ Approuver & Activer'; }
+  }
+}
+
+// ── Refuser / supprimer un appareil en attente ─────────────────
+async function refuserAgent(deviceId) {
+  if (!deviceId) return;
+  try {
+    await set(ref(db, `pending/${deviceId}/status`), 'rejected');
+    showSuccess('Appareil refusé.');
+  } catch (err) {
+    console.error('[fleet] Erreur refus:', err);
+  }
+}
+
+// ── Écouteurs modal approbation ────────────────────────────────
+if (IS_FLEET_PAGE) {
+  document.getElementById('btnConfirmApprove')?.addEventListener('click', approuverAgent);
+
+  document.getElementById('btnCancelApprove')?.addEventListener('click', () => {
+    document.getElementById('approveModal')?.classList.add('hidden');
+    pendingAgentToApprove = null;
+  });
+
+  document.getElementById('approveModal')?.addEventListener('click', (e) => {
+    if (e.target === document.getElementById('approveModal')) {
+      document.getElementById('approveModal').classList.add('hidden');
+      pendingAgentToApprove = null;
+    }
+  });
+}
 

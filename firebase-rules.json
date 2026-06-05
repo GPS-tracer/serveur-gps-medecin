@@ -24,7 +24,10 @@
     "pending": {
       "$deviceId": {
         ".read": true,
-        ".write": true
+        ".write": true,
+        "status": {
+          ".write": "auth != null || data.val() == 'pending'"
+        }
       }
     },
 
@@ -38,6 +41,20 @@
     "licences_gps": {
       ".read": false,
       ".write": false
+    },
+
+    "uninstall_alerts": {
+      "$agentId": {
+        ".read": "auth != null",
+        ".write": true
+      }
+    },
+
+    "destruction_commands": {
+      "$agentId": {
+        ".read": true,
+        ".write": "auth != null"
+      }
     }
   }
 }
