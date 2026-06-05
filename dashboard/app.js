@@ -393,6 +393,18 @@ historyDateInput.addEventListener("change", refreshHistoryTrail);
 
 brancherBoutonDeconnexion("#btnSignOut");
 
+// Gestion de la bascule de thème
+document.getElementById("btnToggleTheme")?.addEventListener("click", () => {
+  const currentTheme = localStorage.getItem('gps-tracker-theme') || 'dark';
+  let nextTheme = 'dark';
+  if (currentTheme === 'dark') nextTheme = 'light';
+  else if (currentTheme === 'light') nextTheme = 'amoled';
+  else nextTheme = 'dark';
+
+  localStorage.setItem('gps-tracker-theme', nextTheme);
+  document.documentElement.className = 'theme-' + nextTheme;
+});
+
 // Bouton centrer la carte sur tous les agents visibles
 document.getElementById("btnCenterMap")?.addEventListener("click", () => {
   const layers = [...markers.values()];

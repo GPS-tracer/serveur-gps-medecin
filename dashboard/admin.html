@@ -1,78 +1,173 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin — GPS Tracker</title>
+  <title>Administration Suprême — GPS Tracker</title>
   <script>window.tailwind={corePlugins:{preflight:true}}</script>
   <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
-  <style>body{margin:0;background:#0f172a;color:#f1f5f9;font-family:system-ui,sans-serif}*{box-sizing:border-box}</style>
+  <style>
+    body {
+      margin: 0;
+      background: #0f172a;
+      color: #f1f5f9;
+      font-family: system-ui, sans-serif;
+    }
+    * {
+      box-sizing: border-box;
+    }
+  </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen">
+
+  <!-- Écran de garde exclusif [ADMIN SUPRÊME] — masquage complet par défaut -->
+  <div id="securityShield" class="fixed inset-0 bg-slate-950 z-[9999] flex flex-col items-center justify-center gap-4 transition-opacity duration-500">
+    <div class="flex flex-col items-center gap-3">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
+      <p class="text-slate-300 text-sm font-semibold tracking-widest uppercase">Vérification de l'accès sécurisé...</p>
+      <p class="text-slate-500 text-xs">Administrateur Suprême uniquement</p>
+    </div>
+  </div>
 
   <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
     <div class="container mx-auto px-4 py-3 flex items-center justify-between gap-3">
       <div class="flex items-center gap-2 min-w-0">
         <h1 class="text-lg sm:text-2xl font-bold text-red-400 whitespace-nowrap">GPS Tracker</h1>
         <span class="hidden sm:inline text-slate-400">|</span>
-        <h2 class="hidden sm:inline text-base text-slate-300">Administration</h2>
-        <span class="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full font-bold">ADMIN</span>
+        <h2 class="hidden sm:inline text-base text-slate-300">Administration Suprême</h2>
+        <span class="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full font-bold">SUPERADMIN</span>
       </div>
       <div class="flex items-center gap-2">
-        <a href="index.html" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">
-          <span class="hidden sm:inline">← Dashboard</span>
-          <span class="sm:hidden">🗺️</span>
+        <a href="index.html" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm flex items-center gap-1 transition-colors">
+          <span>← Dashboard</span>
         </a>
       </div>
     </div>
   </header>
 
-  <!-- Authentification admin -->
-  <div id="adminAuth" class="container mx-auto px-4 py-16 max-w-md">
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-8">
-      <h3 class="text-xl font-bold mb-2 text-center">🔐 Accès Administration</h3>
-      <p class="text-slate-400 text-sm text-center mb-6">Entrez le secret administrateur pour accéder au panneau.</p>
-      <div class="space-y-4">
-        <input type="password" id="adminSecretInput" placeholder="Secret admin"
-          class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500" />
-        <div id="authError" class="hidden text-red-400 text-sm text-center"></div>
-        <button id="btnAdminAuth"
-          class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition-all">
-          Accéder au panneau admin
-        </button>
+  <!-- Panneau admin principal -->
+  <div id="adminPanel" class="container mx-auto px-4 py-8 max-w-6xl">
+
+    <!-- [ADMIN SUPRÊME] — Supervision & Statut en temps réel -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 flex items-center justify-between shadow-lg">
+        <div>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Serveur Principal Render</h4>
+          <p id="pingStatus" class="text-lg font-bold text-slate-100 flex items-center gap-2 mt-1">
+            <span class="inline-block h-3.5 w-3.5 bg-yellow-500 rounded-full animate-pulse" id="pingIndicator"></span>
+            Mesure en cours...
+          </p>
+        </div>
+        <div class="text-3xl text-slate-500">🖥️</div>
+      </div>
+      <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 flex items-center justify-between shadow-lg">
+        <div>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider">État Général Firebase</h4>
+          <p class="text-base font-medium text-emerald-400 mt-1 flex items-center gap-1">
+            <span class="inline-block h-3.5 w-3.5 bg-emerald-500 rounded-full"></span>
+            RTDB & Firestore Connectés
+          </p>
+        </div>
+        <div class="text-3xl text-slate-500">🔥</div>
       </div>
     </div>
-  </div>
 
-  <!-- Panneau admin (caché jusqu'à auth) -->
-  <div id="adminPanel" class="container mx-auto px-4 py-8 max-w-6xl hidden">
-
-    <!-- Stats globales -->
+    <!-- Stats globales Firebase -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center shadow-md">
         <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Sociétés actives</p>
         <p id="statSocietes" class="text-3xl font-bold text-sky-400">—</p>
       </div>
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center shadow-md">
         <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Abonnements actifs</p>
         <p id="statAbonnements" class="text-3xl font-bold text-emerald-400">—</p>
       </div>
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center shadow-md">
         <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Clés disponibles</p>
         <p id="statClesDisponibles" class="text-3xl font-bold text-amber-400">—</p>
       </div>
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center shadow-md">
         <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Clés utilisées</p>
         <p id="statClesUtilisees" class="text-3xl font-bold text-violet-400">—</p>
       </div>
     </div>
 
-    <div id="adminCatalogueChariow"></div>
+    <div id="adminCatalogueChariow" class="mb-8"></div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
+      <!-- [ADMIN SUPRÊME] — Recherche & Validation de Comptes (Partenariats) -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 lg:col-span-2 shadow-lg">
+        <h3 class="text-lg font-bold mb-3 flex items-center gap-2 text-red-400">🤝 Gestion des Comptes & Partenariats</h3>
+        <p class="text-slate-400 text-sm mb-4">Recherchez un utilisateur par son adresse email, son identifiant UID ou le nom de sa société pour modifier ses privilèges de validation.</p>
+        
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="accountSearchInput" placeholder="Rechercher par email, UID ou nom..."
+            class="flex-1 px-4 py-2.5 bg-slate-700/40 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+          <button id="btnSearchAccount" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-sm transition-all flex items-center gap-1">
+            Rechercher
+          </button>
+        </div>
+
+        <div id="searchMessage" class="hidden rounded-lg px-4 py-3 text-sm mb-4"></div>
+
+        <!-- Tableau des résultats de recherche -->
+        <div id="accountSearchResults" class="hidden overflow-x-auto border border-slate-700 rounded-lg bg-slate-900/50 max-h-96">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-800 border-b border-slate-700 text-slate-300 font-semibold">
+                <th class="p-3">Société / Email</th>
+                <th class="p-3">Identifiant UID</th>
+                <th class="p-3">Rôle / Validé</th>
+                <th class="p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="accountResultsBody" class="divide-y divide-slate-800 text-slate-300">
+              <!-- Dynamique -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- [ADMIN SUPRÊME] — Historique Global & Activations de Licences -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 lg:col-span-2 shadow-lg">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-sky-400 flex items-center gap-2">📊 Historique Global & Activations</h3>
+            <p class="text-slate-400 text-xs mt-0.5">Suivi en temps réel des transactions de licences et de l'état d'activation des clients.</p>
+          </div>
+          <div class="flex gap-2 w-full sm:w-auto">
+            <input type="text" id="licenceFilterInput" placeholder="Filtrer par clé, type, statut ou client..."
+              class="w-full sm:w-64 px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-sky-500" />
+            <button id="btnRefreshLicences" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs transition-all">
+              🔄 Actualiser
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto border border-slate-700 rounded-lg bg-slate-900/40 max-h-[480px]">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-800 border-b border-slate-700 text-slate-300 font-semibold tracking-wider uppercase">
+                <th class="p-3">Clé de Licence</th>
+                <th class="p-3">Type Pack</th>
+                <th class="p-3">Statut</th>
+                <th class="p-3">Utilisé par (Société ID)</th>
+                <th class="p-3">Date Activation</th>
+                <th class="p-3">Date Expiration</th>
+              </tr>
+            </thead>
+            <tbody id="licencesTableBody" class="divide-y divide-slate-800/80 text-slate-300">
+              <tr>
+                <td colspan="6" class="p-6 text-center text-slate-500 font-medium">Chargement des licences...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Importer des clés Chariow -->
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
         <h3 class="text-lg font-bold mb-4 flex items-center gap-2">🔑 Importer des clés Chariow</h3>
         <div class="space-y-4">
           <div>
@@ -97,14 +192,14 @@
           </div>
           <div id="importMessage" class="hidden rounded-lg px-4 py-3 text-sm"></div>
           <button id="btnImport"
-            class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 rounded-lg transition-all">
+            class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md">
             Importer les clés
           </button>
         </div>
       </div>
 
       <!-- Générer des clés de test -->
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
         <h3 class="text-lg font-bold mb-4 flex items-center gap-2">⚙️ Générer des clés de test</h3>
         <div class="space-y-4">
           <div>
@@ -130,14 +225,14 @@
           <div id="genMessage" class="hidden rounded-lg px-4 py-3 text-sm"></div>
           <div id="genResult" class="hidden bg-slate-700/30 rounded-lg p-3 font-mono text-xs text-sky-300 space-y-1 max-h-40 overflow-y-auto"></div>
           <button id="btnGenerate"
-            class="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-lg transition-all">
+            class="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md">
             Générer les clés
           </button>
         </div>
       </div>
 
       <!-- Vérification manuelle des expirations -->
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
         <h3 class="text-lg font-bold mb-2 flex items-center gap-2">🕐 Cron d'expiration</h3>
         <p class="text-slate-400 text-sm mb-4">
           Déclenche manuellement la vérification des abonnements expirés
@@ -145,13 +240,13 @@
         </p>
         <div id="cronMessage" class="hidden rounded-lg px-4 py-3 text-sm mb-4"></div>
         <button id="btnCron"
-          class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition-all">
+          class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md">
           Lancer la vérification maintenant
         </button>
       </div>
 
       <!-- Notifications d'expiration -->
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
         <h3 class="text-lg font-bold mb-2 flex items-center gap-2">📧 Notifications d'expiration</h3>
         <p class="text-slate-400 text-sm mb-4">
           Envoie les rappels d'expiration aux sociétés dont l'abonnement
@@ -159,7 +254,7 @@
         </p>
         <div id="notifMessage" class="hidden rounded-lg px-4 py-3 text-sm mb-4"></div>
         <button id="btnNotif"
-          class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-all">
+          class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md">
           Envoyer les rappels d'expiration
         </button>
       </div>

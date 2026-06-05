@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +6,12 @@
     <title>Licences & Abonnements - GPS Tracker</title>
     <link rel="preload" href="style.css" as="style">
     <link rel="stylesheet" href="style.css">
+    <script>
+      (function() {
+        const theme = localStorage.getItem('gps-tracker-theme') || 'dark';
+        document.documentElement.className = 'theme-' + theme;
+      })();
+    </script>
     <script>window.tailwind={corePlugins:{preflight:true}}</script>
     <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
 </head>

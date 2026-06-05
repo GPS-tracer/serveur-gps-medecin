@@ -56,6 +56,21 @@ export function initAppNavShell(activeId) {
       if (window.matchMedia('(max-width: 767px)').matches) shut();
     });
   });
+
+  // Gestion de la bascule de thème dans les pages secondaires
+  const btnToggleTheme = document.getElementById('btnToggleTheme');
+  if (btnToggleTheme) {
+    btnToggleTheme.addEventListener('click', () => {
+      const currentTheme = localStorage.getItem('gps-tracker-theme') || 'dark';
+      let nextTheme = 'dark';
+      if (currentTheme === 'dark') nextTheme = 'light';
+      else if (currentTheme === 'light') nextTheme = 'amoled';
+      else nextTheme = 'dark';
+
+      localStorage.setItem('gps-tracker-theme', nextTheme);
+      document.documentElement.className = 'theme-' + nextTheme;
+    });
+  }
 }
 
 /**
@@ -97,6 +112,13 @@ export function mountAppShell(activeId, pageTitle) {
   const root = document.getElementById('appShellRoot');
   if (!root) return;
 
+  const labelMap = {
+    carte: 'Carte',
+    flotte: 'Flotte',
+    rapport: 'Rapports',
+    licence: 'Licences'
+  };
+
   const linksHtml = APP_NAV.map((n) => `
     <a href="${n.href}" data-nav-id="${n.id}" class="nav-drawer__link">
       <span class="nav-drawer__icon" aria-hidden="true">${n.icon}</span>
@@ -105,6 +127,12 @@ export function mountAppShell(activeId, pageTitle) {
 
   const desktopNav = APP_NAV.map((n) => `
     <a href="${n.href}" class="app-topbar__nav-link${n.id === activeId ? ' app-topbar__nav-link--active' : ''}">${n.icon} ${n.label}</a>`).join('');
+
+  const mobileNavItems = APP_NAV.map((n) => `
+    <a href="${n.href}" class="mobile-nav-item${n.id === activeId ? ' mobile-nav-item--active' : ''}" data-mobile-nav="${n.id}">
+      <span class="mobile-nav-icon">${n.icon}</span>
+      <span>${labelMap[n.id] || n.label}</span>
+    </a>`).join('');
 
   root.innerHTML = `
     <div id="navOverlay" class="nav-overlay" aria-hidden="true"></div>
@@ -121,11 +149,15 @@ export function mountAppShell(activeId, pageTitle) {
             <p class="app-topbar__page">${pageTitle}</p>
           </div>
         </div>
-        <nav class="app-topbar__desktop hidden md:flex items-center gap-2 flex-wrap justify-end">
-          <span id="companyName" class="app-topbar__company text-slate-400 text-sm truncate max-w-[140px]"></span>
-          ${desktopNav}
-          <button type="button" id="btnSignOut" class="app-topbar__logout">Déconnexion</button>
-        </nav>
+        
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnToggleTheme" class="theme-switcher-btn" style="width: 2.25rem; height: 2.25rem; border-radius: 0.5rem;" title="Changer de thème">🌓</button>
+          <nav class="app-topbar__desktop hidden md:flex items-center gap-2 flex-wrap justify-end">
+            <span id="companyName" class="app-topbar__company text-slate-400 text-sm truncate max-w-[140px]"></span>
+            ${desktopNav}
+            <button type="button" id="btnSignOut" class="app-topbar__logout">Déconnexion</button>
+          </nav>
+        </div>
       </div>
     </header>
     <aside id="navDrawer" class="nav-drawer" aria-hidden="true">
@@ -138,7 +170,10 @@ export function mountAppShell(activeId, pageTitle) {
       <div class="nav-drawer__foot">
         <button type="button" id="btnSignOutMobile" class="nav-drawer__logout">Déconnexion</button>
       </div>
-    </aside>`;
+    </aside>
+    <nav class="mobile-nav-bar md:hidden" aria-label="Navigation mobile principale">
+      ${mobileNavItems}
+    </nav>`;
 }
 
 export function initVitrineNav() {

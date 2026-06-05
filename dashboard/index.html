@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -9,6 +9,12 @@
 
   <link rel="preload" href="style.css" as="style">
   <link rel="stylesheet" href="style.css">
+  <script>
+    (function() {
+      const theme = localStorage.getItem('gps-tracker-theme') || 'dark';
+      document.documentElement.className = 'theme-' + theme;
+    })();
+  </script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 
@@ -207,8 +213,35 @@
         <svg class="w-4 h-4" data-lucide="locate"></svg>
       </button>
 
+      <!-- ── Sélecteur de Thème Flottant ── -->
+      <div class="theme-switcher-float">
+        <button id="btnToggleTheme" class="theme-switcher-btn" title="Changer le thème (Clair / Sombre / AMOLED)">
+          🌓
+        </button>
+      </div>
+
     </div>
   </div>
+
+  <!-- Barre de navigation basse mobile (iPhone & Android) -->
+  <nav class="mobile-nav-bar md:hidden" aria-label="Navigation mobile principale">
+    <a href="index.html" class="mobile-nav-item mobile-nav-item--active" data-mobile-nav="carte">
+      <span class="mobile-nav-icon">🗺️</span>
+      <span>Carte</span>
+    </a>
+    <a href="fleet.html" class="mobile-nav-item" data-mobile-nav="flotte">
+      <span class="mobile-nav-icon">🚗</span>
+      <span>Flotte</span>
+    </a>
+    <a href="rapport.html" class="mobile-nav-item" data-mobile-nav="rapport">
+      <span class="mobile-nav-icon">📄</span>
+      <span>Rapports</span>
+    </a>
+    <a href="licence.html" class="mobile-nav-item" data-mobile-nav="licence">
+      <span class="mobile-nav-icon">🔑</span>
+      <span>Licences</span>
+    </a>
+  </nav>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>

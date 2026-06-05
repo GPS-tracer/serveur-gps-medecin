@@ -635,3 +635,286 @@ body.achat-auth-body {
   }
   #vitrineNavDrawer.is-open { transform: translateX(0); }
 }
+
+/* ==========================================================================
+   CONGO DESIGN SYSTEM & ERGONOMICS (THEMING & MOBILE NAV)
+   ========================================================================== */
+
+:root {
+  --congo-blue: #007fff;
+  --congo-yellow: #ffc72c;
+  --congo-red: #e4002b;
+  --congo-green: #198754;
+}
+
+/* --- Theme Light (High-Contrast for Equatorial Sun) --- */
+.theme-light {
+  --bg-color: #ffffff;
+  --text-color: #0f172a;
+  --panel-bg: #f8fafc;
+  --border-color: #cbd5e1;
+  --muted-text: #64748b;
+  --card-bg: #ffffff;
+}
+
+.theme-light body,
+.theme-light .app-body,
+.theme-light #auth-loading {
+  background: var(--bg-color) !important;
+  color: var(--text-color) !important;
+}
+
+.theme-light .sidebar-new,
+.theme-light .nav-drawer {
+  background: var(--panel-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+.theme-light .nav-item {
+  color: #475569 !important;
+}
+
+.theme-light .nav-item:hover {
+  background: rgba(0, 127, 255, 0.08) !important;
+  color: #0f172a !important;
+}
+
+.theme-light .nav-item--active {
+  background: rgba(0, 127, 255, 0.15) !important;
+  color: var(--congo-blue) !important;
+  border-color: rgba(0, 127, 255, 0.3) !important;
+}
+
+.theme-light .agent-card {
+  background: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+.theme-light .agent-card__id {
+  color: var(--text-color) !important;
+}
+
+.theme-light .agent-card__time {
+  color: var(--muted-text) !important;
+}
+
+.theme-light .agent-card__coords {
+  color: var(--muted-text) !important;
+}
+
+.theme-light .agent-card__address {
+  color: var(--congo-blue) !important;
+}
+
+.theme-light .agent-card:hover {
+  border-color: var(--congo-blue) !important;
+  background: rgba(0, 127, 255, 0.04) !important;
+}
+
+.theme-light .app-topbar {
+  background: var(--panel-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+.theme-light .app-topbar__brand {
+  color: var(--congo-blue) !important;
+}
+
+.theme-light .app-topbar__page {
+  color: var(--muted-text) !important;
+}
+
+.theme-light .app-topbar__nav-link {
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+.theme-light .app-topbar__nav-link:hover {
+  background: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.theme-light .app-topbar__nav-link--active {
+  background: rgba(0, 127, 255, 0.15) !important;
+  color: var(--congo-blue) !important;
+  border-color: rgba(0, 127, 255, 0.3) !important;
+}
+
+.theme-light .app-main .bg-slate-800 {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light .app-main h2, 
+.theme-light .app-main h3, 
+.theme-light .app-main label {
+  color: #0f172a !important;
+}
+
+.theme-light .app-main input,
+.theme-light .app-main select {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* --- Theme AMOLED (Pure Black for Battery Saving) --- */
+.theme-amoled {
+  --bg-color: #000000;
+  --panel-bg: #000000;
+  --card-bg: #050505;
+}
+
+.theme-amoled body,
+.theme-amoled .app-body,
+.theme-amoled #dashboard-root,
+.theme-amoled #auth-loading {
+  background: #000000 !important;
+}
+
+.theme-amoled .sidebar-new,
+.theme-amoled .nav-drawer,
+.theme-amoled .app-topbar {
+  background: #000000 !important;
+  border-color: #1a1a1a !important;
+}
+
+.theme-amoled .agent-card {
+  background: #050505 !important;
+  border-color: #1a1a1a !important;
+}
+
+.theme-amoled .app-main .bg-slate-800 {
+  background: #050505 !important;
+  border-color: #1a1a1a !important;
+}
+
+/* --- Commutateur de Thème Flottant --- */
+.theme-switcher-float {
+  position: absolute;
+  top: 4.25rem;
+  right: 1rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.theme-switcher-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s;
+}
+
+.theme-switcher-btn:hover {
+  background: rgba(15, 23, 42, 0.95);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.theme-light .theme-switcher-btn {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #334155;
+}
+
+.theme-light .theme-switcher-btn:hover {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* --- Barre de Navigation Basse Mobile --- */
+.mobile-nav-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  height: calc(3.75rem + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #0b1329;
+  border-top: 1px solid #1e293b;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.theme-light .mobile-nav-bar {
+  background: #ffffff;
+  border-top-color: #cbd5e1;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.theme-amoled .mobile-nav-bar {
+  background: #000000;
+  border-top-color: #1a1a1a;
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: none;
+  width: 25%;
+  height: 100%;
+  transition: all 0.15s;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-light .mobile-nav-item {
+  color: #64748b;
+}
+
+.mobile-nav-item:hover {
+  color: #cbd5e1;
+}
+
+.theme-light .mobile-nav-item:hover {
+  color: #334155;
+}
+
+.mobile-nav-item--active {
+  color: var(--congo-blue) !important;
+}
+
+.mobile-nav-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+@media (max-width: 767px) {
+  .mobile-nav-bar {
+    display: flex;
+  }
+  
+  /* Ajuster la marge du bas pour que le contenu ne soit pas masqué par la barre */
+  #dashboard-root {
+    padding-bottom: calc(3.75rem + env(safe-area-inset-bottom));
+  }
+  
+  .app-body {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  }
+  
+  /* Remonter les contrôles Leaflet sur mobile */
+  .leaflet-bottom.leaflet-left {
+    bottom: calc(4.25rem + env(safe-area-inset-bottom)) !important;
+  }
+}
