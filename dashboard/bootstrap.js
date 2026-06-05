@@ -46,7 +46,7 @@ onAuthStateChanged(auth, async (user) => {
   if (appStarted) return;
   appStarted = true;
 
-  // ── Récupérer le nom de la société depuis la base GPTS ──────
+  // ── Récupérer le profil depuis la base RTDB ─────────────────
   let companyName = null;
   let companyData = {};
   try {
@@ -54,9 +54,22 @@ onAuthStateChanged(auth, async (user) => {
     if (snap.exists()) {
       companyData = snap.val();
       companyName = companyData.companyName || null;
+
+      // ── Redirection superadmin → admin.html ─────────────────
+      // Si l'utilisateur est superadmin et qu'il est sur index.html,
+      // on le redirige automatiquement vers le panel d'administration
+      if (companyData.role === 'superadmin') {
+        const page = window.location.pathname.split('/').pop();
+        if (page !== 'admin.html') {
+          window.location.replace('admin.html');
+          return;
+        }
+        // Déjà sur admin.html → laisser admin.js gérer
+        return;
+      }
     }
   } catch (e) {
-    console.warn("[bootstrap] Impossible de charger le nom de la société:", e.message);
+    console.warn("[bootstrap] Impossible de charger le profil:", e.message);
   }
 
   // ── Injecter logo + nom dans la nouvelle sidebar ────────────
