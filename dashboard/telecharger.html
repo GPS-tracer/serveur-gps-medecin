@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Télécharger GPS Tracker — Application Android</title>
+  <script>window.tailwind={corePlugins:{preflight:true}}</script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms" defer></script>
+  <style>
+    body { margin: 0; background: #0f172a; font-family: system-ui, sans-serif; }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.8; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+    .pulse-ring::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.3);
+      animation: pulse-ring 2s ease-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-white">
+
+  <!-- Header -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-4">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="../gpstracker.png" alt="GPS Tracker"
+          class="w-10 h-10 rounded-xl object-contain"
+          onerror="this.style.display='none'" />
+        <div>
+          <p class="font-bold text-white text-lg leading-tight">GPS Tracker</p>
+          <p class="text-slate-400 text-xs">Application de suivi de flotte</p>
+        </div>
+      </div>
+      <a href="register-entreprise.html"
+        class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-sm font-semibold transition-colors">
+        Créer un compte
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <main class="max-w-4xl mx-auto px-4 py-16">
+
+    <!-- Titre principal -->
+    <div class="text-center mb-16">
+      <div class="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold px-4 py-1.5 rounded-full mb-6">
+        <span class="w-2 h-2 bg-sky-400 rounded-full animate-pulse"></span>
+        Application Android — Version 1.0
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-bold text-white mb-4">
+        GPS Tracker Agent
+      </h1>
+      <p class="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
+        Installez l'application sur le téléphone de vos agents pour démarrer
+        le suivi GPS en temps réel depuis votre tableau de bord.
+      </p>
+    </div>
+
+    <!-- Carte de téléchargement principale -->
+    <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-sky-500/20 rounded-2xl p-8 mb-10 shadow-2xl shadow-sky-500/5 text-center">
+
+      <!-- Logo + animation -->
+      <div class="relative inline-flex items-center justify-center mb-8">
+        <div class="pulse-ring relative w-24 h-24 bg-slate-700 border-2 border-sky-500/40 rounded-2xl flex items-center justify-center">
+          <span class="text-4xl">📱</span>
+        </div>
+      </div>
+
+      <h2 class="text-2xl font-bold text-white mb-2">GPS Tracker Agent</h2>
+      <p class="text-slate-400 text-sm mb-8">Android 5.0+ · ~15 Mo · Gratuit</p>
+
+      <!-- Bouton téléchargement -->
+      <a id="btnDownload" href="/download/GPS-Tracker.apk" download="GPS-Tracker.apk"
+        class="inline-flex items-center gap-3 bg-sky-600 hover:bg-sky-500 text-white font-bold
+               px-8 py-4 rounded-xl text-lg transition-all shadow-lg shadow-sky-500/20
+               hover:shadow-sky-500/40 hover:-translate-y-0.5 transform">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Télécharger l'APK
+      </a>
+
+      <p class="text-slate-600 text-xs mt-4">
+        Fichier APK · Compatible Android 5.0 et supérieur
+      </p>
+    </div>
+
+    <!-- Instructions d'installation -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+
+      <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <div class="w-10 h-10 bg-sky-500/20 rounded-xl flex items-center justify-center text-xl mb-3">1️⃣</div>
+        <h3 class="font-bold text-white mb-2 text-sm">Télécharger l'APK</h3>
+        <p class="text-slate-400 text-xs leading-relaxed">
+          Cliquez sur le bouton ci-dessus pour télécharger le fichier APK sur votre téléphone Android.
+        </p>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <div class="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center text-xl mb-3">2️⃣</div>
+        <h3 class="font-bold text-white mb-2 text-sm">Autoriser l'installation</h3>
+        <p class="text-slate-400 text-xs leading-relaxed">
+          Android demandera d'autoriser les sources inconnues.
+          Allez dans <strong class="text-white">Paramètres → Sécurité</strong> et activez
+          "Sources inconnues" ou "Installer des apps inconnues".
+        </p>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <div class="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-xl mb-3">3️⃣</div>
+        <h3 class="font-bold text-white mb-2 text-sm">Saisir le code entreprise</h3>
+        <p class="text-slate-400 text-xs leading-relaxed">
+          Au premier lancement, choisissez "Entreprise" et saisissez
+          le <strong class="text-white">Code Entreprise</strong> fourni par votre administrateur.
+        </p>
+      </div>
+    </div>
+
+    <!-- Fonctionnalités -->
+    <div class="bg-slate-800/40 border border-slate-700 rounded-2xl p-6 mb-10">
+      <h3 class="text-lg font-bold text-white mb-5 flex items-center gap-2">
+        ✨ Fonctionnalités incluses
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="flex items-center gap-3 text-sm text-slate-300">
+          <span class="text-emerald-400 text-base">✓</span> Suivi GPS en temps réel
+        </div>
+        <div class="flex items-center gap-3 text-sm text-slate-300">
+          <span class="text-emerald-400 text-base">✓</span> Fonctionne en arrière-plan
+        </div>
+        <div class="flex items-center gap-3 text-sm text-slate-300">
+          <span class="text-emerald-400 text-base">✓</span> Démarrage automatique au boot
+        </div>
+        <div class="flex items-center gap-3 text-sm text-slate-300">
+          <span class="text-emerald-400 text-base">✓</span> Mode économie batterie
+        </div>
+        <div class="flex items-center gap-3 text-sm text-slate-300">
+          <span class="text-emerald-400 text-base">✓</span> Cache hors connexion
+        </div>
+        <div class="flex items-center gap-3 text-sm text-slate-300">
+          <span class="text-emerald-400 text-base">✓</span> Protection anti-désinstallation
+        </div>
+        <div class="flex items-center gap-3 text-sm text-slate-300">
+          <span class="text-emerald-400 text-base">✓</span> Historique des trajets
+        </div>
+        <div class="flex items-center gap-3 text-sm text-slate-300">
+          <span class="text-emerald-400 text-base">✓</span> Compatible Android 5.0+
+        </div>
+      </div>
+    </div>
+
+    <!-- Appel à l'action -->
+    <div class="text-center">
+      <p class="text-slate-400 text-sm mb-4">
+        Pas encore de compte ? Inscrivez votre entreprise pour accéder au tableau de bord.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="register-entreprise.html"
+          class="px-6 py-3 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-xl transition-colors text-sm">
+          🏢 Créer un compte entreprise
+        </a>
+        <a href="login.html"
+          class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl transition-colors text-sm">
+          🔑 Se connecter
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 mt-16 px-4 py-8 text-center text-slate-600 text-xs">
+    <p>GPS Tracker © 2025 — Epsylon CG · Pointe-Noire, République du Congo</p>
+    <p class="mt-1">
+      <a href="login.html" class="hover:text-slate-400 transition-colors">Tableau de bord</a>
+      · <a href="register-entreprise.html" class="hover:text-slate-400 transition-colors">Inscription</a>
+    </p>
+  </footer>
+
+</body>
+</html>

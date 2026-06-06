@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="background">#0f1419</color>
+    <color name="splash_background">#0f172a</color>
     <color name="text_primary">#ffffff</color>
     <color name="text_secondary">#64748b</color>
     <color name="primary">#38bdf8</color>
     <color name="primary_dark">#0284c7</color>
     <color name="warning">#fbbf24</color>
+    <color name="ic_launcher_background">#0f172a</color>
 </resources>

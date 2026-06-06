@@ -1052,7 +1052,7 @@ class LocationService : Service() {
         // Sauvegarder les statistiques du ConfigManager
         configManager.saveStatistics()
         
-        val sessionData = mapOf(
+        val sessionData: Map<String, Any> = mapOf(
             "endTime" to System.currentTimeMillis(),
             "totalUpdates" to locationUpdateCount,
             "totalDistance" to totalDistance,
@@ -1063,10 +1063,10 @@ class LocationService : Service() {
         val stats = configManager.getStatistics()
         val sessionDataWithCO2 = sessionData.toMutableMap()
         if (configManager.isCO2Enabled()) {
-            sessionDataWithCO2["totalCO2Kg"] = stats["totalCO2Kg"] as Float
-            sessionDataWithCO2["co2Coefficient"] = stats["co2Coefficient"] as Float
+            sessionDataWithCO2["totalCO2Kg"]     = (stats["totalCO2Kg"]     as? Float) ?: 0f
+            sessionDataWithCO2["co2Coefficient"] = (stats["co2Coefficient"] as? Float) ?: 0f
         }
-        sessionDataWithCO2["trackingMode"] = stats["trackingMode"] as String
+        sessionDataWithCO2["trackingMode"] = (stats["trackingMode"] as? String) ?: "standard"
         
         // Chemin correct: societes/{uid_societe}/agents/{id_agent}/lastSession
         db.child("societes/$societeId/agents/$agentId/lastSession").setValue(sessionDataWithCO2)

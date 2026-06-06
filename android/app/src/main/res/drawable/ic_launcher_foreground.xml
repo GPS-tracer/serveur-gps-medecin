@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icône GPS Tracker — satellite + signal -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Fond arrondi -->
+    <path
+        android:fillColor="#0f172a"
+        android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
+
+    <!-- Cercle principal (signal GPS) -->
+    <path
+        android:strokeColor="#38bdf8"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:pathData="M54,30 A24,24,0,1,1,53.9,30 Z" />
+
+    <!-- Point central (position) -->
+    <path
+        android:fillColor="#38bdf8"
+        android:pathData="M54,48 A6,6,0,1,1,53.9,48 Z" />
+
+    <!-- Ondes de signal -->
+    <path
+        android:strokeColor="#38bdf8"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M38,54 Q54,36 70,54" />
+    <path
+        android:strokeColor="#38bdf8"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M32,60 Q54,30 76,60" />
+
+    <!-- Texte GPS en bas -->
+    <path
+        android:fillColor="#38bdf8"
+        android:pathData="M36,74 L40,74 L40,78 L36,78 Z
+                         M42,74 L50,74 L50,76 L44,76 L44,78 L50,78 L50,80 L42,80 Z
+                         M52,74 L60,74 L60,80 L56,80 L56,76 L58,76 L58,74 Z" />
+
+</vector>
