@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -127,10 +127,11 @@
 <body class="bg-slate-950 text-white min-h-screen">
 
   <!-- ── Splash de réveil Render (masqué après ping) ── -->
-  <div id="splash" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 gap-4">
-    <div class="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full spinner"></div>
-    <p class="text-white font-semibold text-lg">GPS Tracker</p>
-    <p id="splash-status" class="text-slate-400 text-sm">Connexion au serveur…</p>
+  <div id="splash" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 gap-6">
+    <img src="gpstracker.png" alt="GPS Tracker Logo" class="w-24 h-24 object-contain rounded-2xl shadow-xl shadow-sky-500/10" />
+    <div class="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full spinner"></div>
+    <p class="text-white font-semibold text-lg">GPS Tracker Congo</p>
+    <p id="splash-status" class="text-slate-400 text-sm">Initialisation de la connexion sécurisée…</p>
   </div>
 
   <!-- ════════════════════════════════════════════════════════
@@ -538,7 +539,7 @@
 
     async function pingHealth(maxAttempts = 25, intervalMs = 2000) {
       for (let i = 1; i <= maxAttempts; i++) {
-        statusEl.textContent = i === 1 ? 'Connexion au serveur…' : `Réveil du serveur… (${i}/${maxAttempts})`;
+        statusEl.textContent = i === 1 ? 'Initialisation de la connexion sécurisée…' : `Réveil du serveur sécurisé… (veuillez patienter)`;
         try {
           const ctrl = new AbortController();
           const t    = setTimeout(() => ctrl.abort(), 12000);
@@ -565,9 +566,9 @@
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME":
           "com.gpstracker.agent/.AdminReceiver",
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION":
-          "https://gps-tracker-congo.onrender.com/download/GPTS-Tracker.apk",
+          "https://serveur-gps-medecin.onrender.com/download/GPTS-Tracker.apk",
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM":
-          "REMPLACER_PAR_CHECKSUM_SHA256_BASE64_URL_SAFE",
+          "oe8NdDfIVF4zodK3ELMLiz2M9jnp930vqLAtAC6456A",
         "android.app.extra.PROVISIONING_SKIP_ENCRYPTION": false,
         "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
         "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
