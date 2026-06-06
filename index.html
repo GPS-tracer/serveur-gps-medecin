@@ -495,13 +495,7 @@
           </div>
         </div>
 
-        <!-- Avertissement checksum -->
-        <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 mb-5 text-xs text-amber-300 leading-relaxed">
-          ⚠️ <strong>Avant utilisation :</strong> remplacez le champ
-          <code class="bg-slate-800 px-1 rounded text-amber-200">PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM</code>
-          dans <code class="bg-slate-800 px-1 rounded text-amber-200">android/qr-provisioning.json</code>
-          par le SHA-256 Base64 de votre APK signé (voir <code class="bg-slate-800 px-1 rounded">extract-checksum.bat</code>).
-        </div>
+        <!-- Avertissement supprimé — checksum configuré automatiquement -->
 
         <button id="dlModalContinue2"
                 class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white font-semibold rounded-xl transition-all text-sm">
@@ -527,7 +521,7 @@
     })();
   </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script type="module" defer src="/dashboard/boot-vitrine.js"></script>
   <script type="module" defer src="/dashboard/vitrine-tunnel.js"></script>
 
