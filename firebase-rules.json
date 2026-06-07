@@ -29,10 +29,10 @@
     },
 
     "companies": {
-      ".read": "auth != null && root.child('companies').child(auth.uid).child('role').val() === 'superadmin'",
+      ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || root.child('companies').child(auth.uid).child('role').val() === 'superadmin')",
-        ".write": "auth != null && (auth.uid == $uid || root.child('companies').child(auth.uid).child('role').val() === 'superadmin')"
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $uid"
       }
     },
 
@@ -42,9 +42,8 @@
     },
 
     "uninstall_alerts": {
-      ".read": "auth != null && root.child('companies').child(auth.uid).child('role').val() === 'superadmin'",
+      ".read": "auth != null",
       "$agentId": {
-        ".read": "auth != null",
         ".write": true
       }
     },
