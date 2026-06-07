@@ -31,7 +31,7 @@
     "companies": {
       ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null",
+        ".read": true,
         ".write": "auth != null && auth.uid == $uid"
       }
     },
