@@ -15,11 +15,21 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/fi
 import { get, ref, onValue, set, push, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { auth, db } from "../shared/firebase.js";
-import { estSuperadmin } from "./roles.js";
 import { genererTableauAdminChariowHtml } from './chariow-paiement.js';
 
 // [ADMIN SUPRÊME] — Import du module de réveil serveur (évite l'affichage brut Render)
 import { waitForServerWake } from './splash-wake.js';
+
+// [ADMIN SUPRÊME] — Vérification du rôle superadmin directement (sans roles.js)
+async function estSuperadmin(user) {
+  if (!user) return false;
+  try {
+    const snap = await get(ref(db, `companies/${user.uid}/role`));
+    return snap.exists() && snap.val() === 'superadmin';
+  } catch {
+    return false;
+  }
+}
 
 // ── Éléments DOM — Splash ──────────────────────────────────────────────
 const splashAdmin       = document.getElementById('splash-admin');

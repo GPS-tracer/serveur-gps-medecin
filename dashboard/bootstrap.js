@@ -8,7 +8,24 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/fi
 import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { auth, db } from "../shared/firebase.js";
 import { verifierSessionGeo } from "./session-geo.js";
-import { estSuperadmin, fusionnerProfil } from "./roles.js";
+
+// Vérification superadmin directement (sans roles.js)
+async function estSuperadmin(user) {
+  if (!user) return false;
+  try {
+    const snap = await get(ref(db, `companies/${user.uid}/role`));
+    return snap.exists() && snap.val() === 'superadmin';
+  } catch { return false; }
+}
+
+function fusionnerProfil(company, societe) {
+  return {
+    ...societe, ...company,
+    companyName: company.companyName || societe.companyName || null,
+    logoUrl:     company.logoUrl     || societe.logoUrl     || null,
+    role:        company.role        || 'company',
+  };
+}
 
 verifierSessionGeo();
 
