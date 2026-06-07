@@ -2500,7 +2500,16 @@ app.get('/sw.js', (req, res) => {
 app.use(express.static('.', {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.js') && !filePath.endsWith('sw.js')) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      // Cache court pour les fichiers JS dashboard — force le rechargement après déploiement
+      if (filePath.includes('/dashboard/')) {
+        res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+    // Les fichiers HTML ne sont jamais mis en cache
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
   },
 }));
