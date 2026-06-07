@@ -378,8 +378,10 @@ function ecouterAppareisEnAttente(companyId) {
     if (snapshot.exists()) {
       snapshot.forEach((child) => {
         const data = child.val();
-        // Filtre : seulement les agents de cette société ET en attente
-        if (data.companyId === companyId && data.status === 'pending') {
+        // Filtre : seulement les agents de cette société
+        // Accepte status "pending" OU status absent (ancienne APK)
+        const statusOk = !data.status || data.status === 'pending';
+        if (data.companyId === companyId && statusOk) {
           pendingAgents[child.key] = data;
         }
       });
