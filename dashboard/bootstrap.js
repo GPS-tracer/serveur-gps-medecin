@@ -8,7 +8,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/fi
 import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { auth, db } from "../shared/firebase.js";
 import { verifierSessionGeo } from "./session-geo.js";
-import { fusionnerProfil } from "./roles.js";
+import { estSuperadmin, fusionnerProfil } from "./roles.js";
 
 verifierSessionGeo();
 
@@ -61,15 +61,12 @@ onAuthStateChanged(auth, async (user) => {
     companyName = companyData.companyName || null;
 
     // ── Redirection superadmin → admin.html ─────────────────
-    // Si l'utilisateur est superadmin et qu'il est sur index.html,
-    // on le redirige automatiquement vers le panel d'administration
-    if (companyData.role === 'superadmin') {
+    if (await estSuperadmin(user)) {
       const page = window.location.pathname.split('/').pop();
       if (page !== 'admin.html') {
         window.location.replace('admin.html');
         return;
       }
-      // Déjà sur admin.html → laisser admin.js gérer
       return;
     }
   } catch (e) {

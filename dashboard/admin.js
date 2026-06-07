@@ -15,6 +15,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/fi
 import { get, ref, onValue, set, push, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { auth, db } from "../shared/firebase.js";
+import { estSuperadmin } from "./roles.js";
 import { genererTableauAdminChariowHtml } from './chariow-paiement.js';
 
 // [ADMIN SUPRÊME] — Import du module de réveil serveur (évite l'affichage brut Render)
@@ -141,21 +142,8 @@ let pendingDestructionRaison = null;
     try {
       setStatus("Vérification des privilèges administrateur…");
 
-      const [socSnap, compSnap] = await Promise.all([
-        get(ref(db, `societes/${user.uid}`)),
-        get(ref(db, `companies/${user.uid}`)),
-      ]);
-      const { fusionnerProfil } = await import("./roles.js");
-      const companyData = fusionnerProfil(compSnap.val() || {}, socSnap.val() || {});
-
-      if (!socSnap.exists() && !compSnap.exists()) {
-        console.log("[ADMIN SUPRÊME] — Profil introuvable. Accès refusé.");
-        window.location.replace('index.html');
-        return;
-      }
-
-      if (companyData.role !== 'superadmin') {
-        console.log(`[ADMIN SUPRÊME] — Rôle insuffisant (${companyData.role || 'aucun'}). Accès refusé.`);
+      if (!await estSuperadmin(user)) {
+        console.log("[ADMIN SUPRÊME] — Rôle superadmin non détecté. Accès refusé.");
         window.location.replace('index.html');
         return;
       }

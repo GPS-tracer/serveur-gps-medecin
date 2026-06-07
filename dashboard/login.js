@@ -128,7 +128,7 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    redirigerApresLogin();
+    await redirigerApresLogin(undefined, currentUser);
 
   } catch (err) {
     verificationWarning.classList.add("hidden");

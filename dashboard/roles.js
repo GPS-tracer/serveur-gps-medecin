@@ -10,20 +10,60 @@ export function fusionnerRole(societeRole, companyRole) {
   return societeRole ?? companyRole ?? null;
 }
 
+function extraireRole(snap) {
+  if (!snap?.exists?.()) return null;
+  const val = snap.val();
+  return typeof val === "string" ? val : (val?.role ?? null);
+}
+
 export async function lireRoles(uid) {
   const [socSnap, compSnap] = await Promise.all([
-    get(ref(db, `societes/${uid}/role`)).catch(() => null),
-    get(ref(db, `companies/${uid}/role`)).catch(() => null),
+    get(ref(db, `societes/${uid}`)).catch(() => null),
+    get(ref(db, `companies/${uid}`)).catch(() => null),
   ]);
-  const societeRole = socSnap?.exists?.() ? socSnap.val() : null;
-  const companyRole = compSnap?.exists?.() ? compSnap.val() : null;
-  return { societeRole, companyRole };
+  return {
+    societeRole: extraireRole(socSnap),
+    companyRole: extraireRole(compSnap),
+  };
 }
+
+async function estSuperadminViaApi(user) {
+  const token = await user.getIdToken();
+  const res = await fetch("/api/user/role", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.isSuperadmin === true;
+}
+
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function estSuperadmin(user) {
   if (!user?.uid) return false;
-  const { societeRole, companyRole } = await lireRoles(user.uid);
-  return fusionnerRole(societeRole, companyRole) === "superadmin";
+
+  try {
+    await user.getIdToken();
+  } catch {
+    return false;
+  }
+
+  try {
+    const viaApi = await estSuperadminViaApi(user);
+    if (viaApi === true) return true;
+    if (viaApi === false) return false;
+  } catch (err) {
+    console.warn("[roles] Vérification API échouée, repli RTDB:", err?.message);
+  }
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { societeRole, companyRole } = await lireRoles(user.uid);
+    if (fusionnerRole(societeRole, companyRole) === "superadmin") return true;
+    if (societeRole != null || companyRole != null) return false;
+    if (attempt < 2) await pause(400);
+  }
+
+  return false;
 }
 
 export function fusionnerProfil(company = {}, societe = {}) {

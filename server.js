@@ -477,6 +477,24 @@ async function appliquerFreemiumRestreint(companyId) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ROUTE : Rôle utilisateur (fusion societes + companies)
+// GET /api/user/role — utilisé après login pour rediriger le superadmin
+// ─────────────────────────────────────────────────────────────
+app.get('/api/user/role', requireAuth, async (req, res) => {
+  try {
+    const profil = await lireProfilSociete(req.user.uid);
+    const role = profil.role || null;
+    res.json({
+      role,
+      isSuperadmin: role === 'superadmin',
+    });
+  } catch (err) {
+    console.error('user/role error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
 // ROUTE : Initialiser un compte gratuit (bonus d'entrée)
 // POST /api/user/init-account
 // À appeler à la création du compte : date_creation, expiration_essai J+14, 50 crédits

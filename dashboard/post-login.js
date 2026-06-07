@@ -45,15 +45,20 @@ export function lireRedirectApresLogin(defaut = PAGE_DASHBOARD_DEFAUT) {
  * - produit en attente   → licence.html (catalogue)
  * - sinon                → fleet.html ou ?redirect=
  */
-export async function redirigerApresLogin(defaut = PAGE_DASHBOARD_DEFAUT) {
+let redirectionEnCours = false;
+
+export async function redirigerApresLogin(defaut = PAGE_DASHBOARD_DEFAUT, user = auth.currentUser) {
+  if (redirectionEnCours) return;
+  redirectionEnCours = true;
+
   try {
-    const user = auth.currentUser;
     if (user && await estSuperadmin(user)) {
       window.location.replace('admin.html');
       return;
     }
   } catch (err) {
     console.error("[post-login] Erreur redirection superadmin:", err);
+    redirectionEnCours = false;
   }
 
   if (aIntentAchatEnAttente()) {
