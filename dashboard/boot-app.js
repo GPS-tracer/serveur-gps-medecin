@@ -2,28 +2,14 @@
  * Bootstrap pages app (fleet, rapport, licence) — exécuté en fin de <body>, module différé.
  */
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { auth, db } from "../shared/firebase.js";
+import { auth } from "../shared/firebase.js";
+import { estSuperadmin } from "./roles.js";
 import { mountAppShell, initAppNavShell } from './nav-shell.js';
 
 const activeId = document.body.dataset.navActive || '';
 const pageTitle = document.body.dataset.navTitle || 'GPS Tracker';
 const pageModule = document.body.dataset.pageModule || '';
 const currentPage = window.location.pathname.split('/').pop() || '';
-
-async function isSuperadmin(user) {
-  if (!user) return false;
-  try {
-    const [socSnap, compSnap] = await Promise.all([
-      get(ref(db, `societes/${user.uid}/role`)).catch(() => ({ exists: () => false })),
-      get(ref(db, `companies/${user.uid}/role`)).catch(() => ({ exists: () => false })),
-    ]);
-    const role = socSnap.exists() ? socSnap.val() : (compSnap.exists() ? compSnap.val() : null);
-    return role === 'superadmin';
-  } catch {
-    return false;
-  }
-}
 
 const authReady = new Promise((resolve) => {
   const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -34,7 +20,7 @@ const authReady = new Promise((resolve) => {
 
 const user = await authReady;
 const shouldRedirect = user && user.emailVerified && currentPage !== 'admin.html'
-  ? await isSuperadmin(user)
+  ? await estSuperadmin(user)
   : false;
 
 if (!shouldRedirect) {

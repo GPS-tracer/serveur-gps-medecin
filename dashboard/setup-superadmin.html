@@ -269,8 +269,8 @@
         // 2. Envoyer l'email de vérification
         await sendEmailVerification(user);
 
-        // 3. Écrire le nœud superadmin dans RTDB
-        await set(ref(db, `companies/${user.uid}`), {
+        // 3. Écrire le profil superadmin dans RTDB (double écriture)
+        const profilSuperadmin = {
           companyName:  'Administration GPS Tracker',
           nomComplet:   nom,
           email:        email,
@@ -278,7 +278,11 @@
           status:       'active',
           createdAt:    Date.now(),
           validated:    true,
-        });
+        };
+        await Promise.all([
+          set(ref(db, `companies/${user.uid}`), profilSuperadmin),
+          set(ref(db, `societes/${user.uid}`), profilSuperadmin),
+        ]);
 
         // 4. Afficher l'écran succès
         const successInfo = document.getElementById('successInfo');

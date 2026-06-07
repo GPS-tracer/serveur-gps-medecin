@@ -141,15 +141,19 @@ let pendingDestructionRaison = null;
     try {
       setStatus("Vérification des privilèges administrateur…");
 
-      // Lecture du profil depuis RTDB pour vérifier le rôle
-      const snap = await get(ref(db, `companies/${user.uid}`));
-      if (!snap.exists()) {
+      const [socSnap, compSnap] = await Promise.all([
+        get(ref(db, `societes/${user.uid}`)),
+        get(ref(db, `companies/${user.uid}`)),
+      ]);
+      const { fusionnerProfil } = await import("./roles.js");
+      const companyData = fusionnerProfil(compSnap.val() || {}, socSnap.val() || {});
+
+      if (!socSnap.exists() && !compSnap.exists()) {
         console.log("[ADMIN SUPRÊME] — Profil introuvable. Accès refusé.");
         window.location.replace('index.html');
         return;
       }
 
-      const companyData = snap.val();
       if (companyData.role !== 'superadmin') {
         console.log(`[ADMIN SUPRÊME] — Rôle insuffisant (${companyData.role || 'aucun'}). Accès refusé.`);
         window.location.replace('index.html');

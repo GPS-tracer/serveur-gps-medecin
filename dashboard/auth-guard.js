@@ -4,9 +4,9 @@
  */
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { auth, db } from "../shared/firebase.js";
+import { auth } from "../shared/firebase.js";
 import { deconnecter } from "./deconnexion.js";
+import { estSuperadmin } from "./roles.js";
 
 const loadingEl = document.getElementById("auth-loading");
 const dashboardRoot = document.getElementById("dashboard-root");
@@ -17,20 +17,6 @@ const PUBLIC_PAGES = ['login.html', 'register.html'];
 // Vérifier si on est sur une page publique
 const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 const isPublicPage = PUBLIC_PAGES.includes(currentPage);
-
-async function estSuperadmin(user) {
-  if (!user) return false;
-  try {
-    const [socSnap, compSnap] = await Promise.all([
-      get(ref(db, `societes/${user.uid}/role`)).catch(() => ({ exists: () => false })),
-      get(ref(db, `companies/${user.uid}/role`)).catch(() => ({ exists: () => false })),
-    ]);
-    const role = socSnap.exists() ? socSnap.val() : (compSnap.exists() ? compSnap.val() : null);
-    return role === 'superadmin';
-  } catch {
-    return false;
-  }
-}
 
 // Protéger les routes
 onAuthStateChanged(auth, async (user) => {

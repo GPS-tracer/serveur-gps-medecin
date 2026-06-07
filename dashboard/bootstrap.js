@@ -8,6 +8,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/fi
 import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { auth, db } from "../shared/firebase.js";
 import { verifierSessionGeo } from "./session-geo.js";
+import { fusionnerProfil } from "./roles.js";
 
 verifierSessionGeo();
 
@@ -56,8 +57,7 @@ onAuthStateChanged(auth, async (user) => {
     ]);
     const societe = socSnap.val() || {};
     const company = compSnap.val() || {};
-    // Fusionner : societes prioritaire
-    companyData = { ...company, ...societe, licence: { ...(company.licence || {}), ...(societe.licence || {}) } };
+    companyData = fusionnerProfil(company, societe);
     companyName = companyData.companyName || null;
 
     // ── Redirection superadmin → admin.html ─────────────────

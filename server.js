@@ -197,9 +197,19 @@ async function lireProfilSociete(companyId) {
   ]);
   const societe = socSnap.val() || {};
   const company = compSnap.val() || {};
+  return fusionnerProfilSociete(company, societe);
+}
+
+function fusionnerRole(societeRole, companyRole) {
+  if (societeRole === 'superadmin' || companyRole === 'superadmin') return 'superadmin';
+  return societeRole ?? companyRole;
+}
+
+function fusionnerProfilSociete(company = {}, societe = {}) {
   return {
     ...company,
     ...societe,
+    role: fusionnerRole(societe.role, company.role),
     licence: { ...(company.licence || {}), ...(societe.licence || {}) },
   };
 }
@@ -2383,12 +2393,7 @@ app.get('/api/admin/clients', requireSuperadmin, async (req, res) => {
       const company = companies[uid] || {};
       const societe = societes[uid] || {};
       
-      // Societes prioritaire pour email + companyName
-      const profil = {
-        ...company,
-        ...societe,
-        licence: { ...(company.licence || {}), ...(societe.licence || {}) },
-      };
+      const profil = fusionnerProfilSociete(company, societe);
 
       clients.push({
         uid,
@@ -2416,6 +2421,11 @@ app.post('/api/admin/accounts/validate', requireSuperadmin, async (req, res) => 
   }
   
   try {
+    const profil = await lireProfilSociete(companyId);
+    if (profil.role === 'superadmin') {
+      return res.status(400).json({ error: 'Impossible de modifier le rôle d\'un superadmin.' });
+    }
+
     await Promise.all([
       db.ref(`companies/${companyId}`).update({ validated: true, role: 'partner' }),
       db.ref(`societes/${companyId}`).update({ validated: true, role: 'partner' })
@@ -2437,6 +2447,11 @@ app.post('/api/admin/accounts/revoke', requireSuperadmin, async (req, res) => {
   }
   
   try {
+    const profil = await lireProfilSociete(companyId);
+    if (profil.role === 'superadmin') {
+      return res.status(400).json({ error: 'Impossible de modifier le rôle d\'un superadmin.' });
+    }
+
     await Promise.all([
       db.ref(`companies/${companyId}`).update({ validated: false, role: 'company' }),
       db.ref(`societes/${companyId}`).update({ validated: false, role: 'company' })
@@ -2454,6 +2469,10 @@ app.post('/api/admin/accounts/revoke', requireSuperadmin, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // Fichiers statiques
 // ─────────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 app.get('/sw.js', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Service-Worker-Allowed', '/');

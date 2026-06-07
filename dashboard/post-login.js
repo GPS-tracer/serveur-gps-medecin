@@ -7,8 +7,8 @@ import {
   PAGE_CATALOGUE,
   PAGE_DASHBOARD_DEFAUT,
 } from './intent-achat.js';
-import { auth, db } from '../shared/firebase.js';
-import { get, ref } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+import { auth } from '../shared/firebase.js';
+import { estSuperadmin } from './roles.js';
 
 const PAGES_AUTORISEES = new Set([
   'index.html',
@@ -46,39 +46,14 @@ export function lireRedirectApresLogin(defaut = PAGE_DASHBOARD_DEFAUT) {
  * - sinon                → fleet.html ou ?redirect=
  */
 export async function redirigerApresLogin(defaut = PAGE_DASHBOARD_DEFAUT) {
-  // Vérifier si l'utilisateur connecté est superadmin (lire depuis societes + companies)
   try {
     const user = auth.currentUser;
-    if (user) {
-      console.log("[post-login] Vérification superadmin pour :", user.uid);
-      
-      const [socSnap, compSnap] = await Promise.all([
-        get(ref(db, `societes/${user.uid}/role`)).catch(e => {
-          console.warn("[post-login] Erreur lecture societes:", e.message);
-          return { exists: () => false };
-        }),
-        get(ref(db, `companies/${user.uid}/role`)).catch(e => {
-          console.warn("[post-login] Erreur lecture companies:", e.message);
-          return { exists: () => false };
-        }),
-      ]);
-      
-      console.log("[post-login] societes existe?", socSnap.exists(), "val:", socSnap.exists() ? socSnap.val() : null);
-      console.log("[post-login] companies existe?", compSnap.exists(), "val:", compSnap.exists() ? compSnap.val() : null);
-      
-      // Societes prioritaire
-      const role = socSnap.exists() ? socSnap.val() : (compSnap.exists() ? compSnap.val() : null);
-      console.log("[post-login] Rôle détecté:", role);
-      
-      if (role === 'superadmin') {
-        console.log("[post-login] ✅ Superadmin détecté → redirection vers admin.html");
-        window.location.replace('admin.html');
-        return;
-      }
+    if (user && await estSuperadmin(user)) {
+      window.location.replace('admin.html');
+      return;
     }
   } catch (err) {
     console.error("[post-login] Erreur redirection superadmin:", err);
-    // En cas d'erreur réseau, continuer avec la redirection normale
   }
 
   if (aIntentAchatEnAttente()) {
