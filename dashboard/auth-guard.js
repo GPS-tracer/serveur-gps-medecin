@@ -4,7 +4,8 @@
  */
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { auth } from "../shared/firebase.js";
+import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { auth, db } from "../shared/firebase.js";
 import { deconnecter } from "./deconnexion.js";
 
 const loadingEl = document.getElementById("auth-loading");
@@ -17,30 +18,48 @@ const PUBLIC_PAGES = ['login.html', 'register.html'];
 const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 const isPublicPage = PUBLIC_PAGES.includes(currentPage);
 
+async function estSuperadmin(user) {
+  if (!user) return false;
+  try {
+    const [socSnap, compSnap] = await Promise.all([
+      get(ref(db, `societes/${user.uid}/role`)).catch(() => ({ exists: () => false })),
+      get(ref(db, `companies/${user.uid}/role`)).catch(() => ({ exists: () => false })),
+    ]);
+    const role = socSnap.exists() ? socSnap.val() : (compSnap.exists() ? compSnap.val() : null);
+    return role === 'superadmin';
+  } catch {
+    return false;
+  }
+}
+
 // Protéger les routes
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (loadingEl) loadingEl.hidden = true;
-  
-  // Si pas d'utilisateur et page protégée → rediriger vers login
+
   if (!user && !isPublicPage) {
     window.location.replace('login.html');
     return;
   }
-  
-  // Si utilisateur connecté mais email non vérifié et page protégée → rediriger vers login
+
   if (user && !user.emailVerified && !isPublicPage) {
-    // Déconnecter l'utilisateur pour forcer la vérification
     deconnecter('login.html');
     return;
   }
-  
-  // Si utilisateur connecté avec email vérifié et sur page publique → rediriger vers dashboard
-  if (user && user.emailVerified && isPublicPage) {
-    window.location.replace('index.html');
-    return;
+
+  if (user && user.emailVerified) {
+    const isSuperadmin = await estSuperadmin(user);
+
+    if (isPublicPage) {
+      window.location.replace(isSuperadmin ? 'admin.html' : 'index.html');
+      return;
+    }
+
+    if (isSuperadmin && currentPage !== 'admin.html') {
+      window.location.replace('admin.html');
+      return;
+    }
   }
-  
-  // Tout est OK, afficher le contenu
+
   if (dashboardRoot) {
     dashboardRoot.hidden = false;
   }

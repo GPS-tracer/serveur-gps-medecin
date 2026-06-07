@@ -2367,24 +2367,37 @@ app.get('/api/admin/accounts/search', requireSuperadmin, async (req, res) => {
 // [ADMIN SUPRÊME] — Route pour récupérer TOUS les clients (companies)
 app.get('/api/admin/clients', requireSuperadmin, async (req, res) => {
   try {
-    const companiesSnap = await db.ref('companies').get();
-    if (!companiesSnap.exists()) {
-      return res.json({ success: true, clients: [] });
-    }
+    const [companiesSnap, societesSnap] = await Promise.all([
+      db.ref('companies').get(),
+      db.ref('societes').get(),
+    ]);
 
+    const companies = companiesSnap.val() || {};
+    const societes = societesSnap.val() || {};
     const clients = [];
-    const companies = companiesSnap.val();
 
-    for (const uid of Object.keys(companies)) {
-      const comp = companies[uid];
+    // Fusionner les données de societes (prioritaire pour email) + companies
+    const allUids = new Set([...Object.keys(companies), ...Object.keys(societes)]);
+
+    for (const uid of allUids) {
+      const company = companies[uid] || {};
+      const societe = societes[uid] || {};
+      
+      // Societes prioritaire pour email + companyName
+      const profil = {
+        ...company,
+        ...societe,
+        licence: { ...(company.licence || {}), ...(societe.licence || {}) },
+      };
+
       clients.push({
         uid,
-        companyName: comp.companyName || comp.name || 'Inconnu',
-        email: comp.email || '—',
-        role: comp.role || 'company',
-        validated: comp.validated || false,
-        typePack: comp.licence?.typePack || 'free',
-        createdAt: comp.createdAt || comp.date_creation || null,
+        companyName: profil.companyName || profil.name || 'Inconnu',
+        email: profil.email || '—',
+        role: profil.role || 'company',
+        validated: profil.validated || false,
+        typePack: profil.licence?.typePack || 'free',
+        createdAt: profil.createdAt || profil.date_creation || null,
       });
     }
 

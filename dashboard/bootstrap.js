@@ -50,23 +50,27 @@ onAuthStateChanged(auth, async (user) => {
   let companyName = null;
   let companyData = {};
   try {
-    const snap = await get(ref(db, `companies/${user.uid}`));
-    if (snap.exists()) {
-      companyData = snap.val();
-      companyName = companyData.companyName || null;
+    const [socSnap, compSnap] = await Promise.all([
+      get(ref(db, `societes/${user.uid}`)),
+      get(ref(db, `companies/${user.uid}`)),
+    ]);
+    const societe = socSnap.val() || {};
+    const company = compSnap.val() || {};
+    // Fusionner : societes prioritaire
+    companyData = { ...company, ...societe, licence: { ...(company.licence || {}), ...(societe.licence || {}) } };
+    companyName = companyData.companyName || null;
 
-      // ── Redirection superadmin → admin.html ─────────────────
-      // Si l'utilisateur est superadmin et qu'il est sur index.html,
-      // on le redirige automatiquement vers le panel d'administration
-      if (companyData.role === 'superadmin') {
-        const page = window.location.pathname.split('/').pop();
-        if (page !== 'admin.html') {
-          window.location.replace('admin.html');
-          return;
-        }
-        // Déjà sur admin.html → laisser admin.js gérer
+    // ── Redirection superadmin → admin.html ─────────────────
+    // Si l'utilisateur est superadmin et qu'il est sur index.html,
+    // on le redirige automatiquement vers le panel d'administration
+    if (companyData.role === 'superadmin') {
+      const page = window.location.pathname.split('/').pop();
+      if (page !== 'admin.html') {
+        window.location.replace('admin.html');
         return;
       }
+      // Déjà sur admin.html → laisser admin.js gérer
+      return;
     }
   } catch (e) {
     console.warn("[bootstrap] Impossible de charger le profil:", e.message);
