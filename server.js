@@ -2,6 +2,7 @@ const express  = require('express');
 const path     = require('path');
 const admin    = require('firebase-admin');
 const cron     = require('node-cron');
+const crypto   = require('crypto');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -709,8 +710,10 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
   }
   const key = (alphaOnly.match(/.{1,4}/g) || []).join('-');
 
+  let licenceRef, originalData; // Pour rollback en cas d'erreur
+
   try {
-    const licenceRef = firestore.collection('licences').doc(key);
+    licenceRef = firestore.collection('licences').doc(key);
 
     // Variables extraites pendant la transaction
     let typePack;
@@ -728,6 +731,7 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
       }
 
       const data = snap.data();
+      originalData = { ...data }; // Sauvegarder pour rollback potentiel
 
       if (data.statut === 'utilise') {
         alreadyUsed = true;
@@ -829,20 +833,37 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
       messageReponse = `${credits} rapports crédités sur votre compte (total : ${newTotal}).`;
     }
 
-    // Écriture RTDB (societes + companies) + historique
-    await Promise.all([
-      ecrireLicenceDual(companyId, updateRTDB),
-      db.ref(`companies/${companyId}/licenceHistory`).push({
-        key,
-        typePack,
-        activatedAt:    nowISO,
-        dateExpiration: TYPES_ABONNEMENTS.includes(typePack) ? dateExpiration : null,
-        quantiteAgents: typePack === 'abonnement_unite' ? quantiteAgents : null,
-        credits:        ['pack_20', 'pack_40'].includes(typePack)
-          ? (typePack === 'pack_20' ? 20 : 40)
-          : typePack,
-      }),
-    ]);
+    // ── Écriture RTDB avec ROLLBACK en cas d'erreur ───────────
+    try {
+      await Promise.all([
+        ecrireLicenceDual(companyId, updateRTDB),
+        db.ref(`companies/${companyId}/licenceHistory`).push({
+          key,
+          typePack,
+          activatedAt:    nowISO,
+          dateExpiration: TYPES_ABONNEMENTS.includes(typePack) ? dateExpiration : null,
+          quantiteAgents: typePack === 'abonnement_unite' ? quantiteAgents : null,
+          credits:        ['pack_20', 'pack_40'].includes(typePack)
+            ? (typePack === 'pack_20' ? 20 : 40)
+            : typePack,
+        }),
+      ]);
+    } catch (rtdbErr) {
+      // [ROLLBACK] Écriture RTDB échouée → Remettre la license à "disponible"
+      console.error(`⚠️ Erreur RTDB lors activation ${key}. Rollback Firestore...`, rtdbErr);
+      try {
+        await licenceRef.update({
+          statut: 'disponible',
+          utilise_par: admin.firestore.FieldValue.delete(),
+          date_activation: admin.firestore.FieldValue.delete(),
+          date_expiration: admin.firestore.FieldValue.delete(),
+        });
+        console.log(`✅ Rollback Firestore réussi pour ${key}`);
+      } catch (rollbackErr) {
+        console.error(`❌ CRITIQUE: Rollback Firestore échoué pour ${key}`, rollbackErr);
+      }
+      throw rtdbErr; // Rethrow pour la réponse d'erreur
+    }
 
     console.log(`✅ Licence activée: ${key} → société ${companyId} (${typePack})`);
 
@@ -860,7 +881,7 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Clé de licence invalide' });
     }
     console.error('licence activate error:', err);
-    res.status(500).json({ error: 'Erreur serveur lors de l\'activation' });
+    res.status(500).json({ error: 'Erreur serveur lors de l\'activation. Veuillez réessayer.' });
   }
 });
 
@@ -1309,6 +1330,22 @@ async function traiterPaiementChariowParId(companyId, productId, payload) {
   }
 }
 
+// ── Fonction de vérification HMAC du webhook Chariow ──────────
+function verifierSignatureChariow(payload, signature, secret) {
+  if (!signature || !secret) return false;
+  
+  const body = JSON.stringify(payload);
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update(body);
+  const computed = hmac.digest('hex');
+  
+  // Comparaison timing-safe
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(computed)
+  );
+}
+
 app.post('/api/webhook/chariow-pulse', async (req, res) => {
   const secret = req.headers['x-chariow-secret'];
   if (!secret || secret !== process.env.CHARIOW_WEBHOOK_SECRET) {
@@ -1317,6 +1354,28 @@ app.post('/api/webhook/chariow-pulse', async (req, res) => {
   }
 
   const payload = req.body;
+  const signature = req.headers['x-chariow-signature'];
+  const timestamp = parseInt(req.headers['x-chariow-timestamp'] || '0', 10);
+
+  // [SÉCURITÉ] Vérifier la signature HMAC du corps
+  try {
+    const verified = verifierSignatureChariow(payload, signature, process.env.CHARIOW_WEBHOOK_SECRET);
+    if (!verified) {
+      console.warn('⚠️ Webhook Chariow : signature invalide');
+      return res.status(403).json({ error: 'Signature invalide' });
+    }
+  } catch (err) {
+    console.warn('⚠️ Webhook Chariow : erreur vérification signature', err.message);
+    return res.status(403).json({ error: 'Signature invalide' });
+  }
+
+  // [SÉCURITÉ] Vérifier le timestamp (rejeter si > 5 minutes)
+  const now = Date.now();
+  const maxAge = 5 * 60 * 1000; // 5 minutes en ms
+  if (timestamp && Math.abs(now - timestamp) > maxAge) {
+    console.warn('⚠️ Webhook Chariow : timestamp expiré (replay attack?)', { now, timestamp });
+    return res.status(403).json({ error: 'Requête expirée' });
+  }
 
   if (payload.status !== 'paid') {
     console.log(`ℹ️ Webhook Chariow ignoré (statut: ${payload.status})`);
@@ -1337,10 +1396,12 @@ app.post('/api/webhook/chariow-pulse', async (req, res) => {
       });
     }
 
+    // [SÉCURITÉ] Vérifier l'idempotence AVANT de traiter (évite les doublons)
     const orderId = payload.order_id || payload.orderId;
     if (orderId) {
       const profil = await lireProfilSociete(companyId);
       if (profil.chariow_order_id === orderId && profil.chariow_product_id === productId) {
+        console.log(`ℹ️ Webhook Chariow : paiement ${orderId} déjà traité (idempotence)`);
         return res.json({ success: true, already_processed: true, companyId, productId });
       }
     }
@@ -2300,6 +2361,37 @@ app.get('/api/admin/accounts/search', requireSuperadmin, async (req, res) => {
   } catch (err) {
     console.error('admin search accounts error:', err);
     res.status(500).json({ error: 'Erreur serveur lors de la recherche de comptes' });
+  }
+});
+
+// [ADMIN SUPRÊME] — Route pour récupérer TOUS les clients (companies)
+app.get('/api/admin/clients', requireSuperadmin, async (req, res) => {
+  try {
+    const companiesSnap = await db.ref('companies').get();
+    if (!companiesSnap.exists()) {
+      return res.json({ success: true, clients: [] });
+    }
+
+    const clients = [];
+    const companies = companiesSnap.val();
+
+    for (const uid of Object.keys(companies)) {
+      const comp = companies[uid];
+      clients.push({
+        uid,
+        companyName: comp.companyName || comp.name || 'Inconnu',
+        email: comp.email || '—',
+        role: comp.role || 'company',
+        validated: comp.validated || false,
+        typePack: comp.licence?.typePack || 'free',
+        createdAt: comp.createdAt || comp.date_creation || null,
+      });
+    }
+
+    res.json({ success: true, clients });
+  } catch (err) {
+    console.error('[ADMIN SUPRÊME] — Récupération tous les clients error:', err);
+    res.status(500).json({ error: 'Erreur serveur lors de la récupération des clients' });
   }
 });
 

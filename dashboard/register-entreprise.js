@@ -2,6 +2,7 @@ import { auth, db } from "../shared/firebase.js";
 import { createUserWithEmailAndPassword, sendEmailVerification, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { redirigerApresLogin } from './post-login.js';
 
 // Éléments DOM
 const form = document.getElementById('registerForm');
@@ -185,12 +186,15 @@ form.addEventListener('submit', async (e) => {
         await sendEmailVerification(user);
         
         console.log('Inscription réussie!');
-        showSuccess('Compte créé avec succès! Vérifiez votre email pour activer votre compte.');
         
-        // Rediriger vers le login après 3 secondes
+        // Afficher un message de succès plus visible
+        const successMessage = 'Compte créé avec succès! ✅\n\nVérifiez votre email pour activer votre compte.\nRedirection en cours...';
+        showSuccess(successMessage);
+        
+        // Rediriger vers le login après 4 secondes (au lieu de 3)
         setTimeout(() => {
             window.location.href = 'login.html';
-        }, 3000);
+        }, 4000);
         
     } catch (error) {
         console.error('Erreur inscription:', error);
@@ -221,10 +225,6 @@ form.addEventListener('submit', async (e) => {
 });
 
 // Vérifier si l'utilisateur est déjà connecté
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-import { redirigerApresLogin } from './post-login.js';
-
 onAuthStateChanged(auth, (user) => {
     if (user && user.emailVerified) redirigerApresLogin();
 });

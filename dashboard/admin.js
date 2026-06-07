@@ -305,47 +305,48 @@ async function chargerTousLesClients() {
   }
 
   try {
-    // Tentative via API backend d'abord (plus sécurisé)
+    // ✅ Appel via API backend (seule méthode fiable pour les règles RTDB restrictives)
+    if (!adminToken) {
+      throw new Error('Token administrateur non disponible. Rechargez la page.');
+    }
+
     const res = await fetch('/api/admin/clients', {
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' }
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && Array.isArray(data.clients)) {
-        allClients = data.clients;
-        renderAllClientsTable(allClients);
-        return;
-      }
+    // Vérifier les erreurs HTTP
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: 'Erreur serveur' }));
+      throw new Error(errorData.error || `Erreur HTTP ${res.status}`);
     }
 
-    // Fallback : lecture directe depuis RTDB (superadmin peut lire tout "companies")
-    const snap = await get(ref(db, 'companies'));
-    if (!snap.exists()) {
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.clients)) {
+      throw new Error('Format de réponse invalide du serveur');
+    }
+
+    allClients = data.clients;
+    
+    if (allClients.length === 0) {
       allClientsTableBody.innerHTML = `
         <tr><td colspan="6" class="p-6 text-center text-slate-400">Aucun client enregistré.</td></tr>
       `;
       return;
     }
 
-    const clientsMap = snap.val();
-    allClients = Object.entries(clientsMap).map(([uid, data]) => ({
-      uid,
-      companyName: data.companyName || data.email?.split('@')[0] || 'Inconnu',
-      email:       data.email || '—',
-      role:        data.role  || 'company',
-      validated:   data.validated || false,
-      typePack:    data.licence?.typePack || 'free',
-      createdAt:   data.createdAt || null,
-    }));
-
     renderAllClientsTable(allClients);
 
   } catch (err) {
     console.error("[ADMIN SUPRÊME] — Clients :", err);
     if (allClientsTableBody) {
+      const errorMsg = err.message || 'Erreur lors du chargement des clients';
       allClientsTableBody.innerHTML = `
-        <tr><td colspan="6" class="p-6 text-center text-red-400">⚠️ Erreur lors du chargement des clients</td></tr>
+        <tr><td colspan="6" class="p-6 text-center">
+          <div class="text-red-400">⚠️ ${errorMsg}</div>
+          <div class="text-slate-500 text-xs mt-2">
+            Vérifiez que le serveur est actif et que vous êtes connecté en tant que superadmin.
+          </div>
+        </td></tr>
       `;
     }
   }

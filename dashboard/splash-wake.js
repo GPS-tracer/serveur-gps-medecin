@@ -18,8 +18,8 @@ export async function waitForServerWake(opts = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     onStatus(
       attempt === 1
-        ? "Connexion au serveur…"
-        : `Réveil du serveur… (${attempt}/${maxAttempts})`
+        ? "Initialisation de la connexion sécurisée…"
+        : `Réveil du serveur sécurisé… (veuillez patienter)`
     );
 
     try {
@@ -47,6 +47,6 @@ export async function waitForServerWake(opts = {}) {
     }
   }
 
-  onStatus("Serveur lent — chargement du tableau de bord quand même…");
+  onStatus("Finalisation de la connexion, redirection…");
   return false;
 }

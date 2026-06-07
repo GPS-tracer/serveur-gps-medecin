@@ -466,7 +466,9 @@
         <!-- QR Code — centré, max 80vw sur mobile -->
         <div id="qrCodeWrapper">
           <div>
-            <div id="qrCanvas"></div>
+            <div id="qrCanvas">
+              <p style="color:#64748b;font-size:.75rem;text-align:center;padding:2rem">Génération du QR Code…</p>
+            </div>
           </div>
         </div>
 
@@ -602,20 +604,23 @@
         viewQR.classList.toggle('hidden', name !== 'qr');
       }
 
-      // ── Générer le QR Code (une seule fois, après chargement lib) ──
+      // ── Générer le QR Code — logique robuste ──────────────
       function generateQR() {
         if (qrGenerated) return;
 
-        function doGenerate() {
-          if (typeof QRCode === 'undefined') {
-            qrCanvas.innerHTML =
-              '<p style="color:#f87171;font-size:.75rem;text-align:center;padding:1rem">Impossible de générer le QR Code.<br>Vérifiez votre connexion.</p>';
-            return;
-          }
-          qrGenerated = true;
-          // Taille responsive : contrainte par le CSS (max 80vw / 300px)
-          // On cible 260px sur desktop, 220px sur mobile
-          const size = window.innerWidth < 480 ? 220 : 260;
+        // Vider le conteneur
+        qrCanvas.innerHTML = '';
+
+        if (typeof QRCode === 'undefined') {
+          qrCanvas.innerHTML =
+            '<p style="color:#f87171;font-size:.75rem;text-align:center;padding:1rem">⚠️ Librairie QR Code non chargée.<br>Vérifiez votre connexion internet.</p>';
+          return;
+        }
+
+        qrGenerated = true;
+        const size = window.innerWidth < 480 ? 220 : 260;
+
+        try {
           new QRCode(qrCanvas, {
             text:         QR_PAYLOAD,
             width:        size,
@@ -624,23 +629,9 @@
             colorLight:   '#ffffff',
             correctLevel: QRCode.CorrectLevel.M,
           });
-        }
-
-        // Si qrcode.js est déjà chargé (defer peut être déjà résolu)
-        if (typeof QRCode !== 'undefined') {
-          doGenerate();
-        } else {
-          // Attendre le chargement du script defer
-          const script = document.querySelector('script[src*="qrcode"]');
-          if (script) {
-            script.addEventListener('load', doGenerate, { once: true });
-            script.addEventListener('error', () => {
-              qrCanvas.innerHTML =
-                '<p style="color:#f87171;font-size:.75rem;text-align:center;padding:1rem">Bibliothèque QR Code indisponible.</p>';
-            }, { once: true });
-          } else {
-            doGenerate(); // fallback
-          }
+        } catch (e) {
+          qrCanvas.innerHTML =
+            '<p style="color:#f87171;font-size:.75rem;text-align:center;padding:1rem">Erreur génération QR Code.<br>' + e.message + '</p>';
         }
       }
 
@@ -666,7 +657,8 @@
 
       btnShowQR.addEventListener('click', () => {
         showView('qr');
-        generateQR();
+        // Petit délai pour s'assurer que le DOM est prêt
+        setTimeout(generateQR, 50);
       });
 
       btnBack.addEventListener('click', () => showView('choice'));

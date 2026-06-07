@@ -56,6 +56,11 @@ const submitBtn           = document.getElementById("submitBtn");
 let currentUser      = null;
 let pollingInterval  = null; // intervalle de vérification email
 
+// ── Nettoyage du polling en cas de navigation ──────────────
+window.addEventListener('beforeunload', () => {
+  stopPolling(); // Nettoyer avant de quitter la page
+});
+
 // ── Si déjà connecté et vérifié → dashboard directement ──────
 onAuthStateChanged(auth, async (user) => {
   if (user && user.emailVerified) {
@@ -178,7 +183,10 @@ function startPolling() {
         errorEl.textContent = "✅ Email confirmé ! Redirection en cours…";
 
         // Rediriger après un court délai
-        setTimeout(() => redirigerApresLogin(), 1200);
+        setTimeout(() => {
+          stopPolling(); // Double cleanup avant redirection
+          redirigerApresLogin();
+        }, 1200);
       }
     } catch {
       // Ignorer les erreurs réseau temporaires
