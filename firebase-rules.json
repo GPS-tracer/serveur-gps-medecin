@@ -22,6 +22,7 @@
     },
 
     "pending": {
+      ".read": "auth != null",
       "$deviceId": {
         ".read": true,
         ".write": true
