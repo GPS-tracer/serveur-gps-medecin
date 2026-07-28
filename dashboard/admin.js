@@ -58,6 +58,11 @@ const genCount          = document.getElementById('genCount');
 const genMessage        = document.getElementById('genMessage');
 const genResult         = document.getElementById('genResult');
 const btnGenerate       = document.getElementById('btnGenerate');
+const testParentType    = document.getElementById('testParentType');
+const testParentJours   = document.getElementById('testParentJours');
+const testParentMessage = document.getElementById('testParentMessage');
+const testParentResult  = document.getElementById('testParentResult');
+const btnGenerateTestParent = document.getElementById('btnGenerateTestParent');
 const genQuantiteRow    = document.getElementById('genQuantiteRow');
 const genQuantiteAgents = document.getElementById('genQuantiteAgents');
 
@@ -976,6 +981,47 @@ function configurerEcouteurs() {
     } finally {
       btnGenerate.disabled    = false;
       btnGenerate.textContent = 'Générer les clés';
+    }
+  });
+
+  // ── Génération d'un compte parent de test ───────────────────────────
+  btnGenerateTestParent?.addEventListener('click', async () => {
+    const body = {
+      type_abonnement: testParentType.value,
+      jours:            parseInt(testParentJours.value, 10) || 30,
+    };
+
+    btnGenerateTestParent.disabled    = true;
+    btnGenerateTestParent.textContent = 'Génération…';
+    testParentResult?.classList.add('hidden');
+
+    try {
+      const res  = await fetch('/api/admin/test-parent/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+        body:   JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMsg(testParentMessage, data.error || 'Erreur lors de la génération.', 'error');
+      } else {
+        showMsg(testParentMessage, '✅ Compte parent de test créé.', 'success');
+        if (testParentResult) {
+          testParentResult.innerHTML = `
+            <div><span class="text-slate-400">Code parent (UID) :</span> ${escapeHtml(data.codeParent)}</div>
+            <div><span class="text-slate-400">Email :</span> ${escapeHtml(data.email)}</div>
+            <div><span class="text-slate-400">Mot de passe :</span> ${escapeHtml(data.password)}</div>
+            <div><span class="text-slate-400">Expire le :</span> ${new Date(data.dateExpiration).toLocaleDateString('fr-FR')}</div>
+          `;
+          testParentResult.classList.remove('hidden');
+        }
+      }
+    } catch (err) {
+      showMsg(testParentMessage, 'Erreur réseau : ' + err.message, 'error');
+    } finally {
+      btnGenerateTestParent.disabled    = false;
+      btnGenerateTestParent.textContent = 'Générer un compte parent de test';
     }
   });
 

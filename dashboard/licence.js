@@ -105,6 +105,20 @@ btnPaste?.addEventListener('click', async () => {
   }
 });
 
+// ─── Copier le code parent dans le presse-papiers ────────────
+window.copierCodeParent = function copierCodeParent() {
+  if (!currentUser) return;
+  navigator.clipboard.writeText(currentUser.uid).then(() => {
+    const btn = document.getElementById('btnCopierCodeParent');
+    if (!btn) return;
+    const original = btn.textContent;
+    btn.textContent = '✅ Copié !';
+    setTimeout(() => { btn.textContent = original; }, 2000);
+  }).catch(() => {
+    showMessage('Impossible de copier automatiquement. Sélectionnez le code manuellement.', 'error');
+  });
+};
+
 // ─── Charger le statut freemium depuis l'API ─────────────────
 async function loadFreemiumStatus() {
   try {
@@ -189,6 +203,25 @@ function renderStatus(data) {
       </div>`;
   }
 
+  // ── Code parent (à partager avec l'élève/étudiant) ────────
+  const estSuiviScolaire = data.scolaireActif &&
+    ['suivi_eleve', 'suivi_etudiant'].includes(data.typeAbonnement);
+  const codeParentHtml = estSuiviScolaire ? `
+    <div class="mt-4 bg-sky-500/10 border border-sky-500/30 rounded-lg p-4">
+      <p class="text-sky-300 font-semibold text-sm mb-1">🔑 Mon code parent</p>
+      <p class="text-slate-400 text-xs mb-3">
+        Transmettez ce code à votre enfant ou étudiant : il en aura besoin lors de son inscription pour lier son compte au vôtre.
+      </p>
+      <div class="flex items-center gap-2">
+        <code class="flex-1 bg-slate-900/60 rounded-lg px-3 py-2 text-sm text-white font-mono tracking-wide break-all">${currentUser.uid}</code>
+        <button id="btnCopierCodeParent" type="button" onclick="window.copierCodeParent()"
+          class="px-3 py-2 bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap">
+          Copier
+        </button>
+      </div>
+    </div>
+  ` : '';
+
   statusContent.innerHTML = `
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="bg-slate-700/50 rounded-lg p-4">
@@ -209,6 +242,7 @@ function renderStatus(data) {
       </div>
     </div>
     ${abonnementBannerHtml}
+    ${codeParentHtml}
     ${data.agentLimitReached ? `
       <div class="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-300">
         ⚠️ Vous avez atteint votre limite d'agents.

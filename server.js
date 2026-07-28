@@ -1230,7 +1230,73 @@ app.post('/api/admin/licence/generate', requireSuperadmin, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// ROUTE WEBHOOK : Chariow Pulse (catalogue unifié — détection par ID produit)
+// ROUTE ADMIN : Générer un compte parent de test (Suivi Élève/Étudiant)
+// POST /api/admin/test-parent/generate
+// Réservé au superadmin — outil de QA, PAS pour la production réelle.
+// Crée un compte Firebase Auth + un profil companies/societes avec un
+// abonnement scolaire actif, pour pouvoir tester l'inscription élève/
+// étudiant sans dépendre d'un vrai client.
+// ─────────────────────────────────────────────────────────────
+app.post('/api/admin/test-parent/generate', requireSuperadmin, async (req, res) => {
+  const type_abonnement = TYPES_SCOLAIRES.includes(req.body?.type_abonnement)
+    ? req.body.type_abonnement
+    : 'suivi_eleve';
+  const jours           = Number.isInteger(req.body?.jours) && req.body.jours > 0 ? req.body.jours : 30;
+  const quantite_agents = Number.isInteger(req.body?.quantite_agents) && req.body.quantite_agents > 0
+    ? req.body.quantite_agents : 5;
+
+  try {
+    const suffixe  = Date.now().toString(36);
+    const email    = `test-parent-${suffixe}@test.gpstracker.local`;
+    const password = require('crypto').randomBytes(9).toString('base64url');
+
+    const userRecord = await admin.auth().createUser({
+      email,
+      password,
+      emailVerified: true,
+      displayName:   `Parent de test (${type_abonnement})`,
+    });
+    const uid = userRecord.uid;
+
+    const exp = prolongerExpirationMs(0, jours);
+
+    await ecrireProfilSociete(uid, {
+      companyName:                'Parent de test',
+      email,
+      sector:                     'test',
+      accountType:                'entreprise',
+      role:                       'societe',
+      createdAt:                  Date.now(),
+      isTest:                     true,
+      abonnement_scolaire_expire: exp,
+      abonnement_scolaire_type:   type_abonnement,
+    });
+    await ecrireLicenceDual(uid, {
+      typePack:         'free',
+      abonnement_actif: true,
+      type_abonnement,
+      date_expiration:  new Date(exp).toISOString(),
+      quantite_agents,
+      est_illimite:     false,
+    });
+
+    console.log(`🧪 Compte parent de test généré (${type_abonnement}):`, uid);
+    res.json({
+      success:    true,
+      uid,
+      codeParent: uid,
+      email,
+      password,
+      type_abonnement,
+      dateExpiration: new Date(exp).toISOString(),
+    });
+  } catch (err) {
+    console.error('generate test-parent error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+
 // POST /api/webhook/chariow-pulse
 // Header: x-chariow-secret: <CHARIOW_WEBHOOK_SECRET>
 //
