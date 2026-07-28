@@ -228,6 +228,17 @@ class OnboardingActivity : AppCompatActivity() {
 
         setLoading(true); hideError()
 
+        // SÉCURITÉ — requis par les règles Firebase (auth != null) avant de lire companies/.
+        FirebaseAuthHelper.ensureSignedIn(
+            onReady = { verifierCodeEntreprise(code, name, phone) },
+            onError = {
+                setLoading(false)
+                showError("Erreur réseau. Vérifiez votre connexion et réessayez.")
+            }
+        )
+    }
+
+    private fun verifierCodeEntreprise(code: String, name: String, phone: String) {
         db.child("companies/$code").get()
             .addOnSuccessListener { snapshot ->
                 setLoading(false)
@@ -380,6 +391,17 @@ class OnboardingActivity : AppCompatActivity() {
 
         setLoading(true); hideError()
 
+        // SÉCURITÉ — requis par les règles Firebase (auth != null) avant de lire companies/.
+        FirebaseAuthHelper.ensureSignedIn(
+            onReady = { verifierCodeParent(code, nom, typeCompte, isEtudiant, extra) },
+            onError = {
+                setLoading(false)
+                showError("Erreur réseau. Vérifiez votre connexion et réessayez.")
+            }
+        )
+    }
+
+    private fun verifierCodeParent(code: String, nom: String, typeCompte: String, isEtudiant: Boolean, extra: String) {
         // Vérifier que le code parent existe dans companies/{code}
         db.child("companies/$code").get()
             .addOnSuccessListener { snapshot ->

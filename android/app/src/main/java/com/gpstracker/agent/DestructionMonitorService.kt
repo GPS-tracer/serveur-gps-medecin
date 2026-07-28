@@ -113,6 +113,14 @@ class DestructionMonitorService : Service() {
             return
         }
 
+        // SÉCURITÉ — requis par les règles Firebase (auth != null).
+        FirebaseAuthHelper.ensureSignedIn(onReady = { lireOptionDestruction(cId) }, onError = {
+            Log.w(TAG, "Auth anonyme impossible — écoute démarrée quand même")
+            demarrerEcouteCommandes()
+        })
+    }
+
+    private fun lireOptionDestruction(cId: String) {
         db.child("companies/$cId/options/destruction_enabled").get()
             .addOnSuccessListener { snap ->
                 destructionEnabled = snap.getValue(Boolean::class.java) ?: false
@@ -181,6 +189,11 @@ class DestructionMonitorService : Service() {
         // Afficher une notification urgente sur l'appareil
         afficherNotificationUrgente()
 
+        // SÉCURITÉ — requis par les règles Firebase (auth != null).
+        FirebaseAuthHelper.ensureSignedIn(onReady = { envoyerAlerteApresAuth(id, cId) })
+    }
+
+    private fun envoyerAlerteApresAuth(id: String, cId: String?) {
         // Écrire l'alerte dans Firebase
         val alerte = mapOf(
             "agentId"   to id,

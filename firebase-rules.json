@@ -4,7 +4,7 @@
     "agents": {
       ".read": "auth != null",
       "$agentId": {
-        ".write": true
+        ".write": "auth != null"
       }
     },
 
@@ -15,7 +15,7 @@
         "agents": {
           "$agentId": {
             ".read": "auth != null && auth.uid == $societeId",
-            ".write": true
+            ".write": "auth != null"
           }
         }
       }
@@ -25,15 +25,21 @@
       ".read": "auth != null",
       "$deviceId": {
         ".read": true,
-        ".write": true
+        ".write": "auth != null"
       }
     },
 
     "companies": {
       ".read": "auth != null",
       "$uid": {
-        ".read": true,
-        ".write": "auth != null && auth.uid == $uid"
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $uid",
+        "eleves_lies": {
+          ".write": "auth != null"
+        },
+        "uninstall_alerts": {
+          ".write": "auth != null"
+        }
       }
     },
 
@@ -45,7 +51,7 @@
     "uninstall_alerts": {
       ".read": "auth != null",
       "$agentId": {
-        ".write": true
+        ".write": "auth != null"
       }
     },
 

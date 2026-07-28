@@ -5,7 +5,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /** @type {import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js").FirebaseOptions} */
 const firebaseConfig = {
@@ -24,6 +24,24 @@ export const db = getDatabase(app);
 
 /** Authentification serveur sécurisé (email / mot de passe) */
 export const auth = getAuth(app);
+
+/**
+ * SÉCURITÉ — Firebase Realtime Database exige désormais `auth != null` pour
+ * écrire une position GPS ou lire/vérifier un code société (voir firebase-rules.json).
+ * Avant, ces opérations étaient possibles sans aucune authentification, ce qui
+ * permettait à n'importe qui d'injecter de fausses positions GPS.
+ *
+ * Cette fonction garantit qu'un utilisateur (même anonyme) est connecté avant
+ * toute lecture/écriture sensible. Si un utilisateur "réel" (email/mdp) est
+ * déjà connecté, elle ne fait rien.
+ *
+ * @returns {Promise<import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js").User>}
+ */
+export async function ensureAnonymousAuth() {
+  if (auth.currentUser) return auth.currentUser;
+  const credential = await signInAnonymously(auth);
+  return credential.user;
+}
 
 /** Boutique Chariow GPTS (URLs de paiement) */
 export const CHARIOW_SHOP_BASE = 'https://erpbbfef.mychariow.shop';
@@ -115,6 +133,7 @@ function normalizeTimestamp(timestamp) {
 export async function sendLocation(agentId, latitude, longitude, timestamp, meta = {}) {
   const id       = assertValidAgentId(agentId);
   assertValidCoordinates(latitude, longitude);
+  await ensureAnonymousAuth(); // requis par les règles Firebase (auth != null)
   const ts       = normalizeTimestamp(timestamp);
   const tsKey    = String(ts);
   const companyId = meta.companyId || null;

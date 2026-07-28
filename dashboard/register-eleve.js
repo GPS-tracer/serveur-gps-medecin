@@ -10,7 +10,7 @@
  *    - companies/{uid}                          ← profil propre de l'élève
  */
 
-import { auth, db } from '../shared/firebase.js';
+import { auth, db, ensureAnonymousAuth } from '../shared/firebase.js';
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
@@ -64,6 +64,9 @@ form.addEventListener('submit', async (e) => {
   setLoading(true);
 
   try {
+    // 0. Requis par les règles Firebase (auth != null) — pas encore de compte à ce stade
+    await ensureAnonymousAuth();
+
     // 1. Vérifier que le code parent existe et a un abonnement suivi_eleve
     const parentSnap = await get(ref(db, `companies/${codeParent}`));
     if (!parentSnap.exists()) {

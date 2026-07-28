@@ -110,7 +110,14 @@ class LocationService : Service() {
         super.onCreate()
         Log.d(TAG, "Service créé")
         isRunning = true
-        
+
+        // SÉCURITÉ — requis par les règles Firebase (auth != null) avant tout
+        // envoi de position GPS. Voir FirebaseAuthHelper.kt.
+        FirebaseAuthHelper.ensureSignedIn(
+            onReady = { Log.d(TAG, "Session Firebase prête pour l'envoi GPS") },
+            onError = { e -> Log.e(TAG, "Impossible d'authentifier le service GPS: ${e.message}") }
+        )
+
         // Initialiser le ConfigManager
         configManager = ConfigManager(this)
         configManager.loadStatistics()

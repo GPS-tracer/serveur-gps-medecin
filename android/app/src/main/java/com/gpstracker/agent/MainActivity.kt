@@ -221,6 +221,18 @@ class MainActivity : AppCompatActivity() {
         btnRegister.isEnabled = false
         btnRegister.text = "Enregistrement..."
 
+        // SÉCURITÉ — requis par les règles Firebase (auth != null) avant d'écrire pending/.
+        FirebaseAuthHelper.ensureSignedIn(
+            onReady = { doRegisterAgentInFirebase(name, phone) },
+            onError = {
+                btnRegister.isEnabled = true
+                btnRegister.text = "Réessayer"
+                Toast.makeText(this, "Connexion impossible, réessayez.", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    private fun doRegisterAgentInFirebase(name: String, phone: String) {
         val model        = "${Build.MANUFACTURER} ${Build.MODEL}"
         val androidVer   = Build.VERSION.RELEASE
         val sdkInt       = Build.VERSION.SDK_INT
@@ -428,7 +440,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (!allGranted) {
-            permissionLauncher.launch(locationPermissions)
+            // Expliquer pourquoi la permission GPS est nécessaire
+            AlertDialog.Builder(this)
+                .setTitle("Permission GPS requise")
+                .setMessage("GPS Tracker a besoin d'accéder à votre localisation pour assurer le suivi de flotte. Veuillez autoriser l'accès.")
+                .setPositiveButton("Autoriser") { _, _ ->
+                    permissionLauncher.launch(locationPermissions)
+                }
+                .setNegativeButton("Quitter") { _, _ -> finish() }
+                .setCancelable(false)
+                .show()
             return
         }
 
@@ -439,7 +460,26 @@ class MainActivity : AppCompatActivity() {
             ) == PackageManager.PERMISSION_GRANTED
 
             if (!bgGranted) {
-                bgPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                // Expliquer pourquoi "Toujours autoriser" est nécessaire
+                AlertDialog.Builder(this)
+                    .setTitle("Localisation en arrière-plan")
+                    .setMessage(
+                        "Pour un suivi GPS continu même quand l'app est fermée, " +
+                        "sélectionnez \"Toujours autoriser\" dans les paramètres.\n\n" +
+                        "Paramètres → Applications → GPS Tracker → Autorisations → Localisation → Toujours autoriser"
+                    )
+                    .setPositiveButton("Ouvrir les paramètres") { _, _ ->
+                        // Ouvrir directement les paramètres de l'app
+                        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = android.net.Uri.fromParts("package", packageName, null)
+                        }
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("Continuer quand même") { _, _ ->
+                        startTracking()
+                    }
+                    .setCancelable(false)
+                    .show()
                 return
             }
         }
@@ -468,6 +508,21 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         tvStatus.text = if (LocationService.isRunning) "✅ Tracking actif" else tvStatus.text
+
+        // Vérifier si le GPS système est activé
+        val locationManager = getSystemService(LOCATION_SERVICE) as android.location.LocationManager
+        val gpsEnabled = locationManager.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)
+        if (!gpsEnabled && getAgentStatus() == AgentStatus.ACTIVE) {
+            AlertDialog.Builder(this)
+                .setTitle("⚠️ GPS désactivé")
+                .setMessage("Le GPS est désactivé sur cet appareil. Le suivi de flotte ne peut pas fonctionner. Veuillez l'activer maintenant.")
+                .setPositiveButton("Activer le GPS") { _, _ ->
+                    startActivity(Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                }
+                .setNegativeButton("Ignorer", null)
+                .show()
+        }
+    }
     }
 
     override fun onDestroy() {

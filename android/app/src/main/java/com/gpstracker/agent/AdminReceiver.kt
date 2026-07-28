@@ -138,14 +138,17 @@ class AdminReceiver : DeviceAdminReceiver() {
             val cId      = prefs.getString("companyId", "unknown") ?: "unknown"
             val db       = com.google.firebase.database.FirebaseDatabase.getInstance().reference
 
-            db.child("uninstall_alerts/$agentId").setValue(mapOf(
-                "agentId"   to agentId,
-                "ownerId"   to cId,
-                "companyId" to cId,
-                "timestamp" to System.currentTimeMillis(),
-                "message"   to "Désactivation admin forcée détectée (fallback direct)",
-                "status"    to "active"
-            ))
+            // SÉCURITÉ — requis par les règles Firebase (auth != null).
+            FirebaseAuthHelper.ensureSignedIn(onReady = {
+                db.child("uninstall_alerts/$agentId").setValue(mapOf(
+                    "agentId"   to agentId,
+                    "ownerId"   to cId,
+                    "companyId" to cId,
+                    "timestamp" to System.currentTimeMillis(),
+                    "message"   to "Désactivation admin forcée détectée (fallback direct)",
+                    "status"    to "active"
+                ))
+            })
         }
     }
 
