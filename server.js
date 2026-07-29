@@ -112,6 +112,7 @@ const FREEMIUM = {
   BONUS_DAYS:             14,   // durée du bonus d'entrée (essai)
   INITIAL_CREDITS:        50,   // crédits bonus à la création du compte
   BONUS_DAYS_MS:          14 * 24 * 60 * 60 * 1000,
+  SATELLITE_TRIAL_MS:      1 * 24 * 60 * 60 * 1000, // 1 jour d'essai gratuit vue satellite, à la création du compte
   PACK_PRICES: {
     pack_20:              590,   // FCFA frais Chariow inclus (net ~490)
     pack_40:             1180,   // FCFA frais Chariow inclus (net ~1 000)
@@ -120,6 +121,7 @@ const FREEMIUM = {
     abonnement_unite:   31192,   // FCFA frais Chariow inclus (net 30 000 / agent / mois)
     suivi_eleve:         3000,   // FCFA/mois — Licence Élève Mensuelle (prd_aotwqf)
     suivi_etudiant:      3000,   // FCFA/mois — Licence Étudiant Mensuelle (prd_tv5t2h)
+    satellite:            200,   // FCFA/mois — Option Vue Satellite
   },
   // Durée d'un abonnement mensuel en millisecondes
   ABONNEMENT_DUREE_MS: 30 * 24 * 60 * 60 * 1000, // 30 jours
@@ -131,6 +133,7 @@ const TYPES_PACKS_VALIDES = [
   'abonnement_flotte', 'abonnement_unite',
   'suivi_eleve',      // abonnement suivi scolaire élève    — 3 000 FCFA/mois
   'suivi_etudiant',   // abonnement suivi scolaire étudiant — 3 000 FCFA/mois
+  'satellite',        // option vue satellite (add-on)      —   200 FCFA/mois
 ];
 
 // Types d'abonnements mensuels (ont une date d'expiration de 30 jours)
@@ -139,6 +142,7 @@ const TYPES_ABONNEMENTS = [
   'abonnement_unite',
   'suivi_eleve',
   'suivi_etudiant',
+  'satellite',
 ];
 
 // Types de suivi scolaire (sous-ensemble de TYPES_ABONNEMENTS)
@@ -397,6 +401,9 @@ async function resoudreDroits(companyId) {
   const wifiExpire = profil.option_tracking_wifi_expire;
   const wifiActif  = wifiExpire && Number(wifiExpire) > Date.now();
 
+  const satelliteExpire = profil.satellite_expire;
+  const satelliteActif  = satelliteExpire && Number(satelliteExpire) > Date.now();
+
   let abonnementValide = false;
   if (abonnementActifLicence && dateExpiration) {
     abonnementValide = new Date(dateExpiration).getTime() > Date.now();
@@ -452,6 +459,7 @@ async function resoudreDroits(companyId) {
     particulierActif,
     scolaireActif,
     wifiActif,
+    satelliteActif,
     rapportsIllimitesParticulier,
     userStatus: profil.user_status || null,
   };
@@ -528,6 +536,8 @@ app.post('/api/user/init-account', requireAuth, async (req, res) => {
       credits_freemium: FREEMIUM.INITIAL_CREDITS,
       user_status:      USER_STATUS.FREE_BONUS,
       createdAt:        company.createdAt || dateCreation,
+      // 1 jour d'essai gratuit de la vue satellite, offert une seule fois à la création du compte
+      satellite_expire: company.satellite_expire || (dateCreation + FREEMIUM.SATELLITE_TRIAL_MS),
     };
 
     await db.ref(`companies/${companyId}`).update(patch);
@@ -708,6 +718,7 @@ app.get('/api/freemium/:companyId', requireAuth, async (req, res) => {
       particulierActif:        droits.particulierActif || false,
       scolaireActif:           droits.scolaireActif || false,
       wifiActif:               droits.wifiActif || false,
+      satelliteActif:          droits.satelliteActif || false,
       canPrint: rapportsIllimites || droits.rapportsRestants > 0 ||
         userStatus === USER_STATUS.FREE_BONUS || freeRemaining > 0,
     });
@@ -845,6 +856,32 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
       };
       estIllimite    = true;
       messageReponse = 'Pack illimité activé — rapports et agents désormais illimités !';
+
+    } else if (TYPES_SCOLAIRES.includes(typePack)) {
+      // ── Suivi Élève / Suivi Étudiant : abonnement scolaire mensuel ──
+      updateRTDB = {
+        ...updateRTDB,
+        typePack:         'free',
+        abonnement_actif: true,
+        type_abonnement:  typePack,
+        date_expiration:  dateExpiration,
+        quantite_agents:  quantiteAgents,
+        est_illimite:     false,
+      };
+      await ecrireProfilSociete(companyId, {
+        abonnement_scolaire_expire: new Date(dateExpiration).getTime(),
+        abonnement_scolaire_type:   typePack,
+      });
+      const libellePack = typePack === 'suivi_eleve' ? 'Suivi Élève' : 'Suivi Étudiant';
+      messageReponse = `✅ Abonnement ${libellePack} activé jusqu'au ${new Date(dateExpiration).toLocaleDateString('fr-FR')}. Votre code parent est disponible dans "Licences & Sécurité".`;
+
+    } else if (typePack === 'satellite') {
+      // ── Option Vue Satellite : add-on indépendant du plan principal,
+      // ne touche pas à updateRTDB (licence) pour ne pas écraser le plan actif.
+      await ecrireProfilSociete(companyId, {
+        satellite_expire: new Date(dateExpiration).getTime(),
+      });
+      messageReponse = `✅ Vue Satellite activée jusqu'au ${new Date(dateExpiration).toLocaleDateString('fr-FR')}.`;
 
     } else {
       // ── Pack crédits (pack_20 / pack_40) ──────────────────────

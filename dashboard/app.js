@@ -28,11 +28,23 @@ const map = L.map(mapEl, {
   zoomControl: true,
 }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+/** Fond de carte "route" (OSM) et fond "satellite" (Esri World Imagery, gratuit, sans clé API). */
+const osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution:
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
+
+const satelliteLayer = L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  {
+    maxZoom: 19,
+    attribution:
+      'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+  }
+);
+let satelliteAffichee = false;
+let satelliteDebloquee = false; // droit d'accès (abonnement actif ou essai gratuit en cours)
 
 requestAnimationFrame(() => map.invalidateSize());
 
@@ -439,6 +451,7 @@ onAuthStateChanged(auth, async (user) => {
   currentCompanyId = user.uid;
 
   afficherBandeauPlanGratuit();
+  initialiserBoutonSatellite(user.uid);
 
   // Écouter les notifications non lues (geofencing + expiration)
   ecouterNotifications(user.uid);
@@ -446,6 +459,47 @@ onAuthStateChanged(auth, async (user) => {
   // Démarrer le listener sur le bon chemin societes/{uid}/agents
   demarrerListenerAgents(user.uid);
 });
+
+/**
+ * Vue Satellite — add-on payant (200 FCFA/mois), avec 1 jour d'essai gratuit
+ * offert automatiquement à la création du compte (voir /api/user/init-account).
+ * Écoute companies/{uid}/satellite_expire pour savoir si l'accès est actif.
+ */
+function initialiserBoutonSatellite(companyId) {
+  const btn = document.getElementById('btnToggleSatellite');
+  if (!btn) return;
+
+  onValue(ref(db, `companies/${companyId}/satellite_expire`), (snap) => {
+    const expire = snap.val();
+    satelliteDebloquee = !!expire && Number(expire) > Date.now();
+    btn.title = satelliteDebloquee
+      ? 'Basculer vue Satellite / Route'
+      : 'Vue Satellite (option payante — 200 FCFA/mois)';
+    btn.style.opacity = satelliteDebloquee ? '1' : '0.55';
+  });
+
+  btn.addEventListener('click', () => {
+    if (!satelliteDebloquee) {
+      const veut = confirm(
+        "🛰️ La vue Satellite est une option payante (200 FCFA/mois).\n\n" +
+        "Votre jour d'essai gratuit est terminé ou pas encore actif.\n\n" +
+        "Aller sur la page Licences & Sécurité pour l'activer ?"
+      );
+      if (veut) window.location.href = 'licence.html';
+      return;
+    }
+    satelliteAffichee = !satelliteAffichee;
+    if (satelliteAffichee) {
+      map.removeLayer(osmLayer);
+      satelliteLayer.addTo(map);
+      btn.style.filter = 'invert(1) hue-rotate(180deg)';
+    } else {
+      map.removeLayer(satelliteLayer);
+      osmLayer.addTo(map);
+      btn.style.filter = '';
+    }
+  });
+}
 
 /**
  * Bandeau orange permanent en FREE_STRICT (plan gratuit limité).
