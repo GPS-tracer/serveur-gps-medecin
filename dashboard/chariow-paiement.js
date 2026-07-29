@@ -7,7 +7,7 @@
  */
 import { CHARIOW_PRODUCTS, CHARIOW_SHOP_BASE } from '../shared/firebase.js';
 
-const OFFRES_VALIDEES  = new Set(['wifi', 'particulier', 'eleve', 'etudiant', 'flotte', 'illimite']);
+const OFFRES_VALIDEES  = new Set(['wifi', 'particulier', 'eleve', 'etudiant', 'flotte', 'illimite', 'satellite']);
 const PERIODES_VALIDEES = new Set(['mensuel', 'annuel']);
 
 /**
@@ -24,6 +24,7 @@ export function resoudreProduitChariow(typeOffre, periode) {
     case 'etudiant':    return annuel ? CHARIOW_PRODUCTS.ETUDIANT_ANNUEL    : CHARIOW_PRODUCTS.ETUDIANT_MENSUEL;
     case 'flotte':      return CHARIOW_PRODUCTS.FORFAIT_FLOTTE;
     case 'illimite':    return CHARIOW_PRODUCTS.ACCES_ILLIMITE;
+    case 'satellite':   return CHARIOW_PRODUCTS.SATELLITE_24H;
     default:            return null;
   }
 }
@@ -239,6 +240,23 @@ export const CATALOGUE_OFFRES = [
         montantFcfa: 20000,
         prixLabel: '20 000 FCFA',
         labelBtn: 'Acheter',
+      },
+    ],
+  },
+  {
+    id: 'satellite',
+    icon: '🛰️',
+    titre: 'Vue Satellite 24H',
+    desc: 'Bascule le fond de carte en imagerie satellite pendant 24h',
+    accent: 'sky',
+    periodes: [
+      {
+        periode: 'mensuel',
+        productId: CHARIOW_PRODUCTS.SATELLITE_24H,
+        libelleChariow: "Clé d'activation GPS Tracker - 24H",
+        montantFcfa: 577,
+        prixLabel: '577 FCFA / 24h',
+        labelBtn: 'Activer 24h',
       },
     ],
   },

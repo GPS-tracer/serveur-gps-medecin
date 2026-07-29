@@ -481,7 +481,7 @@ function initialiserBoutonSatellite(companyId) {
   btn.addEventListener('click', () => {
     if (!satelliteDebloquee) {
       const veut = confirm(
-        "🛰️ La vue Satellite est une option payante (200 FCFA/mois).\n\n" +
+        "🛰️ La vue Satellite est une option payante (577 FCFA / 24h).\n\n" +
         "Votre jour d'essai gratuit est terminé ou pas encore actif.\n\n" +
         "Aller sur la page Licences & Sécurité pour l'activer ?"
       );

@@ -121,10 +121,11 @@ const FREEMIUM = {
     abonnement_unite:   31192,   // FCFA frais Chariow inclus (net 30 000 / agent / mois)
     suivi_eleve:         3000,   // FCFA/mois — Licence Élève Mensuelle (prd_aotwqf)
     suivi_etudiant:      3000,   // FCFA/mois — Licence Étudiant Mensuelle (prd_tv5t2h)
-    satellite:            200,   // FCFA/mois — Option Vue Satellite
+    satellite:            577,   // FCFA — Clé d'activation GPS Tracker 24H (prd_efghjyes)
   },
   // Durée d'un abonnement mensuel en millisecondes
   ABONNEMENT_DUREE_MS: 30 * 24 * 60 * 60 * 1000, // 30 jours
+  SATELLITE_KEY_DUREE_MS: 24 * 60 * 60 * 1000,   // 24h — la clé Vue Satellite est ponctuelle, pas mensuelle
 };
 
 // Types de packs valides (utilisés dans plusieurs routes)
@@ -160,6 +161,7 @@ const CHARIOW_PRODUCTS = {
   ETUDIANT_ANNUEL:      'prd_zaxkdc',
   FORFAIT_FLOTTE:       'prd_zvj2cv',
   ACCES_ILLIMITE:       'prd_7hj1hc',
+  SATELLITE_24H:        'prd_efghjyes',
 };
 
 const MS_PAR_JOUR = 24 * 60 * 60 * 1000;
@@ -262,6 +264,7 @@ function joursPourProduitChariow(productId) {
     CHARIOW_PRODUCTS.ELEVE_ANNUEL,
     CHARIOW_PRODUCTS.ETUDIANT_ANNUEL,
   ]);
+  if (productId === CHARIOW_PRODUCTS.SATELLITE_24H) return 1; // clé ponctuelle 24h
   return annuels.has(productId) ? 365 : 30;
 }
 
@@ -781,8 +784,12 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
       quantiteAgents = data.quantite_agents || 1;
 
       // Calcul de la date d'expiration pour les abonnements mensuels
+      // (la clé satellite est ponctuelle : 24h, pas 30 jours)
+      const dureeMs = typePack === 'satellite'
+        ? FREEMIUM.SATELLITE_KEY_DUREE_MS
+        : FREEMIUM.ABONNEMENT_DUREE_MS;
       const dateActivation = new Date();
-      const dateExpiration = new Date(dateActivation.getTime() + FREEMIUM.ABONNEMENT_DUREE_MS);
+      const dateExpiration = new Date(dateActivation.getTime() + dureeMs);
 
       const updateData = {
         statut:           'utilise',
@@ -811,6 +818,8 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
     const now            = new Date();
     const nowISO         = now.toISOString();
     const dateExpiration = new Date(now.getTime() + FREEMIUM.ABONNEMENT_DUREE_MS).toISOString();
+    // La clé Vue Satellite est ponctuelle (24h), pas un abonnement mensuel
+    const dateExpirationSatellite = new Date(now.getTime() + FREEMIUM.SATELLITE_KEY_DUREE_MS).toISOString();
 
     let updateRTDB = {
       lastActivation: nowISO,
@@ -876,12 +885,12 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
       messageReponse = `✅ Abonnement ${libellePack} activé jusqu'au ${new Date(dateExpiration).toLocaleDateString('fr-FR')}. Votre code parent est disponible dans "Licences & Sécurité".`;
 
     } else if (typePack === 'satellite') {
-      // ── Option Vue Satellite : add-on indépendant du plan principal,
-      // ne touche pas à updateRTDB (licence) pour ne pas écraser le plan actif.
+      // ── Option Vue Satellite : add-on ponctuel de 24h, indépendant du
+      // plan principal — ne touche pas à updateRTDB (licence).
       await ecrireProfilSociete(companyId, {
-        satellite_expire: new Date(dateExpiration).getTime(),
+        satellite_expire: new Date(dateExpirationSatellite).getTime(),
       });
-      messageReponse = `✅ Vue Satellite activée jusqu'au ${new Date(dateExpiration).toLocaleDateString('fr-FR')}.`;
+      messageReponse = `✅ Vue Satellite activée pour 24h, jusqu'au ${new Date(dateExpirationSatellite).toLocaleString('fr-FR')}.`;
 
     } else {
       // ── Pack crédits (pack_20 / pack_40) ──────────────────────
@@ -906,7 +915,7 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
           key,
           typePack,
           activatedAt:    nowISO,
-          dateExpiration: TYPES_ABONNEMENTS.includes(typePack) ? dateExpiration : null,
+          dateExpiration: TYPES_ABONNEMENTS.includes(typePack) ? (typePack === 'satellite' ? dateExpirationSatellite : dateExpiration) : null,
           quantiteAgents: typePack === 'abonnement_unite' ? quantiteAgents : null,
           credits:        ['pack_20', 'pack_40'].includes(typePack)
             ? (typePack === 'pack_20' ? 20 : 40)
@@ -937,7 +946,7 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
       typePack,
       estIllimite,
       quantiteAgents: typePack === 'abonnement_unite' ? quantiteAgents : null,
-      dateExpiration: TYPES_ABONNEMENTS.includes(typePack) ? dateExpiration : null,
+      dateExpiration: TYPES_ABONNEMENTS.includes(typePack) ? (typePack === 'satellite' ? dateExpirationSatellite : dateExpiration) : null,
       message:        messageReponse,
     });
 
@@ -1430,6 +1439,16 @@ async function traiterPaiementChariowParId(companyId, productId, payload) {
         ...meta,
       });
       return { effect: 'wifi', expiration: exp };
+    }
+
+    case CHARIOW_PRODUCTS.SATELLITE_24H: {
+      // Add-on ponctuel (24h) indépendant du plan principal
+      const exp = prolongerExpirationMs(profil.satellite_expire, jours);
+      await ecrireProfilSociete(companyId, {
+        satellite_expire: exp,
+        ...meta,
+      });
+      return { effect: 'satellite', expiration: exp };
     }
 
     case CHARIOW_PRODUCTS.PARTICULIER_MENSUEL:

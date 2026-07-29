@@ -61,6 +61,7 @@ export const CHARIOW_PRODUCTS = {
   ETUDIANT_ANNUEL:      'prd_zaxkdc',   // GPS Tracker - Étudiant Annuel
   FORFAIT_FLOTTE:       'prd_zvj2cv',   // GpSTracker - Forfait Flotte
   ACCES_ILLIMITE:       'prd_7hj1hc',   // Pack Accès Illimité Premium
+  SATELLITE_24H:        'prd_efghjyes', // Clé d'activation GPS Tracker - 24H (Vue Satellite)
 };
 
 /** Jours ajoutés selon la période (mensuel / annuel) */
