@@ -16,6 +16,7 @@ import { get, ref, onValue, set, push, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { auth, db } from "../shared/firebase.js";
 import { genererTableauAdminChariowHtml } from './chariow-paiement.js';
+import { brancherBoutonDeconnexion } from './deconnexion.js';
 
 // [ADMIN SUPRÊME] — Import du module de réveil serveur (évite l'affichage brut Render)
 import { waitForServerWake } from './splash-wake.js';
@@ -171,6 +172,8 @@ let pendingDestructionRaison = null;
       // Récupération du token pour les appels API sécurisés
       adminToken = await user.getIdToken();
       console.log("[ADMIN SUPRÊME] — Accès autorisé.");
+
+      brancherBoutonDeconnexion('#btnSignOut', 'login.html');
 
       // Retrait en douceur du splash GPS-Tracker
       if (splashAdmin) {
