@@ -2,6 +2,12 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
+  <style>
+    /* Garde-fou anti-FOUC : Tailwind CDN charge en differe (defer),
+       les icones SVG sans style peuvent s'afficher en grand format
+       une fraction de seconde avant que les classes Tailwind ne s'appliquent. */
+    svg:not([width]):not([height]) { width: 1.5rem; height: 1.5rem; }
+  </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mon Espace Étudiant — GPS Tracker</title>
   <script>window.tailwind={corePlugins:{preflight:true}}</script>
