@@ -1230,7 +1230,72 @@ app.post('/api/admin/licence/generate', requireSuperadmin, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// ROUTE ADMIN : Générer un compte parent de test (Suivi Élève/Étudiant)
+// ROUTE ADMIN : Créer/réinitialiser un compte démo (accès complet)
+// POST /api/admin/demo-account/create
+// Réservé au superadmin. Crée un compte "Entreprise Démo" avec un
+// abonnement Illimité déjà actif (flotte, rapports, licences visibles
+// sans rien avoir à activer). Identifiants fournis par l'appelant —
+// si l'email existe déjà, son mot de passe est simplement réinitialisé
+// et son profil/licence remis à l'état "démo actif".
+// ─────────────────────────────────────────────────────────────
+app.post('/api/admin/demo-account/create', requireSuperadmin, async (req, res) => {
+  const email    = (req.body?.email || '').trim().toLowerCase();
+  const password = req.body?.password || '';
+  const jours    = Number.isInteger(req.body?.jours) && req.body.jours > 0 ? req.body.jours : 365;
+
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Email invalide.' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Le mot de passe doit faire au moins 6 caractères.' });
+  }
+
+  try {
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUserByEmail(email);
+      await admin.auth().updateUser(userRecord.uid, { password, emailVerified: true });
+    } catch (e) {
+      userRecord = await admin.auth().createUser({
+        email, password, emailVerified: true, displayName: 'Entreprise Démo',
+      });
+    }
+    const uid = userRecord.uid;
+    const exp = prolongerExpirationMs(0, jours);
+
+    await ecrireProfilSociete(uid, {
+      companyName: 'Entreprise Démo',
+      email,
+      sector:      'demo',
+      accountType: 'entreprise',
+      role:        'societe',
+      createdAt:   Date.now(),
+      isDemo:      true,
+    });
+    await ecrireLicenceDual(uid, {
+      typePack:         'illimite',
+      abonnement_actif: true,
+      date_expiration:  new Date(exp).toISOString(),
+      quantite_agents:  10,
+      est_illimite:     true,
+    });
+
+    console.log('🎬 Compte démo créé/réinitialisé:', uid, email);
+    res.json({
+      success: true,
+      uid,
+      codeParent: uid,
+      email,
+      password,
+      dateExpiration: new Date(exp).toISOString(),
+    });
+  } catch (err) {
+    console.error('create demo-account error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+
 // POST /api/admin/test-parent/generate
 // Réservé au superadmin — outil de QA, PAS pour la production réelle.
 // Crée un compte Firebase Auth + un profil companies/societes avec un

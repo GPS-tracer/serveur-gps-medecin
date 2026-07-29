@@ -58,6 +58,11 @@ const genCount          = document.getElementById('genCount');
 const genMessage        = document.getElementById('genMessage');
 const genResult         = document.getElementById('genResult');
 const btnGenerate       = document.getElementById('btnGenerate');
+const demoAccountEmail    = document.getElementById('demoAccountEmail');
+const demoAccountPassword = document.getElementById('demoAccountPassword');
+const demoAccountMessage  = document.getElementById('demoAccountMessage');
+const demoAccountResult   = document.getElementById('demoAccountResult');
+const btnCreateDemoAccount = document.getElementById('btnCreateDemoAccount');
 const testParentType    = document.getElementById('testParentType');
 const testParentJours   = document.getElementById('testParentJours');
 const testParentMessage = document.getElementById('testParentMessage');
@@ -981,6 +986,44 @@ function configurerEcouteurs() {
     } finally {
       btnGenerate.disabled    = false;
       btnGenerate.textContent = 'Générer les clés';
+    }
+  });
+
+  // ── Création du compte démo (accès complet) ──────────────────────────
+  btnCreateDemoAccount?.addEventListener('click', async () => {
+    const email    = demoAccountEmail.value.trim();
+    const password = demoAccountPassword.value;
+
+    btnCreateDemoAccount.disabled    = true;
+    btnCreateDemoAccount.textContent = 'Création…';
+    demoAccountResult?.classList.add('hidden');
+
+    try {
+      const res  = await fetch('/api/admin/demo-account/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+        body:   JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMsg(demoAccountMessage, data.error || 'Erreur lors de la création.', 'error');
+      } else {
+        showMsg(demoAccountMessage, '✅ Compte démo prêt.', 'success');
+        if (demoAccountResult) {
+          demoAccountResult.innerHTML = `
+            <div><span class="text-slate-400">Email :</span> ${escapeHtml(data.email)}</div>
+            <div><span class="text-slate-400">Mot de passe :</span> ${escapeHtml(data.password)}</div>
+            <div><span class="text-slate-400">Abonnement :</span> Illimité actif jusqu'au ${new Date(data.dateExpiration).toLocaleDateString('fr-FR')}</div>
+          `;
+          demoAccountResult.classList.remove('hidden');
+        }
+      }
+    } catch (err) {
+      showMsg(demoAccountMessage, 'Erreur réseau : ' + err.message, 'error');
+    } finally {
+      btnCreateDemoAccount.disabled    = false;
+      btnCreateDemoAccount.textContent = 'Créer / réinitialiser le compte démo';
     }
   });
 

@@ -346,6 +346,33 @@
         </div>
       </div>
 
+      <!-- Créer un compte démo (accès complet, identifiants fixes) -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
+        <h3 class="text-lg font-bold mb-2 flex items-center gap-2">🎬 Créer un compte démo</h3>
+        <p class="text-slate-400 text-sm mb-4">
+          Crée (ou réinitialise) un compte "Entreprise Démo" avec un abonnement <strong>Illimité déjà actif</strong> —
+          idéal pour une démonstration à un investisseur ou un partenaire. Vous choisissez l'email et le mot de passe.
+        </p>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-slate-300 text-sm font-medium mb-2">Email du compte démo</label>
+            <input type="email" id="demoAccountEmail" placeholder="demo@gpstracker.com"
+              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 text-sm font-medium mb-2">Mot de passe</label>
+            <input type="text" id="demoAccountPassword" placeholder="Au moins 6 caractères"
+              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+          <div id="demoAccountMessage" class="hidden rounded-lg px-4 py-3 text-sm"></div>
+          <div id="demoAccountResult" class="hidden bg-slate-700/30 rounded-lg p-3 font-mono text-xs text-emerald-300 space-y-1.5"></div>
+          <button id="btnCreateDemoAccount"
+            class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md">
+            Créer / réinitialiser le compte démo
+          </button>
+        </div>
+      </div>
+
       <!-- Générer un compte parent de test (Suivi Élève/Étudiant) -->
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
         <h3 class="text-lg font-bold mb-2 flex items-center gap-2">🧪 Générer un compte parent de test</h3>
