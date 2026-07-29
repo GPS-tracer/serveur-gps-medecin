@@ -148,11 +148,16 @@ form.addEventListener('submit', async (e) => {
         const user = userCredential.user;
         console.log('Utilisateur créé:', user.uid);
         
-        // Upload du logo (si présent)
+        // Upload du logo (si présent) — non bloquant : une erreur ici ne doit
+        // jamais empêcher la création du compte (déjà créé à l'étape précédente).
         let logoUrl = null;
         if (logoFile) {
             console.log('Upload du logo...');
-            logoUrl = await uploadLogo(logoFile, user.uid);
+            try {
+                logoUrl = await uploadLogo(logoFile, user.uid);
+            } catch (logoErr) {
+                console.warn('Upload du logo échoué, inscription poursuivie sans logo:', logoErr);
+            }
         }
         
         console.log('Enregistrement des données...');
