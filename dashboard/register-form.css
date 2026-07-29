@@ -264,6 +264,19 @@ body.register-form--entreprise {
   cursor: not-allowed;
 }
 
+.register-form__spinner {
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+  animation: register-form-spin 0.8s linear infinite;
+}
+
+@keyframes register-form-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 .register-form__foot {
   text-align: center;
   font-size: 0.875rem;
