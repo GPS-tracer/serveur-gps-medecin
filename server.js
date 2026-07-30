@@ -196,44 +196,25 @@ function prolongerExpirationMs(expirationActuelle, jours) {
 }
 
 /** Lit le profil unifié (societes prioritaire, fallback companies) */
+/**
+ * Lit le profil d'une société. `companies/{id}` est la source unique pour
+ * les données de profil (nom, licence, abonnements...). `societes/{id}`
+ * reste utilisé uniquement pour societes/{id}/agents (positions GPS),
+ * requis par l'app Android et l'agent web — pas pour le profil.
+ */
 async function lireProfilSociete(companyId) {
-  const [socSnap, compSnap] = await Promise.all([
-    db.ref(`societes/${companyId}`).get(),
-    db.ref(`companies/${companyId}`).get(),
-  ]);
-  const societe = socSnap.val() || {};
-  const company = compSnap.val() || {};
-  return fusionnerProfilSociete(company, societe);
+  const snap = await db.ref(`companies/${companyId}`).get();
+  return snap.val() || {};
 }
 
-function fusionnerRole(societeRole, companyRole) {
-  if (societeRole === 'superadmin' || companyRole === 'superadmin') return 'superadmin';
-  return societeRole ?? companyRole;
-}
-
-function fusionnerProfilSociete(company = {}, societe = {}) {
-  return {
-    ...company,
-    ...societe,
-    role: fusionnerRole(societe.role, company.role),
-    licence: { ...(company.licence || {}), ...(societe.licence || {}) },
-  };
-}
-
-/** Double écriture champs racine societes + companies */
+/** Écrit le profil société — source unique companies/{id}. */
 async function ecrireProfilSociete(companyId, patch) {
-  await Promise.all([
-    db.ref(`societes/${companyId}`).update(patch),
-    db.ref(`companies/${companyId}`).update(patch),
-  ]);
+  await db.ref(`companies/${companyId}`).update(patch);
 }
 
-/** Double écriture sous-nœud licence */
+/** Écrit le sous-nœud licence — source unique companies/{id}/licence. */
 async function ecrireLicenceDual(companyId, patch) {
-  await Promise.all([
-    db.ref(`societes/${companyId}/licence`).update(patch),
-    db.ref(`companies/${companyId}/licence`).update(patch),
-  ]);
+  await db.ref(`companies/${companyId}/licence`).update(patch);
 }
 
 /** UID acheteur depuis le payload Chariow */
@@ -328,10 +309,7 @@ async function creerProfilFreemiumGratuit(companyId, company = {}) {
     createdAt:         company.createdAt || dateCreation,
   };
 
-  await Promise.all([
-    db.ref(`companies/${companyId}`).update(patch),
-    db.ref(`societes/${companyId}`).update(patch),
-  ]);
+  await db.ref(`companies/${companyId}`).update(patch);
   return patch;
 }
 
@@ -419,12 +397,8 @@ async function resoudreDroits(companyId) {
 
   let elevesLies = [];
   if (estSuiviScolaire) {
-    const [socEleves, compEleves] = await Promise.all([
-      db.ref(`societes/${companyId}/eleves_lies`).get(),
-      db.ref(`companies/${companyId}/eleves_lies`).get(),
-    ]);
-    const merged = { ...(compEleves.val() || {}), ...(socEleves.val() || {}) };
-    elevesLies = Object.keys(merged);
+    const compEleves = await db.ref(`companies/${companyId}/eleves_lies`).get();
+    elevesLies = Object.keys(compEleves.val() || {});
   }
 
   let maxAgents = FREEMIUM.MAX_AGENTS_FREE;
@@ -809,11 +783,8 @@ app.post('/api/licence/activate', requireAuth, async (req, res) => {
     }
 
     // ── Créditer le compte dans Realtime Database ─────────────
-    const [socLicSnap, compLicSnap] = await Promise.all([
-      db.ref(`societes/${companyId}/licence`).get(),
-      db.ref(`companies/${companyId}/licence`).get(),
-    ]);
-    const currentLicence = { ...(compLicSnap.val() || {}), ...(socLicSnap.val() || {}) };
+    const compLicSnap = await db.ref(`companies/${companyId}/licence`).get();
+    const currentLicence = compLicSnap.val() || {};
 
     const now            = new Date();
     const nowISO         = now.toISOString();
@@ -1669,10 +1640,7 @@ async function verifierAbonnementsExpires() {
               est_illimite:     false,
               quantite_agents:  null,
             });
-            await Promise.all([
-              db.ref(`societes/${companyId}`).update({ abonnement_scolaire_expire: null, abonnement_scolaire_type: null }),
-              db.ref(`companies/${companyId}`).update({ abonnement_scolaire_expire: null, abonnement_scolaire_type: null }),
-            ]);
+            await db.ref(`companies/${companyId}`).update({ abonnement_scolaire_expire: null, abonnement_scolaire_type: null });
             await db.ref(`companies/${companyId}/notifications`).push({
               type:      'abonnement_expire',
               typePack:  societe.abonnement_scolaire_type || 'suivi_scolaire',
@@ -2591,23 +2559,23 @@ app.get('/api/admin/clients', requireSuperadmin, async (req, res) => {
     const societes = societesSnap.val() || {};
     const clients = [];
 
-    // Fusionner les données de societes (prioritaire pour email) + companies
+    // companies/{id} est la source de vérité pour le profil. On garde l'union
+    // des UID des deux collections uniquement pour ne pas perdre de vue un
+    // compte legacy qui n'existerait que sous societes/ (cas très rare).
     const allUids = new Set([...Object.keys(companies), ...Object.keys(societes)]);
 
     for (const uid of allUids) {
       const company = companies[uid] || {};
       const societe = societes[uid] || {};
-      
-      const profil = fusionnerProfilSociete(company, societe);
 
       clients.push({
         uid,
-        companyName: profil.companyName || profil.name || 'Inconnu',
-        email: profil.email || '—',
-        role: profil.role || 'company',
-        validated: profil.validated || false,
-        typePack: profil.licence?.typePack || 'free',
-        createdAt: profil.createdAt || profil.date_creation || null,
+        companyName: company.companyName || societe.companyName || company.name || 'Inconnu',
+        email: company.email || societe.email || '—',
+        role: company.role || societe.role || 'company',
+        validated: company.validated ?? societe.validated ?? false,
+        typePack: company.licence?.typePack || societe.licence?.typePack || 'free',
+        createdAt: company.createdAt || company.date_creation || societe.createdAt || null,
       });
     }
 
@@ -2631,10 +2599,7 @@ app.post('/api/admin/accounts/validate', requireSuperadmin, async (req, res) => 
       return res.status(400).json({ error: 'Impossible de modifier le rôle d\'un superadmin.' });
     }
 
-    await Promise.all([
-      db.ref(`companies/${companyId}`).update({ validated: true, role: 'partner' }),
-      db.ref(`societes/${companyId}`).update({ validated: true, role: 'partner' })
-    ]);
+    await db.ref(`companies/${companyId}`).update({ validated: true, role: 'partner' });
     
     console.log(`🔒 [ADMIN SUPRÊME] Compte validé : ${companyId}`);
     res.json({ success: true, message: 'Compte validé avec succès' });
@@ -2657,10 +2622,7 @@ app.post('/api/admin/accounts/revoke', requireSuperadmin, async (req, res) => {
       return res.status(400).json({ error: 'Impossible de modifier le rôle d\'un superadmin.' });
     }
 
-    await Promise.all([
-      db.ref(`companies/${companyId}`).update({ validated: false, role: 'company' }),
-      db.ref(`societes/${companyId}`).update({ validated: false, role: 'company' })
-    ]);
+    await db.ref(`companies/${companyId}`).update({ validated: false, role: 'company' });
     
     console.log(`🔓 [ADMIN SUPRÊME] Validation révoquée : ${companyId}`);
     res.json({ success: true, message: 'Validation révoquée avec succès' });

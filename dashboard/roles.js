@@ -21,20 +21,20 @@ export async function estSuperadmin(user) {
 }
 
 /**
- * Fusionne les données du profil société depuis companies/ et societes/.
- * companies/ contient les infos d'inscription (nom, email, rôle…).
- * societes/ contient les données temps réel (agents, positions…).
+ * Normalise le profil société lu depuis companies/{uid} (source unique du
+ * profil — voir server.js `ecrireProfilSociete`). Le paramètre `societe`
+ * est conservé pour compatibilité ascendante des appels existants mais
+ * n'est plus nécessaire : societes/{uid} ne contient plus que les données
+ * temps réel (agents, positions GPS), pas le profil.
  * @param {object} company  — données de companies/{uid}
- * @param {object} societe  — données de societes/{uid}
+ * @param {object} [societe] — @deprecated, ignoré
  * @returns {object}
  */
-export function fusionnerProfil(company, societe) {
+export function fusionnerProfil(company = {}, societe = {}) {
   return {
-    ...societe,
     ...company,
-    // Priorité à companies/ pour le nom et le logo
-    companyName: company.companyName || societe.companyName || null,
-    logoUrl:     company.logoUrl     || societe.logoUrl     || null,
+    companyName: company.companyName || null,
+    logoUrl:     company.logoUrl     || null,
     role:        company.role        || 'company',
   };
 }

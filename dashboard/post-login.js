@@ -9,15 +9,7 @@ import {
 } from './intent-achat.js';
 import { auth, db } from '../shared/firebase.js';
 import { get, ref } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-
-// Vérification superadmin directement (sans roles.js)
-async function estSuperadmin(user) {
-  if (!user) return false;
-  try {
-    const snap = await get(ref(db, `companies/${user.uid}/role`));
-    return snap.exists() && snap.val() === 'superadmin';
-  } catch { return false; }
-}
+import { estSuperadmin } from './roles.js';
 
 const PAGES_AUTORISEES = new Set([
   'index.html',

@@ -8,24 +8,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/fi
 import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { auth, db } from "../shared/firebase.js";
 import { verifierSessionGeo } from "./session-geo.js";
-
-// Vérification superadmin directement (sans roles.js)
-async function estSuperadmin(user) {
-  if (!user) return false;
-  try {
-    const snap = await get(ref(db, `companies/${user.uid}/role`));
-    return snap.exists() && snap.val() === 'superadmin';
-  } catch { return false; }
-}
-
-function fusionnerProfil(company, societe) {
-  return {
-    ...societe, ...company,
-    companyName: company.companyName || societe.companyName || null,
-    logoUrl:     company.logoUrl     || societe.logoUrl     || null,
-    role:        company.role        || 'company',
-  };
-}
+import { estSuperadmin, fusionnerProfil } from "./roles.js";
 
 verifierSessionGeo();
 
@@ -64,17 +47,13 @@ onAuthStateChanged(auth, async (user) => {
   if (appStarted) return;
   appStarted = true;
 
-  // ── Récupérer le profil depuis la base RTDB ─────────────────
+  // ── Récupérer le profil depuis la base RTDB (companies/ = source unique) ──
   let companyName = null;
   let companyData = {};
   try {
-    const [socSnap, compSnap] = await Promise.all([
-      get(ref(db, `societes/${user.uid}`)),
-      get(ref(db, `companies/${user.uid}`)),
-    ]);
-    const societe = socSnap.val() || {};
+    const compSnap = await get(ref(db, `companies/${user.uid}`));
     const company = compSnap.val() || {};
-    companyData = fusionnerProfil(company, societe);
+    companyData = fusionnerProfil(company);
     companyName = companyData.companyName || null;
 
     // ── Redirection superadmin → admin.html ─────────────────
