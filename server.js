@@ -2663,6 +2663,34 @@ app.use(express.static('.', {
   },
 }));
 
+// ─────────────────────────────────────────────────────────────
+// ROUTE : Création de compte atomique (Atomic Registration)
+// POST /api/auth/register
+// ─────────────────────────────────────────────────────────────
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, password, companyName, sector, address, logoUrl } = req.body;
+    if (!email || !password || !companyName) {
+      return res.status(400).json({ error: 'Champs obligatoires : email, password, companyName' });
+    }
+    const user = await admin.auth().createUser({ email, password });
+    await ecrireProfilSociete(user.uid, {
+      companyName, sector, address, email, logoUrl: logoUrl || null,
+      createdAt: Date.now(), role: 'company', status: 'active'
+    });
+    await creerProfilFreemiumGratuit(user.uid);
+    const token = await admin.auth().createCustomToken(user.uid);
+    console.log('Compte cree:', user.uid);
+    res.json({ uid: user.uid, token });
+  } catch (err) {
+    if (err.code === 'auth/email-already-exists') {
+      return res.status(409).json({ error: 'Cet email est deja utilise' });
+    }
+    console.error('register error:', err);
+    res.status(500).json({ error: 'Erreur lors de l inscription' });
+  }
+});
+
 // Liens morts / routes inexistantes → page vitrine racine
 app.use((req, res) => {
   res.status(404).redirect('/');
@@ -2671,3 +2699,20 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`GPS Tracker server running on port ${PORT}`);
 });
+
+// === Emp�cher la mise en veille sur Render (Plan Free) ===
+const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL || 'https://serveur-gps-medecin.onrender.com';
+
+function keepAlive() {
+  const pingUrl = ${RENDER_EXTERNAL_URL}/agent/;
+  setInterval(async () => {
+    try {
+      const response = await fetch(pingUrl);
+      console.log([Keep-Alive] Ping vers  - Status: );
+    } catch (error) {
+      console.error('[Keep-Alive] Erreur lors du ping :', error.message);
+    }
+  }, 10 * 60 * 1000); // 10 minutes
+}
+
+keepAlive();
