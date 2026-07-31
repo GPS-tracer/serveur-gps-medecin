@@ -1,0 +1,78 @@
+﻿To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.0.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:clean
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:mergeReleaseJniLibFolders
+> Task :app:mergeReleaseNativeLibs NO-SOURCE
+> Task :app:stripReleaseDebugSymbols NO-SOURCE
+> Task :app:extractReleaseNativeSymbolTables NO-SOURCE
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:buildKotlinToolingMetadata
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:checkReleaseAarMetadata
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:processReleaseNavigationResources
+> Task :app:compileReleaseNavigationResources
+> Task :app:generateReleaseResValues
+> Task :app:processReleaseGoogleServices
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
+> Task :app:mergeReleaseResources
+> Task :app:packageReleaseResources
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:parseReleaseLocalResources
+> Task :app:extractDeepLinksRelease
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:javaPreCompileRelease
+> Task :app:extractProguardFiles
+> Task :app:mergeReleaseArtProfile
+> Task :app:mergeReleaseStartupProfile UP-TO-DATE
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+> Task :app:processReleaseManifestForPackage
+> Task :app:processReleaseResources
+> Task :app:compileReleaseKotlin
+w: file:///C:/gps-tracker/android/app/src/main/java/com/gpstracker/agent/LocationService.kt:221:55 'CONNECTIVITY_ACTION: String' is deprecated. Deprecated in Java
+w: file:///C:/gps-tracker/android/app/src/main/java/com/gpstracker/agent/LocationService.kt:626:30 Variable 'distanceMeters' initializer is redundant
+
+> Task :app:compileReleaseJavaWithJavac NO-SOURCE
+> Task :app:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :app:processReleaseJavaRes
+> Task :app:generateReleaseLintVitalReportModel
+> Task :app:expandReleaseArtProfileWildcards
+> Task :app:mergeReleaseJavaResource
+> Task :app:lintVitalAnalyzeRelease
+> Task :app:minifyReleaseWithR8
+WARNING: C:\Users\Reddy MPASSI\.gradle\caches\9.0.0\transforms\08988cc6854b3ebc52480ae34c7725b4\transformed\jetified-play-services-location-21.1.0-runtime.jar: R8: The companion object Companion could not be found in class com.google.android.gms.internal.location.zze
+
+> Task :app:lintVitalReportRelease
+> Task :app:lintVitalRelease
+> Task :app:compileReleaseArtProfile
+> Task :app:convertShrunkResourcesToBinaryRelease
+> Task :app:optimizeReleaseResources
+> Task :app:packageRelease
+> Task :app:createReleaseApkListingFileRedirect
+> Task :app:assembleRelease
+
+[Incubating] Problems report is available at: file:///C:/gps-tracker/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.0.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 19m
+49 actionable tasks: 47 executed, 2 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.0.0/userguide/configuration_cache_enabling.html

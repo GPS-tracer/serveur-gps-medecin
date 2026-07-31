@@ -1,13 +1,7 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-  <style>
-    /* Garde-fou anti-FOUC : Tailwind CDN charge en differe (defer),
-       les icones SVG sans style peuvent s'afficher en grand format
-       une fraction de seconde avant que les classes Tailwind ne s'appliquent. */
-    svg:not([width]):not([height]) { width: 1.5rem; height: 1.5rem; }
-  </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion de Flotte - GPS Tracker</title>
     <link rel="preload" href="style.css" as="style">
@@ -19,6 +13,7 @@
       })();
     </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script>window.tailwind={corePlugins:{preflight:true}}</script>
     <link rel="stylesheet" href="tailwind-output.css">
 </head>
 <body class="app-body" data-nav-active="flotte" data-nav-title="Ma Flotte" data-page-module="./fleet.js">
@@ -27,10 +22,10 @@
 
     <main class="app-main container mx-auto px-4 py-8">
 
-        <!-- ══════════════════════════════════════════════════════
-             BLOC CODE ENTREPRISE — À communiquer aux agents
-             Affiché en haut de page, bien visible
-        ══════════════════════════════════════════════════════ -->
+        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+             BLOC CODE ENTREPRISE â€” Ã€ communiquer aux agents
+             AffichÃ© en haut de page, bien visible
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
         <div class="mb-6 bg-gradient-to-r from-sky-950/60 to-slate-800 border border-sky-500/30 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div class="flex items-start gap-4">
                 <div class="p-2 bg-sky-500/20 rounded-lg flex-shrink-0">
@@ -40,9 +35,9 @@
                     </svg>
                 </div>
                 <div>
-                    <p class="text-xs text-slate-400 uppercase tracking-wide font-semibold mb-1">Code Entreprise — à donner à vos agents</p>
+                    <p class="text-xs text-slate-400 uppercase tracking-wide font-semibold mb-1">Code Entreprise â€” Ã  donner Ã  vos agents</p>
                     <p class="text-slate-300 text-xs mb-2">
-                        Vos agents doivent saisir ce code au premier lancement de l'application GPS Tracker sur leur téléphone.
+                        Vos agents doivent saisir ce code au premier lancement de l'application GPS Tracker sur leur tÃ©lÃ©phone.
                     </p>
                     <div class="flex items-center gap-2 flex-wrap">
                         <code id="companyCodeDisplay"
@@ -51,7 +46,7 @@
                         </code>
                         <button id="btnCopyCode"
                             class="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1">
-                            📋 Copier
+                            ðŸ“‹ Copier
                         </button>
                     </div>
                 </div>
@@ -61,19 +56,19 @@
                 <p class="text-slate-500 text-xs">Ne le partagez qu'avec vos agents.</p>
                 <button id="btnOuvrirAideFlotte"
                     class="mt-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ml-auto border border-slate-600">
-                    ❓ Comment ça marche ?
+                    â“ Comment Ã§a marche ?
                 </button>
             </div>
         </div>
 
-        <!-- ══════════════════════════════════════════════════════
+        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
              SECTION APPAREILS EN ATTENTE D'APPROBATION
-             Agents qui ont téléchargé l'app et saisi le code
-        ══════════════════════════════════════════════════════ -->
+             Agents qui ont tÃ©lÃ©chargÃ© l'app et saisi le code
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
         <div id="pendingSection" class="hidden mb-6 bg-slate-800 border border-amber-500/30 rounded-xl p-5">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-base font-bold text-amber-400 flex items-center gap-2">
-                    ⏳ Appareils en attente d'approbation
+                    â³ Appareils en attente d'approbation
                     <span id="pendingBadge"
                         class="px-2 py-0.5 bg-amber-500 text-slate-900 text-xs font-bold rounded-full">0</span>
                 </h3>
@@ -88,15 +83,15 @@
                 <div class="space-y-3 mb-5">
                     <div>
                         <label class="block text-slate-300 text-sm font-medium mb-1">
-                            Type de véhicule <span class="text-red-400">*</span>
+                            Type de vÃ©hicule <span class="text-red-400">*</span>
                         </label>
                         <select id="approveVehicleType"
                             class="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
-                            <option value="">— Sélectionnez —</option>
-                            <option value="moto">🏍️ Moto (Livraison/Taxi-moto)</option>
-                            <option value="voiture">🚗 Voiture</option>
-                            <option value="camion">🚚 Camion</option>
-                            <option value="scolaire">🎒 Élève/Étudiant (scolaire)</option>
+                            <option value="">â€” SÃ©lectionnez â€”</option>
+                            <option value="moto">ðŸï¸ Moto (Livraison/Taxi-moto)</option>
+                            <option value="voiture">ðŸš— Voiture</option>
+                            <option value="camion">ðŸšš Camion</option>
+                            <option value="scolaire">ðŸŽ’ Ã‰lÃ¨ve/Ã‰tudiant (scolaire)</option>
                         </select>
                     </div>
                     <div id="approveMessage" class="hidden rounded-lg px-3 py-2 text-sm"></div>
@@ -108,34 +103,34 @@
                     </button>
                     <button id="btnConfirmApprove"
                         class="flex-1 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
-                        ✅ Approuver & Activer
+                        âœ… Approuver & Activer
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- ══════════════════════════════════════════════════════
-             Modal d'aide — Guide utilisation de la flotte
-        ══════════════════════════════════════════════════════ -->
+        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+             Modal d'aide â€” Guide utilisation de la flotte
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
         <div id="modalAideFlotte"
             class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-slate-800 rounded-2xl border border-slate-600 p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div class="flex items-center justify-between mb-5">
-                    <h3 class="text-xl font-bold text-white flex items-center gap-2">📖 Comment ajouter un agent ?</h3>
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2">ðŸ“– Comment ajouter un agent ?</h3>
                     <button id="btnFermerAideFlotte"
-                        class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors text-lg">✕</button>
+                        class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors text-lg">âœ•</button>
                 </div>
                 <div class="space-y-4 text-sm">
 
                     <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-sky-500">
                         <p class="font-bold text-sky-400 mb-2 flex items-center gap-2">
                             <span class="w-6 h-6 bg-sky-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-                            Récupérez votre Code Entreprise
+                            RÃ©cupÃ©rez votre Code Entreprise
                         </p>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            Votre <strong class="text-white">Code Entreprise</strong> est affiché en haut de cette page.
+                            Votre <strong class="text-white">Code Entreprise</strong> est affichÃ© en haut de cette page.
                             C'est votre identifiant unique sur la plateforme GPS Tracker.
-                            Copiez-le avec le bouton 📋 et envoyez-le à vos agents par
+                            Copiez-le avec le bouton ðŸ“‹ et envoyez-le Ã  vos agents par
                             <strong class="text-white">SMS, WhatsApp ou email</strong>.
                         </p>
                     </div>
@@ -146,9 +141,9 @@
                             L'agent installe l'application
                         </p>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            L'agent télécharge et installe l'APK <strong class="text-white">GPS Tracker</strong> sur son téléphone Android.
+                            L'agent tÃ©lÃ©charge et installe l'APK <strong class="text-white">GPS Tracker</strong> sur son tÃ©lÃ©phone Android.
                             Au premier lancement, il choisit <strong class="text-white">"Entreprise"</strong>,
-                            saisit le Code Entreprise reçu, puis entre son nom et numéro de téléphone.
+                            saisit le Code Entreprise reÃ§u, puis entre son nom et numÃ©ro de tÃ©lÃ©phone.
                         </p>
                     </div>
 
@@ -158,33 +153,33 @@
                             Approuvez l'appareil ici
                         </p>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            Dès que l'agent saisit le code, son appareil apparaît dans
-                            <strong class="text-amber-400">"⏳ Appareils en attente"</strong> sur cette page.
-                            Vous voyez son nom, son modèle de téléphone et l'heure de la demande.
-                            Cliquez <strong class="text-white">✅ Approuver</strong>, choisissez le type de véhicule et validez.
+                            DÃ¨s que l'agent saisit le code, son appareil apparaÃ®t dans
+                            <strong class="text-amber-400">"â³ Appareils en attente"</strong> sur cette page.
+                            Vous voyez son nom, son modÃ¨le de tÃ©lÃ©phone et l'heure de la demande.
+                            Cliquez <strong class="text-white">âœ… Approuver</strong>, choisissez le type de vÃ©hicule et validez.
                         </p>
                     </div>
 
                     <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-violet-500">
                         <p class="font-bold text-violet-400 mb-2 flex items-center gap-2">
                             <span class="w-6 h-6 bg-violet-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
-                            Le tracking démarre automatiquement
+                            Le tracking dÃ©marre automatiquement
                         </p>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            Dès l'approbation, l'app de l'agent détecte l'activation <strong class="text-white">en temps réel</strong>
-                            et démarre le GPS automatiquement — sans aucune action de l'agent.
-                            L'appareil apparaît dans votre flotte et sur la
+                            DÃ¨s l'approbation, l'app de l'agent dÃ©tecte l'activation <strong class="text-white">en temps rÃ©el</strong>
+                            et dÃ©marre le GPS automatiquement â€” sans aucune action de l'agent.
+                            L'appareil apparaÃ®t dans votre flotte et sur la
                             <a href="index.html" class="text-sky-400 underline">Carte en direct</a>.
                         </p>
                     </div>
 
                     <div class="bg-amber-950/30 rounded-xl p-4 border border-amber-800/30">
-                        <p class="font-bold text-amber-400 mb-1 text-xs">⚠️ Limite d'agents</p>
+                        <p class="font-bold text-amber-400 mb-1 text-xs">âš ï¸ Limite d'agents</p>
                         <p class="text-slate-400 text-xs leading-relaxed">
                             Le plan gratuit permet <strong class="text-white">1 appareil</strong>.
                             Pour plusieurs agents, activez un pack depuis
-                            <a href="licence.html" class="text-sky-400 underline">Licences & Sécurité</a> :
-                            Forfait Flotte B2B (illimité) ou Accès Illimité.
+                            <a href="licence.html" class="text-sky-400 underline">Licences & SÃ©curitÃ©</a> :
+                            Forfait Flotte B2B (illimitÃ©) ou AccÃ¨s IllimitÃ©.
                         </p>
                     </div>
 
@@ -201,7 +196,7 @@
                         <svg class="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
-                        Ajouter un appareil à suivre
+                        Ajouter un appareil Ã  suivre
                     </h3>
 
                     <form id="addAgentForm" class="space-y-4">
@@ -234,26 +229,26 @@
                             <p class="text-slate-400 text-xs mt-1">Lettres, chiffres, - et _ uniquement</p>
                         </div>
 
-                        <!-- Type de véhicule -->
+                        <!-- Type de vÃ©hicule -->
                         <div>
                             <label class="block text-slate-300 text-sm font-medium mb-2">
-                                Type de véhicule <span class="text-red-400">*</span>
+                                Type de vÃ©hicule <span class="text-red-400">*</span>
                             </label>
                             <select 
                                 id="vehicleType" 
                                 required
                                 class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer">
-                                <option value="">Sélectionnez un type</option>
-                                <option value="moto">🏍️ Moto (Livraison/Taxi-moto)</option>
-                                <option value="voiture">🚗 Voiture</option>
-                                <option value="camion">🚚 Camion</option>
+                                <option value="">SÃ©lectionnez un type</option>
+                                <option value="moto">ðŸï¸ Moto (Livraison/Taxi-moto)</option>
+                                <option value="voiture">ðŸš— Voiture</option>
+                                <option value="camion">ðŸšš Camion</option>
                             </select>
                         </div>
 
-                        <!-- Téléphone (optionnel) -->
+                        <!-- TÃ©lÃ©phone (optionnel) -->
                         <div>
                             <label class="block text-slate-300 text-sm font-medium mb-2">
-                                Téléphone (optionnel)
+                                TÃ©lÃ©phone (optionnel)
                             </label>
                             <input 
                                 type="tel" 
@@ -270,7 +265,7 @@
                             type="submit" 
                             id="submitBtn"
                             class="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all">
-                            Ajouter un appareil à suivre
+                            Ajouter un appareil Ã  suivre
                         </button>
                     </form>
                 </div>
@@ -293,13 +288,13 @@
                         </span>
                     </div>
 
-                    <!-- État vide -->
+                    <!-- Ã‰tat vide -->
                     <div id="emptyState" class="text-center py-12">
                         <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
                         <p class="text-slate-400 text-lg mb-2">Aucun appareil suivi</p>
-                        <p class="text-slate-500 text-sm">Ajoutez votre premier appareil pour démarrer le suivi</p>
+                        <p class="text-slate-500 text-sm">Ajoutez votre premier appareil pour dÃ©marrer le suivi</p>
                     </div>
 
                     <!-- Liste des agents -->
@@ -313,7 +308,7 @@
     <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 max-w-md w-full">
             <h3 class="text-xl font-bold mb-4">Confirmer la suppression</h3>
-            <p class="text-slate-300 mb-6">Êtes-vous sûr de vouloir supprimer cet agent ? Cette action est irréversible.</p>
+            <p class="text-slate-300 mb-6">ÃŠtes-vous sÃ»r de vouloir supprimer cet agent ? Cette action est irrÃ©versible.</p>
             <div class="flex gap-3">
                 <button id="cancelDelete" class="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors">
                     Annuler

@@ -1,13 +1,7 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-  <style>
-    /* Garde-fou anti-FOUC : Tailwind CDN charge en differe (defer),
-       les icones SVG sans style peuvent s'afficher en grand format
-       une fraction de seconde avant que les classes Tailwind ne s'appliquent. */
-    svg:not([width]):not([height]) { width: 1.5rem; height: 1.5rem; }
-  </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Licences & Abonnements - GPS Tracker</title>
     <link rel="preload" href="style.css" as="style">
@@ -18,6 +12,7 @@
         document.documentElement.className = 'theme-' + theme;
       })();
     </script>
+    <script>window.tailwind={corePlugins:{preflight:true}}</script>
     <link rel="stylesheet" href="tailwind-output.css">
 </head>
 <body class="app-body" data-nav-active="licence" data-nav-title="Abonnements" data-page-module="./licence.js">
@@ -29,7 +24,7 @@
         <!-- Abonnement actuel -->
         <div id="statusCard" class="bg-slate-800 rounded-xl border border-slate-700 p-6 mb-8">
             <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                <span>📊</span> Votre abonnement actuel
+                <span>ðŸ“Š</span> Votre abonnement actuel
             </h3>
             <div id="statusContent" class="animate-pulse">
                 <div class="h-4 bg-slate-700 rounded w-48 mb-2"></div>
@@ -37,13 +32,13 @@
             </div>
         </div>
 
-        <!-- Catalogue Chariow — 10 produits officiels -->
+        <!-- Catalogue Chariow â€” 10 produits officiels -->
         <h2 class="text-xl font-bold mb-2 text-center text-white">Catalogue Chariow GPTS</h2>
         <p class="text-slate-400 text-sm text-center mb-2">
-            Choisissez votre offre ci-dessous — le paiement Chariow s'ouvre uniquement après votre clic.
+            Choisissez votre offre ci-dessous â€” le paiement Chariow s'ouvre uniquement aprÃ¨s votre clic.
         </p>
         <p class="text-slate-500 text-xs text-center mb-4">
-            Mobile Money (Airtel / MTN) — activation automatique après confirmation
+            Mobile Money (Airtel / MTN) â€” activation automatique aprÃ¨s confirmation
         </p>
         <div id="ficheProduitSelectionne" class="hidden mb-6"></div>
 
@@ -51,19 +46,19 @@
 
         <div id="catalogueChariowListe" class="mt-8" aria-live="polite"></div>
 
-        <!-- Activation de clé de licence -->
+        <!-- Activation de clÃ© de licence -->
         <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
             <h3 class="text-lg font-bold mb-2 flex items-center gap-2">
-                <span>🔑</span> Activer une clé de licence
+                <span>ðŸ”‘</span> Activer une clÃ© de licence
             </h3>
             <p class="text-slate-400 text-sm mb-6">
-                Vous avez reçu une clé par email après votre paiement Chariow ? Saisissez-la ci-dessous.
+                Vous avez reÃ§u une clÃ© par email aprÃ¨s votre paiement Chariow ? Saisissez-la ci-dessous.
             </p>
 
             <form id="licenceForm" class="space-y-4">
                 <div>
                     <label class="block text-slate-300 text-sm font-medium mb-2">
-                        Clé de licence (format : XXXX-XXXX-XXXX-XXXX)
+                        ClÃ© de licence (format : XXXX-XXXX-XXXX-XXXX)
                     </label>
                     <div class="flex gap-2">
                         <input
@@ -80,10 +75,10 @@
                             id="btnPaste"
                             title="Coller depuis le presse-papiers"
                             class="px-4 py-3 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-300 hover:text-white transition-all flex items-center gap-1 text-sm whitespace-nowrap">
-                            📋 Coller
+                            ðŸ“‹ Coller
                         </button>
                     </div>
-                    <p class="text-slate-500 text-xs mt-1">Copiez la clé depuis votre email et collez-la ici.</p>
+                    <p class="text-slate-500 text-xs mt-1">Copiez la clÃ© depuis votre email et collez-la ici.</p>
                 </div>
 
                 <div id="licenceMessage" class="hidden px-4 py-3 rounded-lg text-sm font-medium"></div>
@@ -92,7 +87,7 @@
                     type="submit"
                     id="btnActivate"
                     class="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all">
-                    Activer la clé
+                    Activer la clÃ©
                 </button>
             </form>
 
@@ -105,13 +100,13 @@
 
         <!-- Limites selon le plan -->
         <div class="mt-6 bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
-            <h4 class="text-sm font-semibold text-slate-300 mb-2">ℹ️ Limites selon votre plan</h4>
+            <h4 class="text-sm font-semibold text-slate-300 mb-2">â„¹ï¸ Limites selon votre plan</h4>
             <ul class="text-xs text-slate-400 space-y-1">
-                <li>• <strong class="text-white">Plan gratuit</strong> : 1 appareil, 1 impression/jour</li>
-                <li>• <strong class="text-white">Particulier Premium</strong> : 1 appareil, rapports illimités</li>
-                <li>• <strong class="text-white">Suivi Élève / Étudiant</strong> : agents selon quantité achetée, rapports illimités</li>
-                <li>• <strong class="text-white">Forfait Flotte</strong> : agents et rapports illimités (mensuel)</li>
-                <li>• <strong class="text-white">Accès Illimité</strong> : agents et rapports illimités (permanent)</li>
+                <li>â€¢ <strong class="text-white">Plan gratuit</strong> : 1 appareil, 1 impression/jour</li>
+                <li>â€¢ <strong class="text-white">Particulier Premium</strong> : 1 appareil, rapports illimitÃ©s</li>
+                <li>â€¢ <strong class="text-white">Suivi Ã‰lÃ¨ve / Ã‰tudiant</strong> : agents selon quantitÃ© achetÃ©e, rapports illimitÃ©s</li>
+                <li>â€¢ <strong class="text-white">Forfait Flotte</strong> : agents et rapports illimitÃ©s (mensuel)</li>
+                <li>â€¢ <strong class="text-white">AccÃ¨s IllimitÃ©</strong> : agents et rapports illimitÃ©s (permanent)</li>
             </ul>
         </div>
 

@@ -1,15 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <style>
-    /* Garde-fou anti-FOUC : Tailwind CDN charge en differe (defer),
-       les icones SVG sans style peuvent s'afficher en grand format
-       une fraction de seconde avant que les classes Tailwind ne s'appliquent. */
-    svg:not([width]):not([height]) { width: 1.5rem; height: 1.5rem; }
-  </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Création Superadmin — GPS Tracker</title>
+  <title>CrÃ©ation Superadmin â€” GPS Tracker</title>
+  <script>window.tailwind={corePlugins:{preflight:true}}</script>
   <link rel="stylesheet" href="tailwind-output.css">
   <style>
     body { margin: 0; background: #0f172a; font-family: system-ui, sans-serif; }
@@ -17,51 +12,51 @@
 </head>
 <body class="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12">
 
-  <!-- ── Écran de vérification ── -->
+  <!-- â”€â”€ Ã‰cran de vÃ©rification â”€â”€ -->
   <div id="screenCheck"
     class="w-full max-w-md flex flex-col items-center gap-4 text-center">
     <div class="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-    <p class="text-slate-400 text-sm">Vérification en cours…</p>
+    <p class="text-slate-400 text-sm">VÃ©rification en coursâ€¦</p>
   </div>
 
-  <!-- ── Écran : superadmin déjà existant ── -->
+  <!-- â”€â”€ Ã‰cran : superadmin dÃ©jÃ  existant â”€â”€ -->
   <div id="screenAlreadyExists" class="hidden w-full max-w-md">
     <div class="bg-slate-800 border border-red-500/40 rounded-2xl p-8 text-center shadow-2xl">
-      <div class="text-5xl mb-4">🔒</div>
-      <h1 class="text-xl font-bold text-red-400 mb-2">Accès refusé</h1>
+      <div class="text-5xl mb-4">ðŸ”’</div>
+      <h1 class="text-xl font-bold text-red-400 mb-2">AccÃ¨s refusÃ©</h1>
       <p class="text-slate-300 text-sm mb-6">
-        Un compte Administrateur Suprême existe déjà sur cette plateforme.
-        Cette page de configuration a été désactivée.
+        Un compte Administrateur SuprÃªme existe dÃ©jÃ  sur cette plateforme.
+        Cette page de configuration a Ã©tÃ© dÃ©sactivÃ©e.
       </p>
       <a href="login.html"
         class="block w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition-colors text-sm">
-        ← Retour à la connexion
+        â† Retour Ã  la connexion
       </a>
     </div>
   </div>
 
-  <!-- ── Formulaire de création ── -->
+  <!-- â”€â”€ Formulaire de crÃ©ation â”€â”€ -->
   <div id="screenForm" class="hidden w-full max-w-md">
     <div class="bg-slate-800 border border-red-500/30 rounded-2xl p-8 shadow-2xl">
 
-      <!-- En-tête -->
+      <!-- En-tÃªte -->
       <div class="text-center mb-8">
         <img src="../gpstracker.png" alt="GPS Tracker"
           class="w-16 h-16 object-contain rounded-xl mx-auto mb-4 shadow-lg shadow-red-500/10"
           onerror="this.style.display='none'" />
         <h1 class="text-2xl font-bold text-white">GPS Tracker</h1>
         <p class="text-red-400 text-sm font-semibold mt-1 uppercase tracking-widest">
-          Création Administrateur Suprême
+          CrÃ©ation Administrateur SuprÃªme
         </p>
         <p class="text-slate-500 text-xs mt-2">
-          Cette page ne peut être utilisée qu'une seule fois.
+          Cette page ne peut Ãªtre utilisÃ©e qu'une seule fois.
         </p>
       </div>
 
       <!-- Avertissement -->
       <div class="bg-amber-950/40 border border-amber-700/40 rounded-xl p-4 mb-6 text-xs text-amber-300">
-        ⚠️ Le compte créé ici aura un accès <strong>total et irréversible</strong>
-        à toute la plateforme. Conservez les identifiants dans un endroit sécurisé.
+        âš ï¸ Le compte crÃ©Ã© ici aura un accÃ¨s <strong>total et irrÃ©versible</strong>
+        Ã  toute la plateforme. Conservez les identifiants dans un endroit sÃ©curisÃ©.
       </div>
 
       <form id="formSuperadmin" class="space-y-4">
@@ -95,12 +90,12 @@
           </label>
           <div class="relative">
             <input type="password" id="inputPassword" required minlength="8"
-              placeholder="Minimum 8 caractères"
+              placeholder="Minimum 8 caractÃ¨res"
               class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm
                      focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-slate-500 pr-12" />
             <button type="button" id="btnTogglePwd"
               class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors text-lg">
-              👁️
+              ðŸ‘ï¸
             </button>
           </div>
           <p id="pwdStrength" class="text-xs mt-1 text-slate-500"></p>
@@ -112,57 +107,57 @@
             Confirmer le mot de passe <span class="text-red-400">*</span>
           </label>
           <input type="password" id="inputPasswordConfirm" required
-            placeholder="Répétez le mot de passe"
+            placeholder="RÃ©pÃ©tez le mot de passe"
             class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm
                    focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-slate-500" />
         </div>
 
-        <!-- Code secret de sécurité -->
+        <!-- Code secret de sÃ©curitÃ© -->
         <div>
           <label class="block text-slate-300 text-sm font-medium mb-1.5">
-            Code de sécurité setup <span class="text-red-400">*</span>
+            Code de sÃ©curitÃ© setup <span class="text-red-400">*</span>
           </label>
           <input type="password" id="inputSetupCode" required
-            placeholder="Code fourni par le développeur"
+            placeholder="Code fourni par le dÃ©veloppeur"
             class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm
                    focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-slate-500" />
           <p class="text-slate-600 text-xs mt-1">
-            Ce code empêche toute personne non autorisée de créer un superadmin.
+            Ce code empÃªche toute personne non autorisÃ©e de crÃ©er un superadmin.
           </p>
         </div>
 
-        <!-- Message erreur / succès -->
+        <!-- Message erreur / succÃ¨s -->
         <div id="formMessage" class="hidden rounded-xl px-4 py-3 text-sm"></div>
 
         <!-- Bouton -->
         <button type="submit" id="btnCreer"
           class="w-full py-3.5 bg-red-700 hover:bg-red-600 text-white font-bold rounded-xl
                  transition-all shadow-lg flex items-center justify-center gap-2 text-sm">
-          🔑 Créer le compte Administrateur Suprême
+          ðŸ”‘ CrÃ©er le compte Administrateur SuprÃªme
         </button>
       </form>
     </div>
   </div>
 
-  <!-- ── Écran succès ── -->
+  <!-- â”€â”€ Ã‰cran succÃ¨s â”€â”€ -->
   <div id="screenSuccess" class="hidden w-full max-w-md">
     <div class="bg-slate-800 border border-emerald-500/40 rounded-2xl p-8 text-center shadow-2xl">
-      <div class="text-6xl mb-4">✅</div>
-      <h1 class="text-xl font-bold text-emerald-400 mb-2">Compte créé avec succès !</h1>
+      <div class="text-6xl mb-4">âœ…</div>
+      <h1 class="text-xl font-bold text-emerald-400 mb-2">Compte crÃ©Ã© avec succÃ¨s !</h1>
       <p class="text-slate-300 text-sm mb-2">
-        L'Administrateur Suprême a été configuré sur la plateforme GPS Tracker.
+        L'Administrateur SuprÃªme a Ã©tÃ© configurÃ© sur la plateforme GPS Tracker.
       </p>
       <div id="successInfo"
         class="bg-slate-900 border border-slate-700 rounded-xl p-4 mb-6 text-left text-xs font-mono space-y-1 text-slate-300">
       </div>
       <div class="bg-amber-950/40 border border-amber-700/40 rounded-xl p-3 text-xs text-amber-300 mb-6 text-left">
-        ⚠️ <strong>Important :</strong> Supprimez ou renommez ce fichier
+        âš ï¸ <strong>Important :</strong> Supprimez ou renommez ce fichier
         <code class="bg-slate-900 px-1 rounded">setup-superadmin.html</code>
-        de votre serveur pour empêcher tout accès futur.
+        de votre serveur pour empÃªcher tout accÃ¨s futur.
       </div>
       <a href="admin.html"
         class="block w-full py-3 bg-red-700 hover:bg-red-600 text-white rounded-xl font-bold transition-colors text-sm">
-        → Accéder au Panel Admin Suprême
+        â†’ AccÃ©der au Panel Admin SuprÃªme
       </a>
     </div>
   </div>
@@ -177,8 +172,8 @@
       ref, set, get, query, orderByChild, equalTo
     } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-    // ── Code de sécurité setup (à changer après utilisation) ──
-    // Ce code empêche n'importe qui d'accéder à cette page et de créer un superadmin
+    // â”€â”€ Code de sÃ©curitÃ© setup (Ã  changer aprÃ¨s utilisation) â”€â”€
+    // Ce code empÃªche n'importe qui d'accÃ©der Ã  cette page et de crÃ©er un superadmin
     const SETUP_SECRET = 'GPS-SETUP-2025';
 
     const screenCheck         = document.getElementById('screenCheck');
@@ -191,13 +186,13 @@
     const inputPasswordConfirm = document.getElementById('inputPasswordConfirm');
     const pwdStrength         = document.getElementById('pwdStrength');
 
-    // ── Afficher / masquer le mot de passe ──────────────────────
+    // â”€â”€ Afficher / masquer le mot de passe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     document.getElementById('btnTogglePwd')?.addEventListener('click', () => {
       const t = inputPassword.type === 'password' ? 'text' : 'password';
       inputPassword.type = t;
     });
 
-    // ── Indicateur de force du mot de passe ────────────────────
+    // â”€â”€ Indicateur de force du mot de passe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     inputPassword?.addEventListener('input', () => {
       const v = inputPassword.value;
       let score = 0;
@@ -207,11 +202,11 @@
       if (/[0-9]/.test(v)) score++;
       if (/[^A-Za-z0-9]/.test(v)) score++;
 
-      const labels = ['', '🔴 Très faible', '🟠 Faible', '🟡 Moyen', '🟢 Fort', '🟢 Très fort'];
+      const labels = ['', 'ðŸ”´ TrÃ¨s faible', 'ðŸŸ  Faible', 'ðŸŸ¡ Moyen', 'ðŸŸ¢ Fort', 'ðŸŸ¢ TrÃ¨s fort'];
       pwdStrength.textContent = v.length > 0 ? labels[score] || labels[1] : '';
     });
 
-    // ── Vérifier si un superadmin existe déjà ──────────────────
+    // â”€â”€ VÃ©rifier si un superadmin existe dÃ©jÃ  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     async function verifierSuperadminExistant() {
       try {
         // Lire tous les companies et chercher role = superadmin
@@ -227,11 +222,11 @@
             return;
           }
         }
-        // Aucun superadmin — afficher le formulaire
+        // Aucun superadmin â€” afficher le formulaire
         screenCheck.classList.add('hidden');
         screenForm.classList.remove('hidden');
       } catch (err) {
-        // En cas d'erreur réseau, afficher le formulaire quand même
+        // En cas d'erreur rÃ©seau, afficher le formulaire quand mÃªme
         screenCheck.classList.add('hidden');
         screenForm.classList.remove('hidden');
       }
@@ -239,7 +234,7 @@
 
     verifierSuperadminExistant();
 
-    // ── Soumission du formulaire ────────────────────────────────
+    // â”€â”€ Soumission du formulaire â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     document.getElementById('formSuperadmin')?.addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -255,26 +250,26 @@
         return;
       }
       if (password.length < 8) {
-        showMsg('Le mot de passe doit contenir au moins 8 caractères.', 'error');
+        showMsg('Le mot de passe doit contenir au moins 8 caractÃ¨res.', 'error');
         return;
       }
       if (setupCode !== SETUP_SECRET) {
-        showMsg('Code de sécurité incorrect. Contactez le développeur.', 'error');
+        showMsg('Code de sÃ©curitÃ© incorrect. Contactez le dÃ©veloppeur.', 'error');
         return;
       }
 
       btnCreer.disabled = true;
-      btnCreer.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Création en cours…';
+      btnCreer.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> CrÃ©ation en coursâ€¦';
 
       try {
-        // 1. Créer le compte Firebase Auth
+        // 1. CrÃ©er le compte Firebase Auth
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         const user  = cred.user;
 
-        // 2. Envoyer l'email de vérification
+        // 2. Envoyer l'email de vÃ©rification
         await sendEmailVerification(user);
 
-        // 3. Écrire le profil superadmin dans RTDB (double écriture)
+        // 3. Ã‰crire le profil superadmin dans RTDB (double Ã©criture)
         const profilSuperadmin = {
           companyName:  'Administration GPS Tracker',
           nomComplet:   nom,
@@ -289,14 +284,14 @@
           set(ref(db, `societes/${user.uid}`), profilSuperadmin),
         ]);
 
-        // 4. Afficher l'écran succès
+        // 4. Afficher l'Ã©cran succÃ¨s
         const successInfo = document.getElementById('successInfo');
         if (successInfo) {
           successInfo.innerHTML = `
-            <p>📧 Email : <span class="text-white">${escHtml(email)}</span></p>
-            <p>🆔 UID  : <span class="text-sky-400 select-all">${escHtml(user.uid)}</span></p>
-            <p>🎭 Rôle : <span class="text-red-400">superadmin</span></p>
-            <p class="text-amber-400 mt-2">📬 Un email de vérification a été envoyé à ${escHtml(email)}</p>
+            <p>ðŸ“§ Email : <span class="text-white">${escHtml(email)}</span></p>
+            <p>ðŸ†” UID  : <span class="text-sky-400 select-all">${escHtml(user.uid)}</span></p>
+            <p>ðŸŽ­ RÃ´le : <span class="text-red-400">superadmin</span></p>
+            <p class="text-amber-400 mt-2">ðŸ“¬ Un email de vÃ©rification a Ã©tÃ© envoyÃ© Ã  ${escHtml(email)}</p>
           `;
         }
 
@@ -307,9 +302,9 @@
         console.error(err);
         let msg = 'Une erreur est survenue.';
         if (err.code === 'auth/email-already-in-use') {
-          msg = 'Cet email est déjà utilisé. Si c\'est votre compte, ajoutez manuellement role: "superadmin" dans la RTDB.';
+          msg = 'Cet email est dÃ©jÃ  utilisÃ©. Si c\'est votre compte, ajoutez manuellement role: "superadmin" dans la RTDB.';
         } else if (err.code === 'auth/weak-password') {
-          msg = 'Mot de passe trop faible. Utilisez au moins 8 caractères avec majuscules et chiffres.';
+          msg = 'Mot de passe trop faible. Utilisez au moins 8 caractÃ¨res avec majuscules et chiffres.';
         } else if (err.code === 'auth/invalid-email') {
           msg = 'Adresse email invalide.';
         } else if (err.message) {
@@ -318,7 +313,7 @@
         showMsg(msg, 'error');
       } finally {
         btnCreer.disabled = false;
-        btnCreer.innerHTML = '🔑 Créer le compte Administrateur Suprême';
+        btnCreer.innerHTML = 'ðŸ”‘ CrÃ©er le compte Administrateur SuprÃªme';
       }
     });
 

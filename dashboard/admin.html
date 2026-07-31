@@ -1,15 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <style>
-    /* Garde-fou anti-FOUC : Tailwind CDN charge en differe (defer),
-       les icones SVG sans style peuvent s'afficher en grand format
-       une fraction de seconde avant que les classes Tailwind ne s'appliquent. */
-    svg:not([width]):not([height]) { width: 1.5rem; height: 1.5rem; }
-  </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Administration Suprême — GPS Tracker</title>
+  <title>Administration SuprÃªme â€” GPS Tracker</title>
+  <script>window.tailwind={corePlugins:{preflight:true}}</script>
   <link rel="stylesheet" href="tailwind-output.css">
   <style>
     body {
@@ -32,12 +27,12 @@
 </head>
 <body class="bg-slate-900 text-white min-h-screen">
 
-  <!-- ══════════════════════════════════════════════════════════
-       [ADMIN SUPRÊME] — Splash screen avec logo GPS-Tracker
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+       [ADMIN SUPRÃŠME] â€” Splash screen avec logo GPS-Tracker
        Identique au pattern de index.html : logo + spinner + statut
-       Remplace l'ancien spinner "Vérification accès" qui affichait
+       Remplace l'ancien spinner "VÃ©rification accÃ¨s" qui affichait
        le texte brut du serveur Render pendant le cold-start.
-  ══════════════════════════════════════════════════════════ -->
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="splash-admin"
     class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950 gap-6 px-6">
     <img src="../gpstracker.png" alt="GPS Tracker Logo"
@@ -46,9 +41,9 @@
       aria-hidden="true"></div>
     <p class="text-white text-base font-semibold tracking-wide">GPS Tracker</p>
     <p id="splash-admin-status" class="text-slate-400 text-sm text-center max-w-xs">
-      Initialisation de la connexion sécurisée…
+      Initialisation de la connexion sÃ©curisÃ©eâ€¦
     </p>
-    <p class="text-slate-600 text-xs">Administration Suprême</p>
+    <p class="text-slate-600 text-xs">Administration SuprÃªme</p>
   </div>
 
   <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
@@ -56,23 +51,18 @@
       <div class="flex items-center gap-2 min-w-0">
         <h1 class="text-lg sm:text-2xl font-bold text-red-400 whitespace-nowrap">GPS Tracker</h1>
         <span class="hidden sm:inline text-slate-400">|</span>
-        <h2 class="hidden sm:inline text-base text-slate-300">Administration Suprême</h2>
+        <h2 class="hidden sm:inline text-base text-slate-300">Administration SuprÃªme</h2>
         <span class="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full font-bold">SUPERADMIN</span>
       </div>
       <div class="flex items-center gap-2">
         <button id="btnOuvrirAideAdmin"
           class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm flex items-center gap-1.5 transition-colors text-slate-300 hover:text-white border border-slate-600">
-          <span class="text-base">❓</span>
+          <span class="text-base">â“</span>
           <span class="hidden sm:inline">Aide</span>
         </button>
         <a href="index.html" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm flex items-center gap-1 transition-colors">
-          <span>← Dashboard</span>
+          <span>â† Dashboard</span>
         </a>
-        <button id="btnSignOut"
-          class="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm flex items-center gap-1.5 transition-colors border border-red-500/20">
-          <span>🚪</span>
-          <span class="hidden sm:inline">Déconnexion</span>
-        </button>
       </div>
     </div>
   </header>
@@ -80,7 +70,7 @@
   <!-- Panneau admin principal -->
   <div id="adminPanel" class="container mx-auto px-4 py-8 max-w-6xl">
 
-    <!-- [ADMIN SUPRÊME] — Supervision & Statut en temps réel -->
+    <!-- [ADMIN SUPRÃŠME] â€” Supervision & Statut en temps rÃ©el -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 flex items-center justify-between shadow-lg">
         <div>
@@ -90,58 +80,58 @@
             Mesure en cours...
           </p>
         </div>
-        <div class="text-3xl text-slate-500">🖥️</div>
+        <div class="text-3xl text-slate-500">ðŸ–¥ï¸</div>
       </div>
       <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 flex items-center justify-between shadow-lg">
         <div>
-          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider">État Général Firebase</h4>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Ã‰tat GÃ©nÃ©ral Firebase</h4>
           <p class="text-base font-medium text-emerald-400 mt-1 flex items-center gap-1">
             <span class="inline-block h-3.5 w-3.5 bg-emerald-500 rounded-full"></span>
-            RTDB & Firestore Connectés
+            RTDB & Firestore ConnectÃ©s
           </p>
         </div>
-        <div class="text-3xl text-slate-500">🔥</div>
+        <div class="text-3xl text-slate-500">ðŸ”¥</div>
       </div>
     </div>
 
     <!-- Stats globales Firebase -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center shadow-md">
-        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Sociétés actives</p>
-        <p id="statSocietes" class="text-3xl font-bold text-sky-400">—</p>
+        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">SociÃ©tÃ©s actives</p>
+        <p id="statSocietes" class="text-3xl font-bold text-sky-400">â€”</p>
       </div>
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center shadow-md">
         <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Abonnements actifs</p>
-        <p id="statAbonnements" class="text-3xl font-bold text-emerald-400">—</p>
+        <p id="statAbonnements" class="text-3xl font-bold text-emerald-400">â€”</p>
       </div>
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center shadow-md">
-        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Clés disponibles</p>
-        <p id="statClesDisponibles" class="text-3xl font-bold text-amber-400">—</p>
+        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">ClÃ©s disponibles</p>
+        <p id="statClesDisponibles" class="text-3xl font-bold text-amber-400">â€”</p>
       </div>
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center shadow-md">
-        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Clés utilisées</p>
-        <p id="statClesUtilisees" class="text-3xl font-bold text-violet-400">—</p>
+        <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">ClÃ©s utilisÃ©es</p>
+        <p id="statClesUtilisees" class="text-3xl font-bold text-violet-400">â€”</p>
       </div>
     </div>
 
     <div id="adminCatalogueChariow" class="mb-8"></div>
 
-    <!-- ══════════════════════════════════════════════════════════
-         [ADMIN SUPRÊME] — Vue globale de tous les clients
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+         [ADMIN SUPRÃŠME] â€” Vue globale de tous les clients
          Le super admin voit TOUS les comptes de l'application
-    ══════════════════════════════════════════════════════════ -->
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="bg-slate-800 rounded-xl border border-red-900/40 p-6 mb-6 shadow-lg">
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 class="text-lg font-bold text-red-400 flex items-center gap-2">👁️ Vue Globale — Tous les Clients</h3>
-          <p class="text-slate-400 text-xs mt-0.5">Liste complète de tous les comptes inscrits sur la plateforme GPS Tracker.</p>
+          <h3 class="text-lg font-bold text-red-400 flex items-center gap-2">ðŸ‘ï¸ Vue Globale â€” Tous les Clients</h3>
+          <p class="text-slate-400 text-xs mt-0.5">Liste complÃ¨te de tous les comptes inscrits sur la plateforme GPS Tracker.</p>
         </div>
         <div class="flex gap-2 w-full sm:w-auto">
-          <input type="text" id="clientsFilterInput" placeholder="Filtrer par nom, email, rôle..."
+          <input type="text" id="clientsFilterInput" placeholder="Filtrer par nom, email, rÃ´le..."
             class="w-full sm:w-56 px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-red-500" />
           <button id="btnRefreshClients"
             class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs transition-all whitespace-nowrap">
-            🔄 Actualiser
+            ðŸ”„ Actualiser
           </button>
         </div>
       </div>
@@ -150,9 +140,9 @@
         <table class="w-full text-left border-collapse text-xs">
           <thead>
             <tr class="bg-slate-800 border-b border-slate-700 text-slate-300 font-semibold tracking-wider uppercase">
-              <th class="p-3">Société / Email</th>
+              <th class="p-3">SociÃ©tÃ© / Email</th>
               <th class="p-3">UID</th>
-              <th class="p-3">Rôle</th>
+              <th class="p-3">RÃ´le</th>
               <th class="p-3">Abonnement</th>
               <th class="p-3">Inscription</th>
               <th class="p-3 text-right">Actions</th>
@@ -166,55 +156,55 @@
         </table>
       </div>
       <p class="text-slate-600 text-xs mt-2 text-right">
-        <span id="clientsCount">—</span> compte(s) chargé(s)
+        <span id="clientsCount">â€”</span> compte(s) chargÃ©(s)
       </p>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════
-         [ADMIN SUPRÊME] — Destruction à distance (FONCTIONNALITÉ PAYANTE)
-         Activée uniquement lorsqu'une alerte de désinstallation forcée est reçue
-    ══════════════════════════════════════════════════════════ -->
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+         [ADMIN SUPRÃŠME] â€” Destruction Ã  distance (FONCTIONNALITÃ‰ PAYANTE)
+         ActivÃ©e uniquement lorsqu'une alerte de dÃ©sinstallation forcÃ©e est reÃ§ue
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="bg-slate-800 rounded-xl border border-rose-900/50 p-6 mb-6 shadow-lg">
       <div class="flex items-center gap-3 mb-4">
         <div class="p-2 bg-rose-500/20 rounded-lg">
-          <span class="text-2xl">💣</span>
+          <span class="text-2xl">ðŸ’£</span>
         </div>
         <div>
           <h3 class="text-lg font-bold text-rose-400 flex items-center gap-2">
-            Destruction à Distance
+            Destruction Ã  Distance
             <span class="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full font-bold border border-amber-500/30">PAYANT</span>
           </h3>
           <p class="text-slate-400 text-xs mt-0.5">
-            Déclenche un processus de destruction système lorsqu'une désinstallation forcée est détectée.
-            Cette fonctionnalité est réservée aux clients ayant souscrit l'option "Antivol Avancé".
+            DÃ©clenche un processus de destruction systÃ¨me lorsqu'une dÃ©sinstallation forcÃ©e est dÃ©tectÃ©e.
+            Cette fonctionnalitÃ© est rÃ©servÃ©e aux clients ayant souscrit l'option "Antivol AvancÃ©".
           </p>
         </div>
       </div>
 
-      <!-- Alertes de désinstallation forcée reçues -->
+      <!-- Alertes de dÃ©sinstallation forcÃ©e reÃ§ues -->
       <div class="mb-4">
         <h4 class="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
-          🚨 Alertes de Désinstallation Forcée
+          ðŸš¨ Alertes de DÃ©sinstallation ForcÃ©e
           <span id="uninstallAlertBadge" class="hidden px-2 py-0.5 bg-rose-500 text-white text-xs rounded-full font-bold animate-pulse">0</span>
         </h4>
         <div id="uninstallAlertsContainer" class="space-y-2 max-h-60 overflow-y-auto">
           <p class="text-slate-500 text-xs italic p-3 bg-slate-900/30 rounded-lg">
-            Aucune alerte de désinstallation forcée en cours.
+            Aucune alerte de dÃ©sinstallation forcÃ©e en cours.
           </p>
         </div>
       </div>
 
-      <!-- Destruction manuelle (sur un agent spécifique) -->
+      <!-- Destruction manuelle (sur un agent spÃ©cifique) -->
       <div class="border-t border-slate-700/50 pt-4">
-        <h4 class="text-sm font-semibold text-slate-300 mb-3">Destruction Manuelle ciblée</h4>
+        <h4 class="text-sm font-semibold text-slate-300 mb-3">Destruction Manuelle ciblÃ©e</h4>
         <div class="flex flex-col sm:flex-row gap-3">
           <input type="text" id="destructionTargetId" placeholder="UID Agent ou Device ID cible..."
             class="flex-1 px-4 py-2.5 bg-slate-700/40 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500" />
-          <input type="text" id="destructionRaison" placeholder="Raison (ex: désinstallation forcée détectée)"
+          <input type="text" id="destructionRaison" placeholder="Raison (ex: dÃ©sinstallation forcÃ©e dÃ©tectÃ©e)"
             class="flex-1 px-4 py-2.5 bg-slate-700/40 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500" />
           <button id="btnDestructionManuelle"
             class="px-5 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-lg text-sm transition-all flex items-center gap-2 whitespace-nowrap border border-rose-500/40">
-            💣 Activer la Destruction
+            ðŸ’£ Activer la Destruction
           </button>
         </div>
         <div id="destructionMessage" class="hidden rounded-lg px-4 py-3 text-sm mt-3"></div>
@@ -223,10 +213,10 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-      <!-- [ADMIN SUPRÊME] — Recherche & Validation de Comptes (Partenariats) -->
+      <!-- [ADMIN SUPRÃŠME] â€” Recherche & Validation de Comptes (Partenariats) -->
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 lg:col-span-2 shadow-lg">
-        <h3 class="text-lg font-bold mb-3 flex items-center gap-2 text-red-400">🤝 Gestion des Comptes & Partenariats</h3>
-        <p class="text-slate-400 text-sm mb-4">Recherchez un utilisateur par son adresse email, son identifiant UID ou le nom de sa société pour modifier ses privilèges de validation.</p>
+        <h3 class="text-lg font-bold mb-3 flex items-center gap-2 text-red-400">ðŸ¤ Gestion des Comptes & Partenariats</h3>
+        <p class="text-slate-400 text-sm mb-4">Recherchez un utilisateur par son adresse email, son identifiant UID ou le nom de sa sociÃ©tÃ© pour modifier ses privilÃ¨ges de validation.</p>
         
         <div class="flex gap-2 mb-4">
           <input type="text" id="accountSearchInput" placeholder="Rechercher par email, UID ou nom..."
@@ -242,9 +232,9 @@
           <table class="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
               <tr class="bg-slate-800 border-b border-slate-700 text-slate-300 font-semibold">
-                <th class="p-3">Société / Email</th>
+                <th class="p-3">SociÃ©tÃ© / Email</th>
                 <th class="p-3">Identifiant UID</th>
-                <th class="p-3">Rôle / Validé</th>
+                <th class="p-3">RÃ´le / ValidÃ©</th>
                 <th class="p-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -254,18 +244,18 @@
         </div>
       </div>
 
-      <!-- [ADMIN SUPRÊME] — Historique Global & Activations de Licences -->
+      <!-- [ADMIN SUPRÃŠME] â€” Historique Global & Activations de Licences -->
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 lg:col-span-2 shadow-lg">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
           <div>
-            <h3 class="text-lg font-bold text-sky-400 flex items-center gap-2">📊 Historique Global & Activations</h3>
-            <p class="text-slate-400 text-xs mt-0.5">Suivi en temps réel des transactions de licences et de l'état d'activation des clients.</p>
+            <h3 class="text-lg font-bold text-sky-400 flex items-center gap-2">ðŸ“Š Historique Global & Activations</h3>
+            <p class="text-slate-400 text-xs mt-0.5">Suivi en temps rÃ©el des transactions de licences et de l'Ã©tat d'activation des clients.</p>
           </div>
           <div class="flex gap-2 w-full sm:w-auto">
-            <input type="text" id="licenceFilterInput" placeholder="Filtrer par clé, type, statut ou client..."
+            <input type="text" id="licenceFilterInput" placeholder="Filtrer par clÃ©, type, statut ou client..."
               class="w-full sm:w-64 px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-sky-500" />
             <button id="btnRefreshLicences" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs transition-all">
-              🔄 Actualiser
+              ðŸ”„ Actualiser
             </button>
           </div>
         </div>
@@ -274,10 +264,10 @@
           <table class="w-full text-left border-collapse text-xs">
             <thead>
               <tr class="bg-slate-800 border-b border-slate-700 text-slate-300 font-semibold tracking-wider uppercase">
-                <th class="p-3">Clé de Licence</th>
+                <th class="p-3">ClÃ© de Licence</th>
                 <th class="p-3">Type Pack</th>
                 <th class="p-3">Statut</th>
-                <th class="p-3">Utilisé par (Société ID)</th>
+                <th class="p-3">UtilisÃ© par (SociÃ©tÃ© ID)</th>
                 <th class="p-3">Date Activation</th>
                 <th class="p-3">Date Expiration</th>
               </tr>
@@ -291,61 +281,59 @@
         </div>
       </div>
 
-      <!-- Importer des clés Chariow -->
+      <!-- Importer des clÃ©s Chariow -->
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
-        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">🔑 Importer des clés Chariow</h3>
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">ðŸ”‘ Importer des clÃ©s Chariow</h3>
         <div class="space-y-4">
           <div>
             <label class="block text-slate-300 text-sm font-medium mb-2">Type de pack</label>
             <select id="importTypePack"
               class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
-              <option value="illimite">Accès Illimité — 20 000 FCFA</option>
-              <option value="abonnement_flotte">Forfait Flotte B2B — 25 000 FCFA/mois</option>
-              <option value="suivi_eleve">Suivi Élève — 3 000 FCFA/mois</option>
-              <option value="suivi_etudiant">Suivi Étudiant — 3 000 FCFA/mois</option>
-              <option value="satellite">Vue Satellite 24h (add-on) — 577 FCFA</option>
+              <option value="illimite">AccÃ¨s IllimitÃ© â€” 20 000 FCFA</option>
+              <option value="abonnement_flotte">Forfait Flotte B2B â€” 25 000 FCFA/mois</option>
+              <option value="suivi_eleve">Suivi Ã‰lÃ¨ve â€” 3 000 FCFA/mois</option>
+              <option value="suivi_etudiant">Suivi Ã‰tudiant â€” 3 000 FCFA/mois</option>
             </select>
           </div>
           <div id="quantiteAgentsRow" class="hidden">
-            <label class="block text-slate-300 text-sm font-medium mb-2">Quantité d'agents</label>
+            <label class="block text-slate-300 text-sm font-medium mb-2">QuantitÃ© d'agents</label>
             <input type="number" id="importQuantiteAgents" min="1" value="1"
               class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
           <div>
-            <label class="block text-slate-300 text-sm font-medium mb-2">Clés (une par ligne)</label>
+            <label class="block text-slate-300 text-sm font-medium mb-2">ClÃ©s (une par ligne)</label>
             <textarea id="importKeys" rows="5" placeholder="XXXX-XXXX-XXXX-XXXX&#10;YYYY-YYYY-YYYY-YYYY"
               class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"></textarea>
           </div>
           <div id="importMessage" class="hidden rounded-lg px-4 py-3 text-sm"></div>
           <button id="btnImport"
             class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md">
-            Importer les clés
+            Importer les clÃ©s
           </button>
         </div>
       </div>
 
-      <!-- Générer des clés de test -->
+      <!-- GÃ©nÃ©rer des clÃ©s de test -->
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
-        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">⚙️ Générer des clés de test</h3>
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">âš™ï¸ GÃ©nÃ©rer des clÃ©s de test</h3>
         <div class="space-y-4">
           <div>
             <label class="block text-slate-300 text-sm font-medium mb-2">Type de pack</label>
             <select id="genTypePack"
               class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
-              <option value="illimite">Accès Illimité</option>
+              <option value="illimite">AccÃ¨s IllimitÃ©</option>
               <option value="abonnement_flotte">Forfait Flotte B2B</option>
-              <option value="suivi_eleve">Suivi Élève</option>
-              <option value="suivi_etudiant">Suivi Étudiant</option>
-              <option value="satellite">Vue Satellite (add-on)</option>
+              <option value="suivi_eleve">Suivi Ã‰lÃ¨ve</option>
+              <option value="suivi_etudiant">Suivi Ã‰tudiant</option>
             </select>
           </div>
           <div id="genQuantiteRow" class="hidden">
-            <label class="block text-slate-300 text-sm font-medium mb-2">Quantité d'agents</label>
+            <label class="block text-slate-300 text-sm font-medium mb-2">QuantitÃ© d'agents</label>
             <input type="number" id="genQuantiteAgents" min="1" value="1"
               class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
           <div>
-            <label class="block text-slate-300 text-sm font-medium mb-2">Nombre de clés à générer</label>
+            <label class="block text-slate-300 text-sm font-medium mb-2">Nombre de clÃ©s Ã  gÃ©nÃ©rer</label>
             <input type="number" id="genCount" min="1" max="100" value="1"
               class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
@@ -353,87 +341,30 @@
           <div id="genResult" class="hidden bg-slate-700/30 rounded-lg p-3 font-mono text-xs text-sky-300 space-y-1 max-h-40 overflow-y-auto"></div>
           <button id="btnGenerate"
             class="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md">
-            Générer les clés
+            GÃ©nÃ©rer les clÃ©s
           </button>
         </div>
       </div>
 
-      <!-- Créer un compte démo (accès complet, identifiants fixes) -->
+      <!-- VÃ©rification manuelle des expirations -->
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
-        <h3 class="text-lg font-bold mb-2 flex items-center gap-2">🎬 Créer un compte démo</h3>
+        <h3 class="text-lg font-bold mb-2 flex items-center gap-2">ðŸ• Cron d'expiration</h3>
         <p class="text-slate-400 text-sm mb-4">
-          Crée (ou réinitialise) un compte "Entreprise Démo" avec un abonnement <strong>Illimité déjà actif</strong> —
-          idéal pour une démonstration à un investisseur ou un partenaire. Vous choisissez l'email et le mot de passe.
-        </p>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-slate-300 text-sm font-medium mb-2">Email du compte démo</label>
-            <input type="email" id="demoAccountEmail" placeholder="demo@gpstracker.com"
-              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
-          </div>
-          <div>
-            <label class="block text-slate-300 text-sm font-medium mb-2">Mot de passe</label>
-            <input type="text" id="demoAccountPassword" placeholder="Au moins 6 caractères"
-              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
-          </div>
-          <div id="demoAccountMessage" class="hidden rounded-lg px-4 py-3 text-sm"></div>
-          <div id="demoAccountResult" class="hidden bg-slate-700/30 rounded-lg p-3 font-mono text-xs text-emerald-300 space-y-1.5"></div>
-          <button id="btnCreateDemoAccount"
-            class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md">
-            Créer / réinitialiser le compte démo
-          </button>
-        </div>
-      </div>
-
-      <!-- Générer un compte parent de test (Suivi Élève/Étudiant) -->
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
-        <h3 class="text-lg font-bold mb-2 flex items-center gap-2">🧪 Générer un compte parent de test</h3>
-        <p class="text-slate-400 text-sm mb-4">
-          Crée un compte avec un abonnement scolaire déjà actif, pour tester l'inscription
-          élève/étudiant sans dépendre d'un vrai client. Le "code parent" à utiliser est l'UID retourné.
-        </p>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-slate-300 text-sm font-medium mb-2">Type d'abonnement</label>
-            <select id="testParentType"
-              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
-              <option value="suivi_eleve">Suivi Élève</option>
-              <option value="suivi_etudiant">Suivi Étudiant</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-slate-300 text-sm font-medium mb-2">Durée de validité (jours)</label>
-            <input type="number" id="testParentJours" min="1" value="30"
-              class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
-          </div>
-          <div id="testParentMessage" class="hidden rounded-lg px-4 py-3 text-sm"></div>
-          <div id="testParentResult" class="hidden bg-slate-700/30 rounded-lg p-3 font-mono text-xs text-emerald-300 space-y-1.5"></div>
-          <button id="btnGenerateTestParent"
-            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md">
-            Générer un compte parent de test
-          </button>
-        </div>
-      </div>
-
-      <!-- Vérification manuelle des expirations -->
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
-        <h3 class="text-lg font-bold mb-2 flex items-center gap-2">🕐 Cron d'expiration</h3>
-        <p class="text-slate-400 text-sm mb-4">
-          Déclenche manuellement la vérification des abonnements expirés
-          (normalement planifié à 01h00 UTC chaque nuit).
+          DÃ©clenche manuellement la vÃ©rification des abonnements expirÃ©s
+          (normalement planifiÃ© Ã  01h00 UTC chaque nuit).
         </p>
         <div id="cronMessage" class="hidden rounded-lg px-4 py-3 text-sm mb-4"></div>
         <button id="btnCron"
           class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md">
-          Lancer la vérification maintenant
+          Lancer la vÃ©rification maintenant
         </button>
       </div>
 
       <!-- Notifications d'expiration -->
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-md">
-        <h3 class="text-lg font-bold mb-2 flex items-center gap-2">📧 Notifications d'expiration</h3>
+        <h3 class="text-lg font-bold mb-2 flex items-center gap-2">ðŸ“§ Notifications d'expiration</h3>
         <p class="text-slate-400 text-sm mb-4">
-          Envoie les rappels d'expiration aux sociétés dont l'abonnement
+          Envoie les rappels d'expiration aux sociÃ©tÃ©s dont l'abonnement
           expire dans les prochains jours (J-7, J-3, J-1).
         </p>
         <div id="notifMessage" class="hidden rounded-lg px-4 py-3 text-sm mb-4"></div>
@@ -446,43 +377,43 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       [ADMIN SUPRÊME] — Modal destruction RENFORCÉ
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+       [ADMIN SUPRÃŠME] â€” Modal destruction RENFORCÃ‰
        Triple confirmation : lecture avertissement + frappe texte
-  ══════════════════════════════════════════════════════════ -->
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="modalDestructionConfirm"
     class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
     <div class="bg-slate-800 rounded-2xl border border-rose-500/50 p-6 max-w-lg w-full shadow-2xl">
 
-      <!-- En-tête danger -->
+      <!-- En-tÃªte danger -->
       <div class="flex items-center gap-3 mb-4 pb-4 border-b border-rose-900/40">
         <div class="w-12 h-12 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center flex-shrink-0 text-2xl animate-pulse">
-          💣
+          ðŸ’£
         </div>
         <div>
-          <h3 class="text-xl font-bold text-rose-400">Destruction à distance</h3>
-          <p class="text-slate-400 text-xs">Action irréversible — Confirmation obligatoire</p>
+          <h3 class="text-xl font-bold text-rose-400">Destruction Ã  distance</h3>
+          <p class="text-slate-400 text-xs">Action irrÃ©versible â€” Confirmation obligatoire</p>
         </div>
       </div>
 
       <!-- Ce qui va se passer -->
       <div class="bg-rose-950/40 border border-rose-800/50 rounded-xl p-4 mb-4 text-sm space-y-2">
-        <p class="text-rose-300 font-semibold text-xs uppercase tracking-wide mb-2">⚠️ Ce qui va se passer :</p>
+        <p class="text-rose-300 font-semibold text-xs uppercase tracking-wide mb-2">âš ï¸ Ce qui va se passer :</p>
         <div class="flex items-start gap-2 text-slate-300 text-xs">
-          <span class="text-rose-400 mt-0.5">▸</span>
-          Une commande <code class="bg-slate-900 px-1 rounded">DESTROY</code> est envoyée à l'appareil via Firebase
+          <span class="text-rose-400 mt-0.5">â–¸</span>
+          Une commande <code class="bg-slate-900 px-1 rounded">DESTROY</code> est envoyÃ©e Ã  l'appareil via Firebase
         </div>
         <div class="flex items-start gap-2 text-slate-300 text-xs">
-          <span class="text-rose-400 mt-0.5">▸</span>
-          L'appareil effectuera une <strong>remise à zéro usine complète</strong> dès la prochaine connexion
+          <span class="text-rose-400 mt-0.5">â–¸</span>
+          L'appareil effectuera une <strong>remise Ã  zÃ©ro usine complÃ¨te</strong> dÃ¨s la prochaine connexion
         </div>
         <div class="flex items-start gap-2 text-slate-300 text-xs">
-          <span class="text-rose-400 mt-0.5">▸</span>
-          Toutes les données, photos et applications seront <strong>définitivement effacées</strong>
+          <span class="text-rose-400 mt-0.5">â–¸</span>
+          Toutes les donnÃ©es, photos et applications seront <strong>dÃ©finitivement effacÃ©es</strong>
         </div>
         <div class="flex items-start gap-2 text-slate-300 text-xs">
-          <span class="text-rose-400 mt-0.5">▸</span>
-          Cette action <strong class="text-rose-400">ne peut pas être annulée</strong> une fois confirmée
+          <span class="text-rose-400 mt-0.5">â–¸</span>
+          Cette action <strong class="text-rose-400">ne peut pas Ãªtre annulÃ©e</strong> une fois confirmÃ©e
         </div>
       </div>
 
@@ -493,16 +424,16 @@
       <!-- Confirmation par frappe -->
       <div class="mb-5">
         <label class="block text-slate-300 text-sm font-semibold mb-2">
-          Tapez <span class="text-rose-400 font-mono bg-rose-950/50 px-2 py-0.5 rounded select-none">DÉTRUIRE</span> pour confirmer
+          Tapez <span class="text-rose-400 font-mono bg-rose-950/50 px-2 py-0.5 rounded select-none">DÃ‰TRUIRE</span> pour confirmer
         </label>
         <input id="destructionConfirmInput"
           type="text"
-          placeholder="Tapez DÉTRUIRE ici..."
+          placeholder="Tapez DÃ‰TRUIRE ici..."
           autocomplete="off"
           class="w-full px-4 py-3 bg-slate-900 border-2 border-slate-600 rounded-lg text-white text-sm
                  focus:outline-none focus:border-rose-500 transition-colors placeholder-slate-600 font-mono tracking-wider" />
         <p id="destructionConfirmHint" class="text-slate-600 text-xs mt-1 hidden">
-          ❌ Le texte ne correspond pas. Tapez exactement <strong class="text-rose-400">DÉTRUIRE</strong>.
+          âŒ Le texte ne correspond pas. Tapez exactement <strong class="text-rose-400">DÃ‰TRUIRE</strong>.
         </p>
       </div>
 
@@ -510,128 +441,128 @@
       <div class="flex gap-3">
         <button id="btnAnnulerDestruction"
           class="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm font-semibold transition-colors">
-          ✕ Annuler
+          âœ• Annuler
         </button>
         <button id="btnConfirmerDestruction" disabled
           class="flex-1 px-4 py-3 bg-slate-600 text-slate-400 rounded-xl text-sm font-bold
                  transition-all cursor-not-allowed flex items-center justify-center gap-2"
           data-active-class="bg-rose-700 hover:bg-rose-600 text-white cursor-pointer">
-          💣 Confirmer la Destruction
+          ðŸ’£ Confirmer la Destruction
         </button>
       </div>
       <p class="text-slate-600 text-xs text-center mt-3">
-        Cette action est réservée à l'Administrateur Suprême et laisse une trace dans les journaux.
+        Cette action est rÃ©servÃ©e Ã  l'Administrateur SuprÃªme et laisse une trace dans les journaux.
       </p>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       [ADMIN SUPRÊME] — Modal d'aide
-  ══════════════════════════════════════════════════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+       [ADMIN SUPRÃŠME] â€” Modal d'aide
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="modalAideAdmin"
     class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
     <div class="bg-slate-800 rounded-2xl border border-slate-600 p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-5">
-        <h3 class="text-xl font-bold text-white flex items-center gap-2">📖 Guide Administrateur Suprême</h3>
+        <h3 class="text-xl font-bold text-white flex items-center gap-2">ðŸ“– Guide Administrateur SuprÃªme</h3>
         <button id="btnFermerAide"
           class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors text-lg">
-          ✕
+          âœ•
         </button>
       </div>
 
       <div class="space-y-5 text-sm">
 
-        <!-- Étape 1 -->
+        <!-- Ã‰tape 1 -->
         <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-sky-500">
           <p class="font-bold text-sky-400 mb-2 flex items-center gap-2">
             <span class="w-6 h-6 bg-sky-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
             Supervision du serveur
           </p>
           <p class="text-slate-300 text-xs leading-relaxed">
-            Le premier bloc affiche l'état du serveur Render en temps réel (ping toutes les 15 secondes).
-            Si le serveur est rouge, il est en cours de réveil (cold-start ~30 secondes sur le plan gratuit).
-            Le bloc Firebase confirme la connexion à la base de données.
+            Le premier bloc affiche l'Ã©tat du serveur Render en temps rÃ©el (ping toutes les 15 secondes).
+            Si le serveur est rouge, il est en cours de rÃ©veil (cold-start ~30 secondes sur le plan gratuit).
+            Le bloc Firebase confirme la connexion Ã  la base de donnÃ©es.
           </p>
         </div>
 
-        <!-- Étape 2 -->
+        <!-- Ã‰tape 2 -->
         <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-red-500">
           <p class="font-bold text-red-400 mb-2 flex items-center gap-2">
             <span class="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-            Vue Globale — Tous les clients
+            Vue Globale â€” Tous les clients
           </p>
           <p class="text-slate-300 text-xs leading-relaxed">
             Ce tableau liste <strong>tous les comptes</strong> inscrits sur la plateforme.
-            Vous pouvez filtrer par nom, email, rôle ou abonnement.
-            Le bouton 💣 envoie une commande de destruction à distance vers un agent spécifique.
-            Les boutons ✓ Valider et ✕ Révoquer modifient le statut de partenariat d'une société.
+            Vous pouvez filtrer par nom, email, rÃ´le ou abonnement.
+            Le bouton ðŸ’£ envoie une commande de destruction Ã  distance vers un agent spÃ©cifique.
+            Les boutons âœ“ Valider et âœ• RÃ©voquer modifient le statut de partenariat d'une sociÃ©tÃ©.
           </p>
         </div>
 
-        <!-- Étape 3 -->
+        <!-- Ã‰tape 3 -->
         <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-rose-500">
           <p class="font-bold text-rose-400 mb-2 flex items-center gap-2">
             <span class="w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
-            Destruction à distance (Antivol Avancé)
+            Destruction Ã  distance (Antivol AvancÃ©)
           </p>
           <p class="text-slate-300 text-xs leading-relaxed mb-2">
-            Quand un agent force la désinstallation, une alerte apparaît automatiquement ici.
-            Vous pouvez déclencher la destruction de trois façons :
+            Quand un agent force la dÃ©sinstallation, une alerte apparaÃ®t automatiquement ici.
+            Vous pouvez dÃ©clencher la destruction de trois faÃ§ons :
           </p>
           <ul class="text-slate-400 text-xs space-y-1 ml-3">
-            <li>▸ <strong class="text-white">Depuis une alerte</strong> : cliquer sur "💣 Détruire" sur la carte d'alerte</li>
-            <li>▸ <strong class="text-white">Depuis le tableau clients</strong> : cliquer sur 💣 sur la ligne de l'agent</li>
-            <li>▸ <strong class="text-white">Manuellement</strong> : saisir l'UID ou Device ID + raison + cliquer "Activer la Destruction"</li>
+            <li>â–¸ <strong class="text-white">Depuis une alerte</strong> : cliquer sur "ðŸ’£ DÃ©truire" sur la carte d'alerte</li>
+            <li>â–¸ <strong class="text-white">Depuis le tableau clients</strong> : cliquer sur ðŸ’£ sur la ligne de l'agent</li>
+            <li>â–¸ <strong class="text-white">Manuellement</strong> : saisir l'UID ou Device ID + raison + cliquer "Activer la Destruction"</li>
           </ul>
           <p class="text-amber-400 text-xs mt-2 bg-amber-950/30 border border-amber-800/30 rounded-lg px-3 py-2">
-            ⚠️ Une double confirmation est obligatoire : vous devrez taper <strong>DÉTRUIRE</strong> pour valider.
-            Cette fonctionnalité est payante (option "Antivol Avancé").
+            âš ï¸ Une double confirmation est obligatoire : vous devrez taper <strong>DÃ‰TRUIRE</strong> pour valider.
+            Cette fonctionnalitÃ© est payante (option "Antivol AvancÃ©").
           </p>
         </div>
 
-        <!-- Étape 4 -->
+        <!-- Ã‰tape 4 -->
         <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-amber-500">
           <p class="font-bold text-amber-400 mb-2 flex items-center gap-2">
             <span class="w-6 h-6 bg-amber-500 text-slate-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
             Gestion des licences Chariow
           </p>
           <p class="text-slate-300 text-xs leading-relaxed">
-            <strong class="text-white">Importer</strong> : collez les clés reçues de Chariow (une par ligne au format XXXX-XXXX-XXXX-XXXX),
-            sélectionnez le type de pack et cliquez "Importer".
+            <strong class="text-white">Importer</strong> : collez les clÃ©s reÃ§ues de Chariow (une par ligne au format XXXX-XXXX-XXXX-XXXX),
+            sÃ©lectionnez le type de pack et cliquez "Importer".
             <br><br>
-            <strong class="text-white">Générer</strong> : créez des clés de test pour valider le système.
-            Ces clés sont fonctionnelles mais identifiées comme "test".
+            <strong class="text-white">GÃ©nÃ©rer</strong> : crÃ©ez des clÃ©s de test pour valider le systÃ¨me.
+            Ces clÃ©s sont fonctionnelles mais identifiÃ©es comme "test".
             <br><br>
-            Le tableau <strong class="text-white">Historique</strong> affiche toutes les clés avec leur statut (disponible/utilisé)
-            et le client qui les a activées.
+            Le tableau <strong class="text-white">Historique</strong> affiche toutes les clÃ©s avec leur statut (disponible/utilisÃ©)
+            et le client qui les a activÃ©es.
           </p>
         </div>
 
-        <!-- Étape 5 -->
+        <!-- Ã‰tape 5 -->
         <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-emerald-500">
           <p class="font-bold text-emerald-400 mb-2 flex items-center gap-2">
             <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">5</span>
             Partenariats & Validation de comptes
           </p>
           <p class="text-slate-300 text-xs leading-relaxed">
-            Recherchez une société par email, UID ou nom.
-            Le bouton <strong class="text-emerald-400">Valider</strong> attribue le rôle "partner" — permet des avantages tarifaires.
-            Le bouton <strong class="text-red-400">Révoquer</strong> retire ce statut.
-            Utile pour les écoles communautaires, institutions publiques et partenaires commerciaux.
+            Recherchez une sociÃ©tÃ© par email, UID ou nom.
+            Le bouton <strong class="text-emerald-400">Valider</strong> attribue le rÃ´le "partner" â€” permet des avantages tarifaires.
+            Le bouton <strong class="text-red-400">RÃ©voquer</strong> retire ce statut.
+            Utile pour les Ã©coles communautaires, institutions publiques et partenaires commerciaux.
           </p>
         </div>
 
-        <!-- Étape 6 -->
+        <!-- Ã‰tape 6 -->
         <div class="bg-slate-700/40 rounded-xl p-4 border-l-4 border-violet-500">
           <p class="font-bold text-violet-400 mb-2 flex items-center gap-2">
             <span class="w-6 h-6 bg-violet-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">6</span>
             Cron & Notifications d'expiration
           </p>
           <p class="text-slate-300 text-xs leading-relaxed">
-            <strong class="text-white">Cron d'expiration</strong> : vérifie tous les abonnements expirés et les désactive.
-            S'exécute automatiquement à 01h00 UTC chaque nuit, mais vous pouvez le lancer manuellement ici.
+            <strong class="text-white">Cron d'expiration</strong> : vÃ©rifie tous les abonnements expirÃ©s et les dÃ©sactive.
+            S'exÃ©cute automatiquement Ã  01h00 UTC chaque nuit, mais vous pouvez le lancer manuellement ici.
             <br><br>
-            <strong class="text-white">Notifications d'expiration</strong> : envoie des rappels email aux sociétés
+            <strong class="text-white">Notifications d'expiration</strong> : envoie des rappels email aux sociÃ©tÃ©s
             dont l'abonnement expire dans 7, 3 ou 1 jour.
           </p>
         </div>

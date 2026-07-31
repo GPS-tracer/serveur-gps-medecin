@@ -1,15 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <style>
-    /* Garde-fou anti-FOUC : Tailwind CDN charge en differe (defer),
-       les icones SVG sans style peuvent s'afficher en grand format
-       une fraction de seconde avant que les classes Tailwind ne s'appliquent. */
-    svg:not([width]):not([height]) { width: 1.5rem; height: 1.5rem; }
-  </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rapports PDF — GPS Tracker</title>
+  <title>Rapports PDF â€” GPS Tracker</title>
   <link rel="preload" href="style.css" as="style">
   <link rel="stylesheet" href="style.css">
   <script>
@@ -18,6 +12,7 @@
       document.documentElement.className = 'theme-' + theme;
     })();
   </script>
+  <script>window.tailwind={corePlugins:{preflight:true}}</script>
   <link rel="stylesheet" href="tailwind-output.css">
 </head>
 <body class="app-body" data-nav-active="rapport" data-nav-title="Rapports PDF" data-page-module="./rapport.js">
@@ -30,15 +25,15 @@
     <div id="quotaBanner" class="mb-6 bg-slate-800 border border-slate-700 rounded-xl p-4 flex items-center justify-between gap-4">
       <div>
         <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Impressions disponibles</p>
-        <p id="quotaLabel" class="text-lg font-bold text-sky-400">Chargement…</p>
+        <p id="quotaLabel" class="text-lg font-bold text-sky-400">Chargementâ€¦</p>
       </div>
-      <a href="licence.html" class="text-xs text-slate-400 hover:text-sky-400 transition-colors">Voir les abonnements →</a>
+      <a href="licence.html" class="text-xs text-slate-400 hover:text-sky-400 transition-colors">Voir les abonnements â†’</a>
     </div>
 
-    <!-- Formulaire de génération -->
+    <!-- Formulaire de gÃ©nÃ©ration -->
     <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 mb-8">
       <h3 class="text-lg font-bold mb-6 flex items-center gap-2">
-        <span>📄</span> Générer un rapport d'activité
+        <span>ðŸ“„</span> GÃ©nÃ©rer un rapport d'activitÃ©
       </h3>
 
       <form id="reportForm" class="space-y-5">
@@ -48,26 +43,26 @@
           <label class="block text-slate-300 text-sm font-medium mb-2">Agent <span class="text-red-400">*</span></label>
           <select id="agentSelect" required
             class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
-            <option value="">— Sélectionnez un agent —</option>
+            <option value="">â€” SÃ©lectionnez un agent â€”</option>
           </select>
         </div>
 
         <!-- Secteur -->
         <div>
-          <label class="block text-slate-300 text-sm font-medium mb-2">Secteur d'activité <span class="text-red-400">*</span></label>
+          <label class="block text-slate-300 text-sm font-medium mb-2">Secteur d'activitÃ© <span class="text-red-400">*</span></label>
           <select id="secteurSelect" required
             class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
-            <option value="voiture">🚗 Voiture</option>
-            <option value="moto">🏍️ Moto / Livraison</option>
-            <option value="camion">🚚 Camion / Utilitaire</option>
-            <option value="scolaire">🎓 Scolaire (assiduité)</option>
+            <option value="voiture">ðŸš— Voiture</option>
+            <option value="moto">ðŸï¸ Moto / Livraison</option>
+            <option value="camion">ðŸšš Camion / Utilitaire</option>
+            <option value="scolaire">ðŸŽ“ Scolaire (assiduitÃ©)</option>
           </select>
         </div>
 
-        <!-- Période -->
+        <!-- PÃ©riode -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-slate-300 text-sm font-medium mb-2">Date de début <span class="text-red-400">*</span></label>
+            <label class="block text-slate-300 text-sm font-medium mb-2">Date de dÃ©but <span class="text-red-400">*</span></label>
             <input type="date" id="dateDebut" required
               class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
@@ -78,34 +73,34 @@
           </div>
         </div>
 
-        <!-- Message d'erreur / quota épuisé -->
+        <!-- Message d'erreur / quota Ã©puisÃ© -->
         <div id="formMessage" class="hidden rounded-lg px-4 py-3 text-sm font-medium"></div>
 
-        <!-- Offres si quota épuisé -->
+        <!-- Offres si quota Ã©puisÃ© -->
         <div id="offresBlock" class="hidden"></div>
 
         <!-- Bouton -->
         <button type="submit" id="btnGenerer"
           class="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2">
-          <span id="btnIcon">📄</span>
-          <span id="btnLabel">Générer le rapport PDF</span>
+          <span id="btnIcon">ðŸ“„</span>
+          <span id="btnLabel">GÃ©nÃ©rer le rapport PDF</span>
         </button>
       </form>
     </div>
 
-    <!-- Historique des rapports générés -->
+    <!-- Historique des rapports gÃ©nÃ©rÃ©s -->
     <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
       <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-        <span>🗂</span> Historique des rapports
+        <span>ðŸ—‚</span> Historique des rapports
       </h3>
       <div id="historyList" class="space-y-2">
-        <p class="text-slate-500 text-sm">Chargement…</p>
+        <p class="text-slate-500 text-sm">Chargementâ€¦</p>
       </div>
     </div>
 
   </main>
 
-  <p id="auth-loading" class="text-center text-slate-400 mt-20">Vérification de la session…</p>
+  <p id="auth-loading" class="text-center text-slate-400 mt-20">VÃ©rification de la sessionâ€¦</p>
 
   <script type="module" defer src="./boot-app.js"></script>
 </body>
