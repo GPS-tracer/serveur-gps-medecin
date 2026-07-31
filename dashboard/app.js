@@ -39,6 +39,7 @@ const satelliteLayer = L.tileLayer(
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
   {
     maxZoom: 19,
+    maxNativeZoom: 17, // au-delà, Leaflet agrandit la dernière image dispo au lieu d'afficher des cases vides (couverture Esri limitée sur certaines zones)
     attribution:
       'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
   }
