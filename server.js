@@ -2667,27 +2667,44 @@ app.use(express.static('.', {
 // ROUTE : Création de compte atomique (Atomic Registration)
 // POST /api/auth/register
 // ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
+// ROUTE : Cr�ation de compte atomique (Atomic Registration)
+// POST /api/auth/register
+// -------------------------------------------------------------
 app.post('/api/auth/register', async (req, res) => {
+  let createdUser = null;
   try {
     const { email, password, companyName, sector, address, logoUrl } = req.body;
     if (!email || !password || !companyName) {
       return res.status(400).json({ error: 'Champs obligatoires : email, password, companyName' });
     }
-    const user = await admin.auth().createUser({ email, password });
-    await ecrireProfilSociete(user.uid, {
+
+    createdUser = await admin.auth().createUser({ email, password });
+
+    await ecrireProfilSociete(createdUser.uid, {
       companyName, sector, address, email, logoUrl: logoUrl || null,
       createdAt: Date.now(), role: 'company', status: 'active'
     });
-    await creerProfilFreemiumGratuit(user.uid);
-    const token = await admin.auth().createCustomToken(user.uid);
-    console.log('Compte cree:', user.uid);
-    res.json({ uid: user.uid, token });
-  } catch (err) {
-    if (err.code === 'auth/email-already-exists') {
-      return res.status(409).json({ error: 'Cet email est deja utilise' });
+
+    await creerProfilFreemiumGratuit(createdUser.uid);
+    const token = await admin.auth().createCustomToken(createdUser.uid);
+
+    console.log('Compte cr�� :', createdUser.uid);
+    res.json({ uid: createdUser.uid, token });
+  } catch (error) {
+    console.error("Erreur lors de l'inscription :", error);
+
+    // Rollback : suppression de l'utilisateur Firebase Auth si l'�criture BDD a �chou�
+    if (createdUser && createdUser.uid) {
+      try {
+        await admin.auth().deleteUser(createdUser.uid);
+        console.log(`Rollback r�ussi : utilisateur ${createdUser.uid} supprim�.`);
+      } catch (deleteError) {
+        console.error("�chec du rollback lors de la suppression :", deleteError);
+      }
     }
-    console.error('register error:', err);
-    res.status(500).json({ error: 'Erreur lors de l inscription' });
+
+    res.status(500).json({ error: error.message || "Erreur serveur lors de l'inscription" });
   }
 });
 
@@ -2704,15 +2721,18 @@ app.listen(PORT, () => {
 const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL || 'https://serveur-gps-medecin.onrender.com';
 
 function keepAlive() {
-  const pingUrl = ${RENDER_EXTERNAL_URL}/agent/;
-  setInterval(async () => {
-    try {
-      const response = await fetch(pingUrl);
-      console.log([Keep-Alive] Ping vers  - Status: );
-    } catch (error) {
-      console.error('[Keep-Alive] Erreur lors du ping :', error.message);
-    }
-  }, 10 * 60 * 1000); // 10 minutes
+  const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL;
+  if (!RENDER_EXTERNAL_URL) return;
+
+  const pingUrl = `${RENDER_EXTERNAL_URL}/agent/`;
+
+  setInterval(() => {
+    https.get(pingUrl, (res) => {
+      console.log(`[Keep-Alive] Ping vers ${pingUrl} - Status: ${res.statusCode}`);
+    }).on('error', (err) => {
+      console.error(`[Keep-Alive] Erreur lors du ping: ${err.message}`);
+    });
+  }, 14 * 60 * 1000); // toutes les 14 minutes
 }
 
 keepAlive();
