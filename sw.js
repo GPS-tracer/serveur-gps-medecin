@@ -6,7 +6,7 @@
  * Serve the repo root over HTTP (e.g. python -m http.server).
  */
 
-const CACHE_NAME = "gps-tracker-agent-v1";
+const CACHE_NAME = "gps-tracker-agent-v2";
 
 /** Paths are from the site origin (repo served as document root). */
 const PRECACHE_URLS = [
