@@ -3,6 +3,7 @@ const path     = require('path');
 const admin    = require('firebase-admin');
 const cron     = require('node-cron');
 const crypto   = require('crypto');
+const https    = require('https');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -2753,3 +2754,28 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`GPS Tracker server running on port ${PORT}`);
 });
+
+// ─────────────────────────────────────────────────────────────
+// KEEP-ALIVE — évite la mise en veille du plan gratuit Render
+// (spin-down automatique après ~15 min sans requête entrante).
+// Se ping soi-même toutes les 14 minutes via sa propre URL publique.
+// RENDER_EXTERNAL_URL est fournie automatiquement par Render — si elle
+// est absente (dev local, autre hébergeur), le keep-alive ne démarre
+// simplement pas, pour ne pas polluer les logs en local.
+// ─────────────────────────────────────────────────────────────
+const SELF_URL = process.env.RENDER_EXTERNAL_URL;
+if (SELF_URL) {
+  const KEEP_ALIVE_INTERVAL_MS = 14 * 60 * 1000; // 14 min (< seuil de 15 min de Render)
+  setInterval(() => {
+    https.get(SELF_URL, (res) => {
+      console.log(`🏓 Keep-alive ping → ${res.statusCode}`);
+      res.resume(); // consommer la réponse pour libérer le socket
+    }).on('error', (err) => {
+      console.warn('⚠️ Keep-alive ping échoué:', err.message);
+    });
+  }, KEEP_ALIVE_INTERVAL_MS);
+  console.log(`🏓 Keep-alive actif — ping toutes les 14 min vers ${SELF_URL}`);
+} else {
+  console.log('🏓 Keep-alive désactivé (RENDER_EXTERNAL_URL non définie — environnement local)');
+}
+
