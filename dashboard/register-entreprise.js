@@ -1,6 +1,6 @@
 import { auth, db } from "../shared/firebase.js";
-import { createUserWithEmailAndPassword, sendEmailVerification, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { signInWithEmailAndPassword, sendEmailVerification, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { ref, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 import { redirigerApresLogin } from './post-login.js';
 
@@ -141,39 +141,36 @@ form.addEventListener('submit', async (e) => {
     try {
         // Valider les données
         validateForm(companyName, sector, address, email, password);
-        
-        console.log('Création de l\'utilisateur...');
-        // Créer le compte sur le serveur sécurisé
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+        console.log('Création du compte (atomique, côté serveur)...');
+        // Le serveur crée le compte Auth ET le profil companies/{uid} ensemble.
+        // En cas d'échec du profil, le compte Auth est automatiquement annulé
+        // côté serveur — plus de compte "fantôme" bloquant l'email pour toujours.
+        const createRes = await fetch('/api/register/entreprise', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ companyName, sector, address, email, password }),
+        });
+        const createData = await createRes.json();
+        if (!createRes.ok) {
+            throw new Error(createData.error || 'Erreur lors de la création du compte.');
+        }
+        console.log('Compte créé:', createData.uid);
+
+        // Établir la session (le compte existe déjà côté serveur, on se connecte)
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        console.log('Utilisateur créé:', user.uid);
-        
-        // Upload du logo (si présent) — non bloquant : une erreur ici ne doit
-        // jamais empêcher la création du compte (déjà créé à l'étape précédente).
-        let logoUrl = null;
+
+        // Upload du logo (si présent) — non bloquant, purement cosmétique.
         if (logoFile) {
             console.log('Upload du logo...');
             try {
-                logoUrl = await uploadLogo(logoFile, user.uid);
+                const logoUrl = await uploadLogo(logoFile, user.uid);
+                if (logoUrl) await update(ref(db, `companies/${user.uid}`), { logoUrl });
             } catch (logoErr) {
-                console.warn('Upload du logo échoué, inscription poursuivie sans logo:', logoErr);
+                console.warn('Upload du logo échoué, poursuite sans logo:', logoErr);
             }
         }
-        
-        console.log('Enregistrement des données...');
-        // Sauvegarder les infos dans la base de données GPTS
-        const createdAt = Date.now();
-
-        await set(ref(db, `companies/${user.uid}`), {
-            companyName,
-            sector,
-            address,
-            email,
-            logoUrl,
-            createdAt,
-            role: 'company',
-            status: 'active',
-        });
 
         // Initialisation serveur : date_creation, expiration_essai J+14, 50 crédits
         try {
@@ -207,14 +204,14 @@ form.addEventListener('submit', async (e) => {
         let message = 'Une erreur est survenue. Veuillez réessayer.';
         
         // Messages d'erreur d'authentification
-        if (error.code === 'auth/email-already-in-use') {
+        if (error.code === 'auth/email-already-in-use' || error.code === 'auth/email-already-exists') {
             message = '❌ Cet email est déjà utilisé. Veuillez vous connecter ou utiliser un autre email.';
         } else if (error.code === 'auth/weak-password') {
             message = '❌ Le mot de passe est trop faible. Utilisez au moins 6 caractères.';
         } else if (error.code === 'auth/invalid-email') {
             message = '❌ L\'adresse email est invalide.';
-        } else if (error.code === 'auth/operation-not-allowed') {
-            message = '❌ L\'inscription par email/mot de passe n\'est pas activée.';
+        } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            message = '❌ Compte créé mais connexion échouée. Réessayez de vous connecter manuellement.';
         } else if (error.code === 'auth/network-request-failed') {
             message = '❌ Erreur de connexion. Vérifiez votre connexion internet.';
         } else if (error.message) {

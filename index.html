@@ -7,17 +7,17 @@
   <title>GPS Tracker Congo — Suivi GPS en temps réel</title>
   <link rel="preload" href="/dashboard/style.css" as="style">
   <link rel="stylesheet" href="/dashboard/style.css">
+  <link rel="stylesheet" href="/vitrine-tailwind-output.css">
 
   <!--
-    ┌─────────────────────────────────────────────────────────┐
-    │  ANTI-FOUC : le body reste invisible (opacity:0)        │
-    │  jusqu'à ce que Tailwind ait fini de s'initialiser.     │
-    │  La classe .tw-ready est ajoutée par tailwind.ready()   │
-    │  ou par le fallback DOMContentLoaded (300 ms max).      │
-    └─────────────────────────────────────────────────────────┘
+    Anti-FOUC : avec le CDN Tailwind, le CSS arrivait après le premier
+    rendu (JS différé) — le body restait masqué (opacity:0) jusqu'à ce
+    que la classe .tw-ready soit ajoutée. Avec le CSS compilé chargé
+    via <link> ci-dessus, le navigateur applique déjà les styles avant
+    le premier rendu : ce mécanisme n'est plus nécessaire.
   -->
   <style>
-    /* ── Reset minimal garanti AVANT Tailwind ── */
+    /* ── Reset minimal ── */
     *, *::before, *::after { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
@@ -25,11 +25,7 @@
       background: #0f172a;
       color: #f1f5f9;
       font-family: system-ui, -apple-system, sans-serif;
-      /* Anti-FOUC : masque le body jusqu'à ce que Tailwind soit prêt */
-      opacity: 0;
-      transition: opacity .15s ease;
     }
-    body.tw-ready { opacity: 1; }
 
     /* ── Animations ── */
     @keyframes spin    { to { transform: rotate(360deg); } }
@@ -508,20 +504,6 @@
 
     </div><!-- /dlModalBox -->
   </div><!-- /dlModal -->
-
-  <script>window.tailwind = { corePlugins: { preflight: false } };</script>
-  <script src="https://cdn.tailwindcss.com?plugins=forms" defer
-          onload="document.body.classList.add('tw-ready')"
-          onerror="document.body.classList.add('tw-ready')"></script>
-  <script defer>
-    (function () {
-      var t = setTimeout(function () { document.body.classList.add('tw-ready'); }, 300);
-      document.addEventListener('DOMContentLoaded', function () {
-        clearTimeout(t);
-        document.body.classList.add('tw-ready');
-      }, { once: true });
-    })();
-  </script>
 
   <script src="/dashboard/qrcode.min.js"></script>
   <script type="module" defer src="/dashboard/boot-vitrine.js"></script>

@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "build:css": "tailwindcss -c tailwind.config.js -i ./dashboard/tailwind-input.css -o ./dashboard/tailwind-output.css --minify",
+    "build:css:vitrine": "tailwindcss -c tailwind.config.vitrine.js -i ./vitrine-tailwind-input.css -o ./vitrine-tailwind-output.css --minify",
+    "build:css:all": "npm run build:css && npm run build:css:vitrine",
     "watch:css": "tailwindcss -c tailwind.config.js -i ./dashboard/tailwind-input.css -o ./dashboard/tailwind-output.css --watch"
   },
   "dependencies": {

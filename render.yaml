@@ -2,7 +2,7 @@ services:
   - type: web
     name: serveur-gps-medecin
     env: node
-    buildCommand: npm install --include=dev && npm run build:css
+    buildCommand: npm install --include=dev && npm run build:css:all
     startCommand: npm start
     envVars:
       - key: NODE_VERSION

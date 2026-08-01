@@ -484,6 +484,88 @@ app.get('/api/user/role', requireAuth, async (req, res) => {
 // POST /api/user/init-account
 // À appeler à la création du compte : date_creation, expiration_essai J+14, 50 crédits
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// ROUTE PUBLIQUE : Créer un compte entreprise de façon atomique
+// POST /api/register/entreprise
+// Le compte Firebase Auth ET le profil companies/{uid} sont créés
+// ensemble. Si l'écriture du profil échoue, le compte Auth qui vient
+// d'être créé est automatiquement supprimé (rollback) — plus jamais
+// de compte "fantôme" bloquant l'email pour toujours.
+// Le logo, l'initialisation freemium et l'email de vérification
+// restent gérés côté client après connexion (déjà tolérants aux
+// erreurs partielles, pas besoin qu'ils soient atomiques).
+// ─────────────────────────────────────────────────────────────
+app.post('/api/register/entreprise', async (req, res) => {
+  const companyName = (req.body?.companyName || '').trim();
+  const sector       = (req.body?.sector || '').trim();
+  const address       = (req.body?.address || '').trim();
+  const email          = (req.body?.email || '').trim().toLowerCase();
+  const password        = req.body?.password || '';
+
+  if (companyName.length < 2) {
+    return res.status(400).json({ error: 'Le nom de la société doit contenir au moins 2 caractères.' });
+  }
+  if (!sector) {
+    return res.status(400).json({ error: "Veuillez sélectionner un secteur d'activité." });
+  }
+  if (address.length < 5) {
+    return res.status(400).json({ error: 'Veuillez entrer une adresse (minimum 5 caractères).' });
+  }
+  if (!email.includes('@')) {
+    return res.status(400).json({ error: 'Veuillez entrer un email valide.' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères.' });
+  }
+
+  let uid = null;
+  try {
+    const userRecord = await admin.auth().createUser({
+      email,
+      password,
+      emailVerified: false,
+      displayName: companyName,
+    });
+    uid = userRecord.uid;
+
+    // Étape critique : si celle-ci échoue, on annule la création du compte
+    // Auth ci-dessus pour ne jamais laisser de compte orphelin.
+    await ecrireProfilSociete(uid, {
+      companyName,
+      sector,
+      address,
+      email,
+      logoUrl:   null,
+      createdAt: Date.now(),
+      role:      'company',
+      status:    'active',
+    });
+
+    res.json({ success: true, uid });
+  } catch (err) {
+    console.error('register/entreprise error:', err);
+
+    if (uid) {
+      try {
+        await admin.auth().deleteUser(uid);
+        console.log(`🧹 Rollback : compte Auth ${uid} supprimé après échec d'inscription.`);
+      } catch (rollbackErr) {
+        console.error('⚠️ Rollback échoué (compte potentiellement orphelin):', uid, rollbackErr);
+      }
+    }
+
+    let message = 'Une erreur serveur est survenue. Veuillez réessayer.';
+    if (err.code === 'auth/email-already-exists') {
+      message = 'Cet email est déjà utilisé. Veuillez vous connecter ou utiliser un autre email.';
+    } else if (err.code === 'auth/invalid-password') {
+      message = 'Le mot de passe est invalide (6 caractères minimum).';
+    } else if (err.code === 'auth/invalid-email') {
+      message = "L'adresse email est invalide.";
+    }
+    res.status(400).json({ error: message });
+  }
+});
+
 app.post('/api/user/init-account', requireAuth, async (req, res) => {
   const companyId = req.user.uid;
 
