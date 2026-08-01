@@ -163,7 +163,7 @@ async function envoyerSMSAntivol(telephone, alerte) {
     return { success: false, reason: 'telephone manquant' };
   }
 
-  const numeroNet = String(telephone).replace(/[\s\-().+]/g, '');
+  const numeroNet = '+' + String(telephone).replace(/[\s\-().+]/g, '');
 
   try {
     const client    = getClient();
