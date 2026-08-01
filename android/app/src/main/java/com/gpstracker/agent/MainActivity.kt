@@ -476,7 +476,7 @@ class MainActivity : AppCompatActivity() {
                         startActivity(intent)
                     }
                     .setNegativeButton("Continuer quand même") { _, _ ->
-                        startTracking()
+                        checkBatteryOptimizationAndStart()
                     }
                     .setCancelable(false)
                     .show()
@@ -484,7 +484,47 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        startTracking()
+        checkBatteryOptimizationAndStart()
+    }
+
+    /**
+     * Sur beaucoup de téléphones (Xiaomi, Huawei, Oppo, Vivo...), Android tue
+     * agressivement les services en arrière-plan pour économiser la batterie,
+     * ce qui coupe le tracking GPS sans prévenir. On demande une exemption
+     * explicite — l'utilisateur peut refuser, le tracking démarre quand même
+     * (juste avec un risque plus élevé d'être interrompu par le système).
+     */
+    private fun checkBatteryOptimizationAndStart() {
+        val powerManager = getSystemService(POWER_SERVICE) as android.os.PowerManager
+        val dejaExempte = powerManager.isIgnoringBatteryOptimizations(packageName)
+
+        if (!dejaExempte) {
+            AlertDialog.Builder(this)
+                .setTitle("🔋 Éviter l'arrêt automatique")
+                .setMessage(
+                    "Sur certains téléphones, Android arrête l'application en arrière-plan " +
+                    "pour économiser la batterie, ce qui coupe le suivi GPS.\n\n" +
+                    "Autorisez GPS Tracker à s'exécuter sans restriction pour un tracking continu."
+                )
+                .setPositiveButton("Autoriser") { _, _ ->
+                    try {
+                        val intent = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                            data = android.net.Uri.parse("package:$packageName")
+                        }
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Impossible d'ouvrir la demande d'exemption batterie: ${e.message}")
+                    }
+                    startTracking()
+                }
+                .setNegativeButton("Plus tard") { _, _ ->
+                    startTracking()
+                }
+                .setCancelable(false)
+                .show()
+        } else {
+            startTracking()
+        }
     }
 
     private fun startTracking() {
