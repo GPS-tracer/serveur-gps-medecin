@@ -5,24 +5,34 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.os.UserManager
 import android.util.Log
 
 /**
- * AdminReceiver — Device Owner / Device Admin Receiver
+ * AdminReceiver — Device Admin Receiver
  *
- * Rôle : Point d'entrée MDM de l'application.
- * Activé lors de l'enrôlement QR Code en mode Device Owner (DO).
+ * Rôle : Point d'entrée des droits administrateur de l'application.
  *
- * Politiques appliquées automatiquement dès l'enrôlement :
- *  - DISALLOW_UNINSTALL_APPS       → empêche la désinstallation de toute app
- *  - DISALLOW_FACTORY_RESET        → bloque la réinitialisation usine
- *  - DISALLOW_ADD_USER             → empêche la création de nouveaux utilisateurs
- *  - DISALLOW_SAFE_BOOT            → bloque le démarrage en mode sans échec
- *  - DISALLOW_DEBUGGING_FEATURES   → désactive ADB en production
- *  - setLockTaskPackages           → verrouille l'écran sur notre app (kiosk mode)
- *  - setStatusBarDisabled          → masque la barre de statut (Android 6+)
- *  - setKeyguardDisabled           → supprime l'écran de verrouillage
+ * ── Mode réel (APK classique, cas de tous les clients) ────────────────────
+ * L'app est installée via téléchargement APK direct.
+ * Elle obtient les droits Device Admin (niveau 1), PAS Device Owner (niveau 2).
+ *
+ * Ce que Device Admin permet RÉELLEMENT dans ce contexte :
+ *  - Détecter une tentative de désactivation/désinstallation → onDisableRequested()
+ *  - Détecter une désactivation forcée réussie              → onDisabled()
+ *  - Envoyer une alerte Firebase instantanée dans les deux cas
+ *  - Afficher un message dissuasif à l'utilisateur
+ *
+ * Ce qui NE fonctionne PAS sans Device Owner (retiré du code) :
+ *  - DISALLOW_UNINSTALL_APPS, DISALLOW_FACTORY_RESET, DISALLOW_SAFE_BOOT, etc.
+ *  - setKeyguardDisabled, setStatusBarDisabled, setLockTaskPackages (kiosk mode)
+ *  - wipeData() (reset usine)
+ *  - onProfileProvisioningComplete() (jamais déclenché sans provisioning QR Code)
+ *
+ * ── Résumé honnête ─────────────────────────────────────────────────────────
+ * Protection = DÉTECTION + ALERTE INSTANTANÉE, pas blocage physique.
+ * Un voleur débrouillard peut désactiver l'admin et désinstaller l'app.
+ * Mais le propriétaire reçoit une alerte avec la dernière position connue
+ * AVANT que la désinstallation soit terminée — fenêtre d'action réelle.
  */
 class AdminReceiver : DeviceAdminReceiver() {
 
@@ -38,90 +48,60 @@ class AdminReceiver : DeviceAdminReceiver() {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Cycle de vie Device Owner
+    // Activation de l'admin
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Déclenché à la fin du provisioning QR Code (mode Device Owner).
-     * C'est ici qu'on applique TOUTES les politiques de sécurité.
-     */
-    override fun onProfileProvisioningComplete(context: Context, intent: Intent) {
-        super.onProfileProvisioningComplete(context, intent)
-        Log.i(TAG, "✅ Provisioning Device Owner terminé — Application des politiques de sécurité")
-
-        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        val adminComponent = getComponentName(context)
-
-        applySecurityPolicies(context, dpm, adminComponent)
-        enableKioskMode(context, dpm, adminComponent)
-
-        // Lancer MainActivity après le provisioning
-        val launchIntent = Intent(context, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(launchIntent)
-
-        Log.i(TAG, "🚀 Application lancée après provisioning")
-    }
-
-    /**
-     * Déclenché quand l'admin est activé (mode Device Admin classique).
+     * Déclenché quand l'utilisateur accorde les droits Device Admin à l'app.
+     * En APK classique, aucune politique MDM n'est applicable ici.
      */
     override fun onEnabled(context: Context, intent: Intent) {
         super.onEnabled(context, intent)
         Log.i(TAG, "🔐 Device Admin activé")
-
-        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        val adminComponent = getComponentName(context)
-
-        // Appliquer les politiques si on est Device Owner
-        if (dpm.isDeviceOwnerApp(context.packageName)) {
-            applySecurityPolicies(context, dpm, adminComponent)
-            enableKioskMode(context, dpm, adminComponent)
-            Log.i(TAG, "✅ Politiques Device Owner appliquées depuis onEnabled")
-        }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Détection des tentatives de désactivation — cœur de la protection
+    // ─────────────────────────────────────────────────────────────────────────
+
     /**
-     * Tentative de désactivation de l'admin par l'utilisateur.
-     * On retourne un message dissuasif — la désactivation reste bloquée
-     * par les restrictions UserManager appliquées dans applySecurityPolicies().
+     * Déclenché quand l'utilisateur tente de désactiver les droits admin
+     * (via Paramètres → Sécurité → Administrateurs de l'appareil).
      *
-     * [DESTRUCTION] — On signale aussi la tentative au DestructionMonitorService
-     * pour que le propriétaire reçoive une alerte dans son panel admin.
+     * Ce callback s'exécute AVANT la désactivation effective.
+     * C'est la fenêtre la plus fiable pour envoyer l'alerte Firebase.
+     *
+     * Retourne un message dissuasif affiché à l'utilisateur.
      */
     override fun onDisableRequested(context: Context, intent: Intent): CharSequence {
-        Log.w(TAG, "⚠️ Tentative de désactivation de l'admin détectée — Alerte envoyée")
-
-        // Signaler la tentative de désinstallation/désactivation forcée
+        Log.w(TAG, "⚠️ Tentative de désactivation de l'admin — Alerte Firebase envoyée")
         signalerTentativeDesinstallation(context)
-
         return context.getString(R.string.admin_disable_warning)
     }
 
     /**
-     * Déclenché si l'admin est quand même désactivé (ne devrait pas arriver
-     * en mode Device Owner, mais on log pour audit).
-     *
-     * [DESTRUCTION] — Envoie une alerte critique immédiate dans Firebase.
+     * Déclenché si la désactivation de l'admin a réussi (droits retirés).
+     * À ce stade le voleur peut désinstaller l'app librement.
+     * On envoie quand même une alerte — utile si onDisableRequested a échoué.
      */
     override fun onDisabled(context: Context, intent: Intent) {
         super.onDisabled(context, intent)
         Log.e(TAG, "❌ ALERTE CRITIQUE : Device Admin désactivé — Sécurité compromise")
-
-        // Alerte critique : l'admin a été désactivé de force
         signalerTentativeDesinstallation(context)
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Envoi de l'alerte
+    // ─────────────────────────────────────────────────────────────────────────
+
     /**
-     * [DESTRUCTION] — Signale une tentative de désinstallation/désactivation forcée.
-     * Démarre le DestructionMonitorService si nécessaire, puis envoie l'alerte.
+     * Démarre DestructionMonitorService pour envoyer l'alerte Firebase.
+     * En fallback (si le service ne peut pas démarrer), écrit directement dans Firebase.
      */
     private fun signalerTentativeDesinstallation(context: Context) {
-        // Marquer le flag global pour le service
+        // Marquer le flag pour que le service envoie l'alerte dès son démarrage
         DestructionMonitorService.uninstallAttemptDetected = true
 
-        // Démarrer ou notifier le service de surveillance
         val serviceIntent = Intent(context, DestructionMonitorService::class.java)
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -132,13 +112,12 @@ class AdminReceiver : DeviceAdminReceiver() {
         } catch (e: Exception) {
             Log.e(TAG, "Impossible de démarrer DestructionMonitorService : ${e.message}")
 
-            // Fallback : écriture directe dans Firebase si le service ne peut pas démarrer
-            val prefs    = context.getSharedPreferences("gps_tracker", android.content.Context.MODE_PRIVATE)
-            val agentId  = prefs.getString("device_id", "unknown") ?: "unknown"
-            val cId      = prefs.getString("companyId", "unknown") ?: "unknown"
-            val db       = com.google.firebase.database.FirebaseDatabase.getInstance().reference
+            // Fallback : écriture directe dans Firebase
+            val prefs   = context.getSharedPreferences("gps_tracker", android.content.Context.MODE_PRIVATE)
+            val agentId = prefs.getString("device_id", "unknown") ?: "unknown"
+            val cId     = prefs.getString("companyId", "unknown") ?: "unknown"
+            val db      = com.google.firebase.database.FirebaseDatabase.getInstance().reference
 
-            // SÉCURITÉ — requis par les règles Firebase (auth != null).
             FirebaseAuthHelper.ensureSignedIn(onReady = {
                 db.child("uninstall_alerts/$agentId").setValue(mapOf(
                     "agentId"   to agentId,
@@ -149,98 +128,6 @@ class AdminReceiver : DeviceAdminReceiver() {
                     "status"    to "active"
                 ))
             })
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Application des politiques de sécurité
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Applique l'ensemble des restrictions utilisateur et politiques MDM.
-     * Appelé depuis onProfileProvisioningComplete ET onEnabled.
-     */
-    private fun applySecurityPolicies(
-        context: Context,
-        dpm: DevicePolicyManager,
-        adminComponent: ComponentName
-    ) {
-        if (!dpm.isDeviceOwnerApp(context.packageName)) {
-            Log.w(TAG, "⚠️ Pas Device Owner — politiques complètes non applicables")
-            return
-        }
-
-        try {
-            // ── Restrictions anti-désinstallation ──────────────────────────
-            // Empêche l'utilisateur de désinstaller n'importe quelle application
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_UNINSTALL_APPS)
-            Log.d(TAG, "🔒 DISALLOW_UNINSTALL_APPS appliqué")
-
-            // ── Restrictions anti-reset ────────────────────────────────────
-            // Bloque la réinitialisation usine depuis les paramètres
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
-            Log.d(TAG, "🔒 DISALLOW_FACTORY_RESET appliqué")
-
-            // ── Restrictions multi-utilisateurs ───────────────────────────
-            // Empêche la création de nouveaux comptes utilisateurs
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
-            Log.d(TAG, "🔒 DISALLOW_ADD_USER appliqué")
-
-            // ── Restrictions mode sans échec ───────────────────────────────
-            // Bloque le démarrage en Safe Boot (contournement MDM)
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
-            Log.d(TAG, "🔒 DISALLOW_SAFE_BOOT appliqué")
-
-            // ── Restrictions débogage ──────────────────────────────────────
-            // Désactive ADB et les options développeur
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
-            Log.d(TAG, "🔒 DISALLOW_DEBUGGING_FEATURES appliqué")
-
-            // ── Restrictions réseau ────────────────────────────────────────
-            // Empêche la modification des paramètres réseau
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_WIFI)
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
-            Log.d(TAG, "🔒 Restrictions réseau appliquées")
-
-            // ── Désactiver l'écran de verrouillage ────────────────────────
-            dpm.setKeyguardDisabled(adminComponent, true)
-            Log.d(TAG, "🔒 Keyguard désactivé")
-
-            // ── Désactiver la barre de statut (Android 6+) ────────────────
-            @Suppress("DEPRECATION")
-            dpm.setStatusBarDisabled(adminComponent, true)
-            Log.d(TAG, "🔒 Barre de statut désactivée")
-
-            Log.i(TAG, "✅ Toutes les politiques de sécurité ont été appliquées avec succès")
-
-        } catch (e: SecurityException) {
-            Log.e(TAG, "❌ Erreur application politiques: ${e.message}", e)
-        }
-    }
-
-    /**
-     * Active le mode kiosque (Lock Task Mode) pour verrouiller l'appareil
-     * sur notre application uniquement.
-     *
-     * En mode kiosque :
-     *  - L'utilisateur ne peut pas quitter l'app
-     *  - Le bouton Home est désactivé
-     *  - Le bouton Récents est désactivé
-     *  - La barre de navigation est masquée
-     */
-    private fun enableKioskMode(
-        context: Context,
-        dpm: DevicePolicyManager,
-        adminComponent: ComponentName
-    ) {
-        if (!dpm.isDeviceOwnerApp(context.packageName)) return
-
-        try {
-            // Autoriser notre package en Lock Task Mode
-            dpm.setLockTaskPackages(adminComponent, arrayOf(context.packageName))
-            Log.i(TAG, "🔒 Kiosk mode configuré pour: ${context.packageName}")
-        } catch (e: SecurityException) {
-            Log.e(TAG, "❌ Erreur activation kiosk mode: ${e.message}", e)
         }
     }
 }

@@ -72,6 +72,11 @@
             android:exported="false"
             android:theme="@style/AppTheme" />
 
+        <activity
+            android:name=".AutostartHelpActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
         <!-- ─────────────────────────────────────────────────────────
              SERVICE GPS (Foreground)
              ───────────────────────────────────────────────────────── -->

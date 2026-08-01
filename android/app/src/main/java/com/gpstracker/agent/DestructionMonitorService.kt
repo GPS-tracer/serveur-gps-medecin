@@ -3,10 +3,8 @@ package com.gpstracker.agent
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.content.pm.PackageInstaller
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -17,41 +15,51 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 
 /**
- * DestructionMonitorService — Service de surveillance et d'exécution des commandes à distance.
+ * DestructionMonitorService — Service de surveillance antivol.
  *
- * Fonctionnalités :
- *  1. Écoute en temps réel le nœud Firebase `destruction_commands/{agentId}`
- *     Quand la commande "DESTROY" arrive, déclenche la séquence de destruction système.
+ * ── Ce qui fonctionne réellement (APK classique, sans Device Owner) ────────
  *
- *  2. Détecte les tentatives de désinstallation forcée (via AdminReceiver ou flag local)
- *     et envoie une alerte au nœud `uninstall_alerts/{agentId}` pour notifier le propriétaire.
+ *  1. ALERTE DÉSINSTALLATION
+ *     Quand AdminReceiver détecte une tentative de désactivation admin,
+ *     ce service envoie immédiatement une alerte dans Firebase :
+ *       → uninstall_alerts/{agentId}
+ *       → companies/{companyId}/uninstall_alerts/{agentId}
+ *     Le dashboard admin affiche l'alerte en temps réel.
  *
- * IMPORTANT — Fonctionnalité payante :
- *  La destruction à distance n'est activée que si le champ `destruction_enabled`
- *  est `true` dans le profil de la société (option "Antivol Avancé").
+ *  2. DESTRUCTION À DISTANCE (partielle)
+ *     Le dashboard écrit destruction_commands/{agentId} avec status "pending".
+ *     Ce service écoute ce nœud en temps réel et exécute :
+ *       → Effacement de toutes les données locales de l'app (SharedPrefs + cache)
+ *       → L'app ne peut plus tracker ni s'identifier après ça
+ *     Statut écrit dans Firebase : "partial_executed"
  *
- * Architecture :
- *  - Service Foreground (ne peut pas être tué par le système)
- *  - Redémarre automatiquement (START_STICKY)
+ * ── Ce qui NE fonctionne PAS sans Device Owner (supprimé) ─────────────────
+ *  - wipeData() → reset usine complet — nécessite Device Owner
+ *  Conservé : la logique détecte toujours si Device Owner devient disponible
+ *  (enrôlement MDM futur), auquel cas wipeData() sera automatiquement utilisé.
+ *
+ * ── Architecture ───────────────────────────────────────────────────────────
+ *  - Service Foreground (résiste à la mise en veille système)
+ *  - START_STICKY (redémarre automatiquement si tué)
  *  - Écoute Firebase en temps réel via ValueEventListener
+ *  - Option payante : destruction_enabled dans companies/{id}/options
  */
 class DestructionMonitorService : Service() {
 
     companion object {
-        private const val TAG = "DestructionMonitor"
-        private const val CHANNEL_ID = "destruction_monitor_channel"
-        private const val NOTIF_ID = 42
+        private const val TAG         = "DestructionMonitor"
+        private const val CHANNEL_ID  = "destruction_monitor_channel"
+        private const val NOTIF_ID    = 42
 
-        // Flag statique : mis à true par AdminReceiver lors d'une tentative de désinstallation
+        // Flag positionné par AdminReceiver avant de démarrer ce service
         var uninstallAttemptDetected = false
-        var isRunning = false
+        var isRunning                = false
     }
 
     private val db = FirebaseDatabase.getInstance().reference
     private var destructionListener: ValueEventListener? = null
-    private var agentId: String? = null
-    private var companyId: String? = null
-    private var destructionEnabled = false
+    private var agentId:   String?  = null
+    private var companyId: String?  = null
 
     override fun onCreate() {
         super.onCreate()
@@ -60,23 +68,21 @@ class DestructionMonitorService : Service() {
         startForeground(NOTIF_ID, buildNotification("Protection antivol active"))
         Log.i(TAG, "DestructionMonitorService démarré")
 
-        // Charger les identifiants depuis SharedPreferences
         val prefs = getSharedPreferences("gps_tracker", MODE_PRIVATE)
         agentId   = prefs.getString("device_id", null)
         companyId = prefs.getString("companyId", null)
 
         if (agentId.isNullOrEmpty()) {
-            Log.w(TAG, "Agent ID non configuré — service en attente")
+            Log.w(TAG, "Agent ID non configuré — service arrêté")
             stopSelf()
             return
         }
 
-        // Vérifier si la destruction est activée pour ce compte (option payante)
         verifierOptionDestruction()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Vérifier si une tentative de désinstallation a été détectée
+        // AdminReceiver a positionné ce flag avant de démarrer le service
         if (uninstallAttemptDetected) {
             envoyerAlerteDesinstallation()
             uninstallAttemptDetected = false
@@ -89,10 +95,9 @@ class DestructionMonitorService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
-        // Retirer le listener Firebase pour éviter les fuites mémoire
-        agentId?.let {
+        agentId?.let { id ->
             destructionListener?.let { listener ->
-                db.child("destruction_commands/$it").removeEventListener(listener)
+                db.child("destruction_commands/$id").removeEventListener(listener)
             }
         }
         Log.i(TAG, "DestructionMonitorService arrêté")
@@ -103,28 +108,30 @@ class DestructionMonitorService : Service() {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Vérifie dans Firebase si la société a souscrit l'option "Antivol Avancé".
-     * Si oui, démarre l'écoute des commandes de destruction.
+     * Vérifie si la société a souscrit l'option "Antivol Avancé".
+     * L'écoute des commandes est démarrée dans tous les cas —
+     * la vérification sert uniquement à logger l'état de l'option.
      */
     private fun verifierOptionDestruction() {
         val cId = companyId ?: run {
-            // Pas de société configurée → écouter quand même les alertes
             demarrerEcouteCommandes()
             return
         }
 
-        // SÉCURITÉ — requis par les règles Firebase (auth != null).
-        FirebaseAuthHelper.ensureSignedIn(onReady = { lireOptionDestruction(cId) }, onError = {
-            Log.w(TAG, "Auth anonyme impossible — écoute démarrée quand même")
-            demarrerEcouteCommandes()
-        })
+        FirebaseAuthHelper.ensureSignedIn(
+            onReady = { lireOptionDestruction(cId) },
+            onError = {
+                Log.w(TAG, "Auth anonyme impossible — écoute démarrée quand même")
+                demarrerEcouteCommandes()
+            }
+        )
     }
 
     private fun lireOptionDestruction(cId: String) {
         db.child("companies/$cId/options/destruction_enabled").get()
             .addOnSuccessListener { snap ->
-                destructionEnabled = snap.getValue(Boolean::class.java) ?: false
-                Log.i(TAG, "Option destruction activée : $destructionEnabled")
+                val enabled = snap.getValue(Boolean::class.java) ?: false
+                Log.i(TAG, "Option destruction activée : $enabled")
                 demarrerEcouteCommandes()
             }
             .addOnFailureListener {
@@ -138,8 +145,9 @@ class DestructionMonitorService : Service() {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Écoute le nœud `destruction_commands/{agentId}` en temps réel.
-     * Quand une commande DESTROY est reçue avec status "pending", exécute la destruction.
+     * Écoute destruction_commands/{agentId} en temps réel.
+     * Déclenche la destruction quand command="DESTROY" et status="pending".
+     * Le statut est passé à "executing" avant l'action pour éviter tout re-déclenchement.
      */
     private fun demarrerEcouteCommandes() {
         val id = agentId ?: return
@@ -152,13 +160,12 @@ class DestructionMonitorService : Service() {
                 val status  = snapshot.child("status").getValue(String::class.java)
                 val reason  = snapshot.child("reason").getValue(String::class.java)
 
-                Log.i(TAG, "Commande reçue : $command (status=$status, reason=$reason)")
+                Log.i(TAG, "Commande reçue : $command (status=$status)")
 
                 if (command == "DESTROY" && status == "pending") {
-                    // Marquer comme en cours d'exécution pour éviter re-déclenchement
                     db.child("destruction_commands/$id/status").setValue("executing")
                         .addOnSuccessListener {
-                            executerDestructionSysteme(reason ?: "Commande admin")
+                            executerDestruction(reason ?: "Commande admin")
                         }
                 }
             }
@@ -169,7 +176,7 @@ class DestructionMonitorService : Service() {
         }
 
         db.child("destruction_commands/$id").addValueEventListener(destructionListener!!)
-        Log.i(TAG, "Écoute commandes de destruction démarrée pour agent : $id")
+        Log.i(TAG, "Écoute commandes démarrée pour agent : $id")
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -177,31 +184,31 @@ class DestructionMonitorService : Service() {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Envoie une alerte dans Firebase quand une tentative de désinstallation est détectée.
-     * Le super admin / propriétaire reçoit cette alerte dans son panneau.
+     * Envoie une alerte dans Firebase quand une tentative de désactivation
+     * des droits admin est détectée (via AdminReceiver).
+     *
+     * Écrit dans :
+     *  - uninstall_alerts/{agentId}                        → dashboard super admin
+     *  - companies/{companyId}/uninstall_alerts/{agentId}  → dashboard propriétaire
      */
     fun envoyerAlerteDesinstallation() {
         val id  = agentId  ?: return
         val cId = companyId
 
         Log.w(TAG, "🚨 ALERTE DÉSINSTALLATION FORCÉE — Agent : $id")
-
-        // Afficher une notification urgente sur l'appareil
         afficherNotificationUrgente()
 
-        // SÉCURITÉ — requis par les règles Firebase (auth != null).
         FirebaseAuthHelper.ensureSignedIn(onReady = { envoyerAlerteApresAuth(id, cId) })
     }
 
     private fun envoyerAlerteApresAuth(id: String, cId: String?) {
-        // Écrire l'alerte dans Firebase
         val alerte = mapOf(
-            "agentId"   to id,
-            "ownerId"   to (cId ?: "unknown"),
-            "companyId" to (cId ?: "unknown"),
-            "timestamp" to System.currentTimeMillis(),
-            "message"   to "Tentative de désinstallation forcée détectée sur cet appareil",
-            "status"    to "active",
+            "agentId"    to id,
+            "ownerId"    to (cId ?: "unknown"),
+            "companyId"  to (cId ?: "unknown"),
+            "timestamp"  to System.currentTimeMillis(),
+            "message"    to "Tentative de désinstallation forcée détectée sur cet appareil",
+            "status"     to "active",
             "deviceInfo" to mapOf(
                 "model"   to Build.MODEL,
                 "brand"   to Build.BRAND,
@@ -211,95 +218,79 @@ class DestructionMonitorService : Service() {
         )
 
         db.child("uninstall_alerts/$id").setValue(alerte)
-            .addOnSuccessListener {
-                Log.i(TAG, "✅ Alerte désinstallation envoyée au nœud uninstall_alerts/$id")
-            }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "❌ Échec envoi alerte : ${e.message}")
-            }
+            .addOnSuccessListener { Log.i(TAG, "✅ Alerte envoyée → uninstall_alerts/$id") }
+            .addOnFailureListener { e -> Log.e(TAG, "❌ Échec alerte : ${e.message}") }
 
-        // Envoyer aussi vers les alertes de la société
         if (cId != null) {
             db.child("companies/$cId/uninstall_alerts/$id").setValue(alerte)
         }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Exécution de la destruction système
+    // Destruction
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * Exécute la séquence de destruction à distance.
-     * Actions (selon les droits disponibles) :
-     *  1. Effacement des données de l'app (SharedPreferences + cache)
-     *  2. Si Device Owner → wipeData() (reset usine)
-     *  3. Mise à jour du statut dans Firebase
-     *  4. Log final pour audit
      *
-     * Note : wipeData() nécessite le mode Device Owner.
-     * En mode Device Admin classique, seules les données de l'app sont effacées.
+     * Étape 1 (toujours) — Effacement des données locales :
+     *   SharedPreferences "gps_tracker" + "location_cache" + cache disque.
+     *   Après ça, l'app ne peut plus tracker ni s'identifier.
+     *   Statut Firebase : "partial_executed"
+     *
+     * Étape 2 (Device Owner uniquement, futur enrôlement MDM) :
+     *   wipeData() → reset usine complet.
+     *   Statut Firebase : "executed"
+     *   Non disponible en APK classique — détecté dynamiquement.
      */
-    private fun executerDestructionSysteme(reason: String) {
+    private fun executerDestruction(reason: String) {
         val id = agentId ?: return
+        Log.e(TAG, "💣 DESTRUCTION DÉCLENCHÉE — Raison : $reason")
 
-        Log.e(TAG, "💣 EXÉCUTION DESTRUCTION SYSTÈME — Raison : $reason")
-
-        // Étape 1 : Effacer toutes les données locales de l'app
+        // Étape 1 : Effacer toutes les données locales (fonctionne toujours)
         try {
-            getSharedPreferences("gps_tracker", MODE_PRIVATE).edit().clear().apply()
-            getSharedPreferences("location_cache", MODE_PRIVATE).edit().clear().apply()
+            getSharedPreferences("gps_tracker",     MODE_PRIVATE).edit().clear().apply()
+            getSharedPreferences("location_cache",  MODE_PRIVATE).edit().clear().apply()
             cacheDir.deleteRecursively()
             Log.i(TAG, "✅ Données locales effacées")
         } catch (e: Exception) {
             Log.e(TAG, "Erreur effacement données : ${e.message}")
         }
 
-        // Étape 2 : Si Device Owner → wipeData (reset usine complet)
+        // Étape 2 : Vérifier si Device Owner disponible (enrôlement MDM)
         try {
             val dpm = getSystemService(DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
-            if (dpm.isDeviceOwnerApp(packageName)) {
-                Log.e(TAG, "💣 Device Owner détecté — Lancement wipeData (reset usine)")
 
-                // Mettre à jour le statut avant le reset
+            if (dpm.isDeviceOwnerApp(packageName)) {
+                // Device Owner disponible → reset usine complet
+                Log.e(TAG, "💣 Device Owner détecté — wipeData (reset usine)")
+
                 db.child("destruction_commands/$id/status").setValue("executed")
                 db.child("destruction_commands/$id/executedAt").setValue(System.currentTimeMillis())
 
-                // Petit délai pour laisser Firebase écrire avant le reset
+                // Délai pour laisser Firebase écrire avant le reset
                 android.os.Handler(mainLooper).postDelayed({
                     @Suppress("DEPRECATION")
                     dpm.wipeData(0)
                 }, 2000)
 
             } else {
-                // Pas Device Owner → effacement partiel + désactivation du service
-                Log.w(TAG, "⚠️ Pas Device Owner — Destruction partielle uniquement")
-                executerDestructionPartielle(id)
+                // APK classique — destruction partielle (données effacées à l'étape 1)
+                Log.w(TAG, "⚠️ Device Owner non disponible — destruction partielle effectuée")
+                db.child("destruction_commands/$id").updateChildren(mapOf(
+                    "status"     to "partial_executed",
+                    "executedAt" to System.currentTimeMillis(),
+                    "message"    to "Données app effacées — Device Owner non disponible pour reset usine"
+                ))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur destruction système : ${e.message}")
-            executerDestructionPartielle(id)
+            Log.e(TAG, "Erreur vérification Device Owner : ${e.message}")
+            db.child("destruction_commands/$id").updateChildren(mapOf(
+                "status"     to "partial_executed",
+                "executedAt" to System.currentTimeMillis(),
+                "message"    to "Données app effacées (exception : ${e.message})"
+            ))
         }
-    }
-
-    /**
-     * Destruction partielle quand les droits Device Owner ne sont pas disponibles.
-     * Efface les données, désactive le GPS, bloque les futures connexions.
-     */
-    private fun executerDestructionPartielle(agentId: String) {
-        // Marquer l'agent comme "détruit" dans Firebase
-        db.child("destruction_commands/$agentId").updateChildren(mapOf(
-            "status"          to "partial_executed",
-            "executedAt"      to System.currentTimeMillis(),
-            "message"         to "Destruction partielle — Device Owner non disponible"
-        ))
-
-        // Effacer l'ID de l'agent pour bloquer le GPS
-        getSharedPreferences("gps_tracker", MODE_PRIVATE).edit()
-            .remove("device_id")
-            .remove("companyId")
-            .apply()
-
-        Log.w(TAG, "⚠️ Destruction partielle effectuée pour agent : $agentId")
     }
 
     // ─────────────────────────────────────────────────────────────────────────

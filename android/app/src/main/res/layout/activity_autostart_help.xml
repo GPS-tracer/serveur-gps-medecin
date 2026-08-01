@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_autostart_help.xml
+    Guide de configuration du démarrage automatique par marque.
+    Affiché dans AutostartHelpActivity.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- ── En-tête ─────────────────────────────────────────────── -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔁 Démarrage automatique"
+            android:textSize="22sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Marque détectée automatiquement -->
+        <TextView
+            android:id="@+id/tvMarque"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="14sp"
+            android:textColor="@color/primary"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Introduction -->
+        <TextView
+            android:id="@+id/tvIntro"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pour que GPS Tracker continue de fonctionner après un redémarrage du téléphone, vous devez autoriser le démarrage automatique. Suivez les étapes ci-dessous pour votre téléphone."
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="24dp" />
+
+        <!-- ════════════════════════════════════════════════════════════
+             XIAOMI / REDMI / POCO (MIUI)
+             ════════════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutXiaomi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Étape 1 : Démarrage automatique -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Étape 1 — Démarrage automatique"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Ouvrez Paramètres\n2. Applications → Gérer les applications\n3. Cherchez GPS Tracker\n4. Appuyez sur Démarrage automatique\n5. Activez le démarrage automatique"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingExtra="6dp"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Étape 2 : Batterie -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Étape 2 — Batterie (important)"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Ouvrez Paramètres\n2. Batterie → Économie d'énergie par application\n3. Cherchez GPS Tracker\n4. Sélectionnez Aucune restriction"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingExtra="6dp"
+                android:layout_marginBottom="24dp" />
+
+        </LinearLayout>
+
+        <!-- ════════════════════════════════════════════════════════════
+             HUAWEI / HONOR (EMUI / MagicUI)
+             ════════════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutHuawei"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Configuration du lancement d'applications"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Ouvrez Paramètres\n2. Batterie → Lancement des applications\n3. Cherchez GPS Tracker\n4. Désactivez la gestion automatique\n5. Activez les 3 options :\n    • Lancement manuel\n    • Lancement secondaire\n    • Fonctionnement en arrière-plan"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingExtra="6dp"
+                android:layout_marginBottom="24dp" />
+
+        </LinearLayout>
+
+        <!-- ════════════════════════════════════════════════════════════
+             OPPO / REALME (ColorOS)
+             ════════════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutOppo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Étape 1 : Batterie -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Étape 1 — Arrière-plan"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Ouvrez Paramètres\n2. Gestion de la batterie\n3. Cherchez GPS Tracker\n4. Autorisez le fonctionnement en arrière-plan"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingExtra="6dp"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Étape 2 : Démarrage automatique -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Étape 2 — Démarrage automatique"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Ouvrez Paramètres\n2. Confidentialité → Autorisations\n3. Démarrage automatique\n4. Activez GPS Tracker"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingExtra="6dp"
+                android:layout_marginBottom="24dp" />
+
+        </LinearLayout>
+
+        <!-- ════════════════════════════════════════════════════════════
+             VIVO (FuntouchOS)
+             ════════════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutVivo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Étape 1 : Batterie -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Étape 1 — Batterie"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Ouvrez Paramètres\n2. Batterie → Consommation en arrière-plan\n3. Cherchez GPS Tracker\n4. Sélectionnez Autoriser"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingExtra="6dp"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Étape 2 : Démarrage automatique -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Étape 2 — Démarrage automatique"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Ouvrez Paramètres\n2. Plus de paramètres → Autorisations\n3. Démarrage automatique\n4. Activez GPS Tracker"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingExtra="6dp"
+                android:layout_marginBottom="24dp" />
+
+        </LinearLayout>
+
+        <!-- ════════════════════════════════════════════════════════════
+             SAMSUNG (One UI)
+             ════════════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutSamsung"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Vérification de la mise en veille"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Samsung est généralement moins restrictif. Si GPS Tracker s'arrête quand même :\n\n1. Ouvrez Paramètres\n2. Batterie → Limites d'utilisation en arrière-plan\n3. Vérifiez que GPS Tracker n'est pas dans Apps en veille profonde\n4. Si oui, retirez-le de cette liste et placez-le dans Non surveillées"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingExtra="6dp"
+                android:layout_marginBottom="24dp" />
+
+        </LinearLayout>
+
+        <!-- ════════════════════════════════════════════════════════════
+             GÉNÉRIQUE (autres marques)
+             ════════════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutGenerique"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Instructions générales"
+                android:textSize="15sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Ouvrez Paramètres → Applications\n2. Cherchez GPS Tracker\n3. Activez le démarrage automatique si l'option existe\n4. Dans Paramètres → Batterie, cherchez GPS Tracker\n5. Sélectionnez Aucune restriction ou Non optimisé"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingExtra="6dp"
+                android:layout_marginBottom="24dp" />
+
+        </LinearLayout>
+
+        <!-- ── Séparateur ────────────────────────────────────────────── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/text_secondary"
+            android:alpha="0.2"
+            android:layout_marginBottom="20dp" />
+
+        <!-- ── Note : localisation en arrière-plan (tous téléphones) ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚠️  Localisation en arrière-plan"
+            android:textSize="14sp"
+            android:textColor="@color/warning"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sur tous les téléphones Android 10+, la permission de localisation doit être réglée sur Toujours autoriser pour un suivi continu.\n\nAllez dans : Paramètres → Applications → GPS Tracker → Autorisations → Localisation → Toujours autoriser"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="28dp" />
+
+        <!-- ── Bouton : ouvrir les paramètres de l'app ──────────────── -->
+        <Button
+            android:id="@+id/btnOuvrirParametres"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚙️  Ouvrir les paramètres de GPS Tracker"
+            android:backgroundTint="@color/primary"
+            android:textColor="@color/background"
+            android:minHeight="48dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ── Bouton : fermer ───────────────────────────────────────── -->
+        <Button
+            android:id="@+id/btnFermer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fermer"
+            android:backgroundTint="@color/text_secondary"
+            android:textColor="@color/text_primary"
+            android:minHeight="48dp"
+            android:layout_marginBottom="8dp" />
+
+    </LinearLayout>
+</ScrollView>

@@ -136,6 +136,20 @@
         </LinearLayout>
 
         <!-- ══════════════════════════════════════════════════
+             Bouton aide autostart (visible quand tracking actif)
+             ══════════════════════════════════════════════════ -->
+        <Button
+            android:id="@+id/btnAutostartHelp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔁 Guide de démarrage automatique"
+            android:backgroundTint="@color/primary"
+            android:textColor="@color/background"
+            android:minHeight="48dp"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone" />
+
+        <!-- ══════════════════════════════════════════════════
              Écran 2 : En attente d'activation par l'admin
              ══════════════════════════════════════════════════ -->
         <LinearLayout

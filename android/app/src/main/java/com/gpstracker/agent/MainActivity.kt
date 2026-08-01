@@ -58,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnRegister: Button
     private lateinit var layoutPending: LinearLayout
     private lateinit var layoutRegistration: LinearLayout
+    private lateinit var btnAutostartHelp: Button
 
     private val db = FirebaseDatabase.getInstance().reference
     private var pendingListener: ValueEventListener? = null
@@ -107,6 +108,11 @@ class MainActivity : AppCompatActivity() {
         btnRegister      = findViewById(R.id.btnSave)
         layoutPending    = findViewById(R.id.layoutPending)
         layoutRegistration = findViewById(R.id.layoutRegistration)
+        btnAutostartHelp = findViewById(R.id.btnAutostartHelp)
+
+        btnAutostartHelp.setOnClickListener {
+            startActivity(Intent(this, AutostartHelpActivity::class.java))
+        }
 
         // Récupérer ou générer le device_id (ANDROID_ID)
         deviceId = getOrCreateDeviceId()
@@ -330,6 +336,9 @@ class MainActivity : AppCompatActivity() {
         tvStatus.text = "✅ Tracking actif"
         tvConfigStatus.text = "🔒 Configuration gérée par l'administrateur"
         tvConfigStatus.visibility = View.VISIBLE
+
+        // Afficher le bouton d'aide au démarrage automatique
+        btnAutostartHelp.visibility = View.VISIBLE
 
         // Détacher le listener pending si encore actif
         pendingListener?.let {
