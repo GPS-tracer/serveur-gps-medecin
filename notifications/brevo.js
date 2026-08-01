@@ -228,7 +228,7 @@ async function envoyerSMSAntivol(telephone, alerte) {
   }
 
   // Normaliser le numéro : retirer espaces, tirets, parenthèses, garder chiffres et +
-  const numeroNet = telephone.replace(/[\s\-().]/g, '');
+  const numeroNet = String(telephone).replace(/[\s\-().]/g, '');
 
   try {
     getBrevoClient();
