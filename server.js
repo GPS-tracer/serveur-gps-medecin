@@ -2736,6 +2736,53 @@ app.get('/sw.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'sw.js'));
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ROUTES ANTIVOL — doivent être AVANT le catch-all 404
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.patch('/api/antivol/sms', requireAuth, async (req, res) => {
+  const companyId = req.user.uid;
+  const activer   = req.body?.sms === true;
+  try {
+    await db.ref(`companies/${companyId}`).update({ alerts_sms: activer });
+    res.json({
+      success: true,
+      alerts_sms: activer,
+      message: activer
+        ? '✅ Alertes SMS antivol activées.'
+        : '✅ Alertes SMS antivol désactivées.',
+    });
+  } catch (err) {
+    console.error('antivol/sms error:', err);
+    res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+
+app.post('/api/antivol/test-notification', requireSuperadmin, async (req, res) => {
+  const { companyId } = req.body || {};
+  if (!companyId) return res.status(400).json({ error: 'companyId requis' });
+  try {
+    const profilSociete = await lireProfilSociete(companyId);
+    if (!profilSociete?.email) {
+      return res.status(404).json({ error: 'Profil ou email introuvable pour ce companyId.' });
+    }
+    const alerteTest = {
+      agentId:    'TEST_DEVICE',
+      companyId,
+      timestamp:  Date.now(),
+      message:    'Ceci est un test de notification antivol — aucune action requise.',
+      deviceInfo: { model: 'Appareil de test', brand: 'GPS Tracker' },
+    };
+    const resultats = await envoyerAlertesAntivol(profilSociete, alerteTest);
+    res.json({ success: true, resultats });
+  } catch (err) {
+    console.error('antivol/test-notification error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.use(express.static('.', {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.js') && !filePath.endsWith('sw.js')) {
@@ -2820,65 +2867,6 @@ function demarrerListenerAlertesAntivol() {
 
   console.log('🔔 Listener alertes antivol démarré (uninstall_alerts)');
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE : Activer / Désactiver les alertes SMS antivol
-// PATCH /api/antivol/sms
-// Body : { "sms": true | false }
-//
-// Payant — le client active cette option depuis son profil.
-// Le champ `alerts_sms` est écrit dans companies/{uid}.
-// ─────────────────────────────────────────────────────────────────────────────
-app.patch('/api/antivol/sms', requireAuth, async (req, res) => {
-  const companyId = req.user.uid;
-  const activer   = req.body?.sms === true;
-
-  try {
-    await db.ref(`companies/${companyId}`).update({ alerts_sms: activer });
-    res.json({
-      success: true,
-      alerts_sms: activer,
-      message: activer
-        ? '✅ Alertes SMS antivol activées. Les SMS seront facturés selon votre forfait Brevo.'
-        : '✅ Alertes SMS antivol désactivées.',
-    });
-  } catch (err) {
-    console.error('antivol/sms error:', err);
-    res.status(500).json({ error: 'Erreur serveur lors de la mise à jour des préférences.' });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE : Tester l'envoi d'alerte (superadmin uniquement)
-// POST /api/antivol/test-notification
-// Body : { "companyId": "uid_cible" }
-// ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/antivol/test-notification', requireSuperadmin, async (req, res) => {
-  const { companyId } = req.body || {};
-  if (!companyId) return res.status(400).json({ error: 'companyId requis' });
-
-  try {
-    const profilSociete = await lireProfilSociete(companyId);
-    if (!profilSociete?.email) {
-      return res.status(404).json({ error: 'Profil ou email introuvable pour ce companyId.' });
-    }
-
-    const alerteTest = {
-      agentId:    'TEST_DEVICE',
-      companyId,
-      timestamp:  Date.now(),
-      message:    'Ceci est un test de notification antivol — aucune action requise.',
-      deviceInfo: { model: 'Appareil de test', brand: 'GPS Tracker' },
-    };
-
-    const resultats = await envoyerAlertesAntivol(profilSociete, alerteTest);
-    res.json({ success: true, resultats });
-
-  } catch (err) {
-    console.error('antivol/test-notification error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DÉMARRAGE
