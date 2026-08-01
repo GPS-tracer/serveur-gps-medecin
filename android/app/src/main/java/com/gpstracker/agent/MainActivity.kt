@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etName: TextInputEditText
     private lateinit var etPhone: TextInputEditText
     private lateinit var btnRegister: Button
+    private lateinit var btnAutostartGuide: Button
     private lateinit var layoutPending: LinearLayout
     private lateinit var layoutRegistration: LinearLayout
 
@@ -105,6 +106,7 @@ class MainActivity : AppCompatActivity() {
         etName           = findViewById(R.id.etName)
         etPhone          = findViewById(R.id.etPhone)
         btnRegister      = findViewById(R.id.btnSave)
+        btnAutostartGuide = findViewById(R.id.btnAutostartGuide)
         layoutPending    = findViewById(R.id.layoutPending)
         layoutRegistration = findViewById(R.id.layoutRegistration)
 
@@ -330,6 +332,12 @@ class MainActivity : AppCompatActivity() {
         tvStatus.text = "✅ Tracking actif"
         tvConfigStatus.text = "🔒 Configuration gérée par l'administrateur"
         tvConfigStatus.visibility = View.VISIBLE
+
+        // Afficher le bouton guide démarrage automatique
+        btnAutostartGuide.visibility = View.VISIBLE
+        btnAutostartGuide.setOnClickListener {
+            startActivity(Intent(this, AutostartGuideActivity::class.java))
+        }
 
         // Détacher le listener pending si encore actif
         pendingListener?.let {

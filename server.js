@@ -1,9 +1,16 @@
+// Charge les variables d'environnement depuis .env (développement local)
+// En production (Render), les variables sont injectées directement — pas de .env
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 const express  = require('express');
 const path     = require('path');
 const admin    = require('firebase-admin');
 const cron     = require('node-cron');
 const crypto   = require('crypto');
 const https    = require('https');
+const { envoyerAlertesAntivol } = require('./notifications/brevo');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -2751,8 +2758,134 @@ app.use((req, res) => {
   res.status(404).redirect('/');
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// LISTENER TEMPS RÉEL — Alertes de désinstallation forcée
+//
+// Écoute le nœud Firebase `uninstall_alerts` en temps réel.
+// Quand un agent Android écrit une nouvelle alerte (tentative de désinstall),
+// le serveur envoie automatiquement :
+//   - Un email gratuit au propriétaire (toujours)
+//   - Un SMS optionnel payant si alerts_sms === true dans le profil
+//
+// Le champ `notified_at` est ajouté à l'alerte pour éviter les envois
+// en double (ex: redémarrage serveur qui rejoue le listener).
+// ─────────────────────────────────────────────────────────────────────────────
+function demarrerListenerAlertesAntivol() {
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('⚠️  BREVO_API_KEY non définie — alertes email/SMS antivol désactivées.');
+    return;
+  }
+
+  const alertesRef = db.ref('uninstall_alerts');
+
+  alertesRef.on('child_added', async (snapshot) => {
+    const alerte  = snapshot.val();
+    const alertId = snapshot.key;
+
+    if (!alerte) return;
+
+    // Déjà traitée (redémarrage serveur) → ignorer
+    if (alerte.notified_at || alerte.status === 'treated') return;
+
+    const companyId = alerte.companyId || alerte.ownerId;
+    if (!companyId || companyId === 'unknown') {
+      console.warn(`[Antivol] Alerte ${alertId} sans companyId valide — email ignoré`);
+      return;
+    }
+
+    try {
+      const profilSociete = await lireProfilSociete(companyId);
+      if (!profilSociete || !profilSociete.email) {
+        console.warn(`[Antivol] Profil introuvable pour companyId=${companyId}`);
+        return;
+      }
+
+      console.log(`[Antivol] 🚨 Nouvelle alerte ${alertId} → notification propriétaire ${profilSociete.email}`);
+
+      const resultats = await envoyerAlertesAntivol(profilSociete, { ...alerte, agentId: alertId });
+
+      // Marquer l'alerte comme notifiée pour éviter les doublons
+      await db.ref(`uninstall_alerts/${alertId}`).update({
+        notified_at:    Date.now(),
+        email_sent:     resultats.email?.success  || false,
+        sms_sent:       resultats.sms?.success    || false,
+      });
+
+      console.log(`[Antivol] ✅ Alerte ${alertId} — email: ${resultats.email?.success}, SMS: ${resultats.sms?.success}`);
+
+    } catch (err) {
+      console.error(`[Antivol] ❌ Erreur traitement alerte ${alertId}:`, err.message);
+    }
+  });
+
+  console.log('🔔 Listener alertes antivol démarré (uninstall_alerts)');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROUTE : Activer / Désactiver les alertes SMS antivol
+// PATCH /api/antivol/sms
+// Body : { "sms": true | false }
+//
+// Payant — le client active cette option depuis son profil.
+// Le champ `alerts_sms` est écrit dans companies/{uid}.
+// ─────────────────────────────────────────────────────────────────────────────
+app.patch('/api/antivol/sms', requireAuth, async (req, res) => {
+  const companyId = req.user.uid;
+  const activer   = req.body?.sms === true;
+
+  try {
+    await db.ref(`companies/${companyId}`).update({ alerts_sms: activer });
+    res.json({
+      success: true,
+      alerts_sms: activer,
+      message: activer
+        ? '✅ Alertes SMS antivol activées. Les SMS seront facturés selon votre forfait Brevo.'
+        : '✅ Alertes SMS antivol désactivées.',
+    });
+  } catch (err) {
+    console.error('antivol/sms error:', err);
+    res.status(500).json({ error: 'Erreur serveur lors de la mise à jour des préférences.' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROUTE : Tester l'envoi d'alerte (superadmin uniquement)
+// POST /api/antivol/test-notification
+// Body : { "companyId": "uid_cible" }
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/antivol/test-notification', requireSuperadmin, async (req, res) => {
+  const { companyId } = req.body || {};
+  if (!companyId) return res.status(400).json({ error: 'companyId requis' });
+
+  try {
+    const profilSociete = await lireProfilSociete(companyId);
+    if (!profilSociete?.email) {
+      return res.status(404).json({ error: 'Profil ou email introuvable pour ce companyId.' });
+    }
+
+    const alerteTest = {
+      agentId:    'TEST_DEVICE',
+      companyId,
+      timestamp:  Date.now(),
+      message:    'Ceci est un test de notification antivol — aucune action requise.',
+      deviceInfo: { model: 'Appareil de test', brand: 'GPS Tracker' },
+    };
+
+    const resultats = await envoyerAlertesAntivol(profilSociete, alerteTest);
+    res.json({ success: true, resultats });
+
+  } catch (err) {
+    console.error('antivol/test-notification error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DÉMARRAGE
+// ─────────────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`GPS Tracker server running on port ${PORT}`);
+  demarrerListenerAlertesAntivol();
 });
 
 // ─────────────────────────────────────────────────────────────

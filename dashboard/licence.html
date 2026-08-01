@@ -115,9 +115,50 @@
             </ul>
         </div>
 
+        <!-- Alertes Antivol -->
+        <div class="mt-6 bg-slate-800 rounded-xl border border-slate-700 p-6">
+            <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
+                <span>🔔</span> Alertes Antivol
+            </h3>
+            <p class="text-slate-400 text-sm mb-5">
+                Recevez une notification immédiate si quelqu'un tente de désinstaller
+                l'application sur un appareil surveillé.
+            </p>
+
+            <!-- Email (gratuit, toujours actif) -->
+            <div class="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg mb-3">
+                <div>
+                    <p class="text-slate-200 text-sm font-semibold">📧 Alerte par Email</p>
+                    <p class="text-slate-400 text-xs mt-0.5">Gratuit — envoyée à l'adresse de votre compte</p>
+                </div>
+                <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-full">Activé</span>
+            </div>
+
+            <!-- SMS (payant, toggle on/off) -->
+            <div class="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg">
+                <div>
+                    <p class="text-slate-200 text-sm font-semibold">📱 Alerte par SMS</p>
+                    <p class="text-slate-400 text-xs mt-0.5">
+                        Payant — envoyé sur le numéro de votre compte
+                        <span class="text-amber-400">(crédits SMS requis)</span>
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="smsStatusLabel" class="text-xs text-slate-400">Chargement…</span>
+                    <button id="btnToggleSMSAntivol"
+                        class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-slate-600 focus:outline-none"
+                        role="switch" aria-checked="false" disabled>
+                        <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1"></span>
+                    </button>
+                </div>
+            </div>
+            <p id="smsToggleMessage" class="text-xs mt-3 hidden"></p>
+        </div>
+
     </main>
 
     <script type="module" src="./boot-licence-catalogue.js"></script>
     <script type="module" defer src="./boot-app.js"></script>
+    <script type="module" src="./antivol-sms-toggle.js"></script>
 </body>
 </html>

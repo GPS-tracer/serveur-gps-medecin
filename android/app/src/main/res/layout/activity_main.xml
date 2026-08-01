@@ -52,8 +52,21 @@
             android:textSize="12sp"
             android:textColor="@color/warning"
             android:textStyle="bold"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="16dp"
             android:visibility="gone"/>
+
+        <!-- Bouton guide démarrage automatique — visible seulement quand l'agent est actif -->
+        <Button
+            android:id="@+id/btnAutostartGuide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📱 Guide : éviter l'arrêt par le système"
+            android:backgroundTint="#1e293b"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:layout_marginBottom="24dp"
+            android:visibility="gone"
+            android:minHeight="48dp"/>
 
         <!-- ══════════════════════════════════════════════════
              Écran 1 : Formulaire d'enregistrement (premier lancement)

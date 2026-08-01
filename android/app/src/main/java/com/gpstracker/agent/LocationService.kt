@@ -887,26 +887,47 @@ class LocationService : Service() {
     }
 
     /**
-     * Nettoie l'historique pour ne garder que les N derniers points
+    /**
+     * Nettoie l'historique pour ne garder que les N derniers points.
+     *
+     * CORRECTION : on utilise limitToLast(1) pour compter via une requête
+     * distincte et garder uniquement les maxHistoryPoints entrées récentes.
+     * L'ancienne version utilisait limitToFirst(1) qui renvoyait toujours
+     * childrenCount = 1 → la condition count > maxHistoryPoints était
+     * toujours fausse → l'historique ne se nettoyait jamais.
+     *
      * Chemin: societes/{uid_societe}/agents/{id_agent}/history
      */
     private fun cleanupHistory(societeId: String, agentId: String) {
         val historyRef = db.child("societes/$societeId/agents/$agentId/history")
-        
-        historyRef.orderByKey().limitToFirst(1).get()
+
+        // Étape 1 : compter le nombre total de points en récupérant juste les clés
+        historyRef.orderByKey().get()
             .addOnSuccessListener { snapshot ->
                 val count = snapshot.childrenCount
-                if (count > maxHistoryPoints) {
-                    // Supprimer les anciens points
-                    val toDelete = count - maxHistoryPoints
-                    historyRef.orderByKey().limitToFirst(toDelete.toInt()).get()
-                        .addOnSuccessListener { oldData ->
-                            oldData.children.forEach { child ->
-                                child.ref.removeValue()
-                            }
-                            Log.d(TAG, "Nettoyage historique: $toDelete points supprimés")
+                if (count <= maxHistoryPoints) return@addOnSuccessListener
+
+                // Étape 2 : supprimer les plus anciens (les premiers par clé timestamp)
+                val toDelete = (count - maxHistoryPoints).toInt()
+                historyRef.orderByKey().limitToFirst(toDelete).get()
+                    .addOnSuccessListener { oldData ->
+                        val batch = mutableMapOf<String, Any?>()
+                        oldData.children.forEach { child ->
+                            batch[child.key!!] = null  // null = suppression dans updateChildren
                         }
-                }
+                        if (batch.isNotEmpty()) {
+                            historyRef.updateChildren(batch)
+                                .addOnSuccessListener {
+                                    Log.d(TAG, "🧹 Historique nettoyé : $toDelete points supprimés sur $count")
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e(TAG, "Erreur nettoyage historique : ${e.message}")
+                                }
+                        }
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Erreur comptage historique : ${e.message}")
             }
     }
 
