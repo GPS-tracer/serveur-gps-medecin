@@ -46,6 +46,11 @@ if (!shouldRedirect) {
           navFlotte.icon  = '🎓';
         }
       }
+
+      // Adapter aussi le data-nav-title si on est sur fleet.html
+      if (activeId === 'flotte' && navFlotte) {
+        document.body.dataset.navTitle = navFlotte.label;
+      }
     } catch { /* silencieux — on garde le label par défaut */ }
   }
 
