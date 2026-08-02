@@ -38,11 +38,9 @@ if (aIntentAchatEnAttente()) {
 }
 
 function lienInscription(offreType) {
-  switch (offreType) {
-    case "eleve":    return "register-eleve.html";
-    case "etudiant": return "register-etudiant.html";
-    default:         return "register-entreprise.html";
-  }
+  // Les comptes élève/étudiant s'inscrivent uniquement via l'app Android.
+  // On redirige toujours vers l'inscription entreprise pour le web.
+  return "register-entreprise.html";
 }
 
 const form                = document.getElementById("loginForm");

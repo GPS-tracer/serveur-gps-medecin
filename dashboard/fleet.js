@@ -1,10 +1,63 @@
-﻿import { auth, db, agentsPath } from "../shared/firebase.js";
+import { auth, db, agentsPath } from "../shared/firebase.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { brancherBoutonDeconnexion } from "./deconnexion.js";
 import { exigerSessionDashboard } from "./auth-session.js";
 import { ref, set, onValue, remove, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// v2.1 — section appareils en attente active
+// v2.2 — vocabulaire adaptatif scolaire (R3/R4)
+
+// ─── Vocabulaire selon l'abonnement ───────────────────────────
+// Retourne le dictionnaire de labels à utiliser selon le type d'abonnement.
+// Par défaut : vocabulaire flotte standard.
+function getVocabulaire(typeAbonnement) {
+  switch (typeAbonnement) {
+    case 'suivi_eleve':
+      return {
+        titreFlotte:       'Mes élèves',
+        labelAgent:        'élève',
+        labelAgentPluriel: 'élèves',
+        iconeAgent:        '🎒',
+        titreAjout:        'Inviter un élève',
+        labelCode:         'Code parent — à donner à vos élèves',
+        descriptionCode:   'Vos élèves doivent saisir ce code au premier lancement de l\'application GPS Tracker pour lier leur téléphone à votre compte.',
+        conseilCode:       'Ne le partagez qu\'avec les élèves concernés.',
+        emptyTitle:        'Aucun élève suivi',
+        emptySubtitle:     'Invitez votre premier élève pour démarrer le suivi',
+        modeInvitation:    true,
+      };
+    case 'suivi_etudiant':
+      return {
+        titreFlotte:       'Mes étudiants',
+        labelAgent:        'étudiant',
+        labelAgentPluriel: 'étudiants',
+        iconeAgent:        '🎓',
+        titreAjout:        'Inviter un étudiant',
+        labelCode:         'Code établissement — à donner à vos étudiants',
+        descriptionCode:   'Vos étudiants doivent saisir ce code au premier lancement de l\'application GPS Tracker pour lier leur téléphone à votre compte.',
+        conseilCode:       'Ne le partagez qu\'avec les étudiants concernés.',
+        emptyTitle:        'Aucun étudiant suivi',
+        emptySubtitle:     'Invitez votre premier étudiant pour démarrer le suivi',
+        modeInvitation:    true,
+      };
+    default:
+      return {
+        titreFlotte:       'Ma Flotte',
+        labelAgent:        'agent',
+        labelAgentPluriel: 'agents',
+        iconeAgent:        '🚗',
+        titreAjout:        'Ajouter un appareil à suivre',
+        labelCode:         'Code Entreprise — à donner à vos agents',
+        descriptionCode:   'Vos agents doivent saisir ce code au premier lancement de l\'application GPS Tracker sur leur téléphone.',
+        conseilCode:       'Ne le partagez qu\'avec vos agents.',
+        emptyTitle:        'Aucun appareil suivi',
+        emptySubtitle:     'Ajoutez votre premier appareil pour démarrer le suivi',
+        modeInvitation:    false,
+      };
+  }
+}
+
+// Vocabulaire courant — mis à jour après lecture Firebase
+let vocab = getVocabulaire(null);
 
 // Éléments DOM
 const form = document.getElementById('addAgentForm');
@@ -32,7 +85,8 @@ let agentLimitState = { max: 1, count: 0, allowed: true, estIllimite: false, typ
 const vehicleIcons = { moto: '🏍️', voiture: '🚗', camion: '🚚' };
 const vehicleLabels = { moto: 'Moto (Livraison/Taxi-moto)', voiture: 'Voiture', camion: 'Camion' };
 
-const IS_FLEET_PAGE = Boolean(document.getElementById('addAgentForm'));
+// IS_FLEET_PAGE détecte si on est sur fleet.html (formulaire OU section invitation présente)
+const IS_FLEET_PAGE = Boolean(document.getElementById('addAgentForm') || document.getElementById('sectionInvitation'));
 
 // ─── Auth (page flotte uniquement) ────────────────────────────
 if (IS_FLEET_PAGE) {
@@ -46,6 +100,11 @@ if (IS_FLEET_PAGE) {
       const name = company.companyName || 'Ma Société';
       if (companyNameEl) companyNameEl.textContent = name;
       renderWelcomeBanner(name);
+
+      // Charger le vocabulaire selon l'abonnement scolaire
+      const typeAbonnement = company.licence?.type_abonnement || null;
+      vocab = getVocabulaire(typeAbonnement);
+      appliquerVocabulaire(vocab);
     }
 
     // [NOUVEAU] — Afficher le Code Entreprise (= UID Firebase)
@@ -67,6 +126,58 @@ if (IS_FLEET_PAGE) {
 
   brancherBoutonDeconnexion('#btnSignOut');
   brancherBoutonDeconnexion('#btnSignOutMobile');
+}
+
+// ─── Appliquer le vocabulaire adaptatif à la page ────────────
+// Remplace tous les textes statiques selon le type d'abonnement.
+// Appelé une seule fois après chargement du profil.
+function appliquerVocabulaire(v) {
+  // Titre "Ma Flotte" / "Mes élèves" / "Mes étudiants"
+  const titreFlotteEl = document.getElementById('titreFlotte');
+  if (titreFlotteEl) titreFlotteEl.textContent = v.titreFlotte;
+
+  // Titre section ajout
+  const titreAjoutEl = document.getElementById('titreAjout');
+  if (titreAjoutEl) titreAjoutEl.textContent = v.titreAjout;
+
+  // Compteur "0 agents" / "0 élèves"
+  if (agentCount) agentCount.textContent = `0 ${v.labelAgentPluriel} suivi${v.labelAgentPluriel.endsWith('s') ? 's' : ''}`;
+
+  // État vide
+  const emptyTitleEl = document.getElementById('emptyStateTitle');
+  if (emptyTitleEl) emptyTitleEl.textContent = v.emptyTitle;
+  const emptySubEl = document.getElementById('emptyStateSubtitle');
+  if (emptySubEl) emptySubEl.textContent = v.emptySubtitle;
+
+  // Bloc code entreprise/parent
+  const labelCodeEl = document.getElementById('labelCodeEntreprise');
+  if (labelCodeEl) labelCodeEl.textContent = v.labelCode;
+  const descCodeEl = document.getElementById('descriptionCodeEntreprise');
+  if (descCodeEl) descCodeEl.textContent = v.descriptionCode;
+  const conseilCodeEl = document.getElementById('conseilCodeEntreprise');
+  if (conseilCodeEl) conseilCodeEl.textContent = v.conseilCode;
+
+  // Mode invitation : masquer le formulaire d'ajout, afficher la section invitation
+  const formSection = document.getElementById('sectionAjoutAgent');
+  const inviteSection = document.getElementById('sectionInvitation');
+
+  if (v.modeInvitation) {
+    formSection?.classList.add('hidden');
+    inviteSection?.classList.remove('hidden');
+    // Remplir le code dans la section invitation
+    const inviteCodeEl = document.getElementById('inviteCodeDisplay');
+    if (inviteCodeEl && currentUser) inviteCodeEl.textContent = currentUser.uid;
+    // Label adapté
+    const inviteLabelEl = document.getElementById('inviteLabel');
+    if (inviteLabelEl) inviteLabelEl.textContent = v.titreAjout;
+    const inviteDescEl = document.getElementById('inviteDesc');
+    if (inviteDescEl) inviteDescEl.textContent = `Partagez ce code avec vos ${v.labelAgentPluriel}. Ils devront le saisir lors de leur premier lancement de l'application GPS Tracker.`;
+    const inviteIconEl = document.getElementById('inviteIcon');
+    if (inviteIconEl) inviteIconEl.textContent = v.iconeAgent;
+  } else {
+    formSection?.classList.remove('hidden');
+    inviteSection?.classList.add('hidden');
+  }
 }
 
 // ─── Helpers UI ───────────────────────────────────────────────
@@ -356,8 +467,27 @@ function afficherCodeEntreprise(uid) {
         btnCopy.classList.replace('bg-green-600', 'bg-sky-600');
       }, 2000);
     } catch {
-      // Fallback sélection manuelle
       display?.select?.();
+      document.execCommand('copy');
+    }
+  });
+
+  // Bouton copier de la section invitation scolaire
+  const inviteDisplay = document.getElementById('inviteCodeDisplay');
+  const btnCopyInvite = document.getElementById('btnCopyInviteCode');
+  if (inviteDisplay) inviteDisplay.textContent = uid;
+
+  btnCopyInvite?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(uid);
+      btnCopyInvite.textContent = '✅ Copié !';
+      btnCopyInvite.classList.replace('bg-indigo-600', 'bg-green-600');
+      setTimeout(() => {
+        btnCopyInvite.textContent = '📋 Copier';
+        btnCopyInvite.classList.replace('bg-green-600', 'bg-indigo-600');
+      }, 2000);
+    } catch {
+      inviteDisplay?.select?.();
       document.execCommand('copy');
     }
   });

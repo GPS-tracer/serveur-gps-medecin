@@ -1,12 +1,13 @@
 /**
  * Auth Guard - Protège les routes du dashboard
  * Vérifie que l'utilisateur est connecté ET que son email est vérifié
+ * Les rôles élève/étudiant sont redirigés vers mobile-only.html
  */
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "../shared/firebase.js";
 import { deconnecter } from "./deconnexion.js";
-import { estSuperadmin } from "./roles.js";
+import { estSuperadmin, lireRole, estRoleMobileUniquement } from "./roles.js";
 
 const loadingEl = document.getElementById("auth-loading");
 const dashboardRoot = document.getElementById("dashboard-root");
@@ -34,6 +35,13 @@ onAuthStateChanged(auth, async (user) => {
 
   if (user && user.emailVerified) {
     const isSuperadmin = await estSuperadmin(user);
+
+    // Bloquer élève/étudiant — pas de dashboard web
+    const role = await lireRole(user);
+    if (estRoleMobileUniquement(role) && currentPage !== 'mobile-only.html') {
+      window.location.replace('mobile-only.html');
+      return;
+    }
 
     if (isPublicPage) {
       window.location.replace(isSuperadmin ? 'admin.html' : 'index.html');

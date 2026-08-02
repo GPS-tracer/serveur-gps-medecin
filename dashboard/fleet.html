@@ -28,7 +28,7 @@
     <main class="app-main container mx-auto px-4 py-8">
 
         <!-- ══════════════════════════════════════════════════════
-             BLOC CODE ENTREPRISE — À communiquer aux agents
+             BLOC CODE ENTREPRISE / CODE PARENT — À communiquer aux agents/élèves
              Affiché en haut de page, bien visible
         ══════════════════════════════════════════════════════ -->
         <div class="mb-6 bg-gradient-to-r from-sky-950/60 to-slate-800 border border-sky-500/30 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -40,8 +40,8 @@
                     </svg>
                 </div>
                 <div>
-                    <p class="text-xs text-slate-400 uppercase tracking-wide font-semibold mb-1">Code Entreprise — à donner à vos agents</p>
-                    <p class="text-slate-300 text-xs mb-2">
+                    <p id="labelCodeEntreprise" class="text-xs text-slate-400 uppercase tracking-wide font-semibold mb-1">Code Entreprise — à donner à vos agents</p>
+                    <p id="descriptionCodeEntreprise" class="text-slate-300 text-xs mb-2">
                         Vos agents doivent saisir ce code au premier lancement de l'application GPS Tracker sur leur téléphone.
                     </p>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -57,8 +57,7 @@
                 </div>
             </div>
             <div class="text-right flex-shrink-0">
-                <p class="text-slate-500 text-xs">Ce code est votre identifiant unique.</p>
-                <p class="text-slate-500 text-xs">Ne le partagez qu'avec vos agents.</p>
+                <p id="conseilCodeEntreprise" class="text-slate-500 text-xs">Ne le partagez qu'avec vos agents.</p>
                 <button id="btnOuvrirAideFlotte"
                     class="mt-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ml-auto border border-slate-600">
                     ❓ Comment ça marche ?
@@ -194,10 +193,10 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <!-- Formulaire d'ajout d'agent -->
-            <div class="lg:col-span-1">
+            <!-- ══ Section ajout agent (flotte standard) ══ -->
+            <div id="sectionAjoutAgent" class="lg:col-span-1">
                 <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 sticky top-24">
-                    <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                    <h3 id="titreAjout" class="text-xl font-bold mb-6 flex items-center gap-2">
                         <svg class="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
@@ -276,6 +275,56 @@
                 </div>
             </div>
 
+            <!-- ══ Section invitation scolaire (élèves / étudiants) ══
+                 Visible uniquement pour les abonnements suivi_eleve / suivi_etudiant
+                 Le JS la révèle via appliquerVocabulaire()
+            ══ -->
+            <div id="sectionInvitation" class="lg:col-span-1 hidden">
+                <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 sticky top-24 space-y-5">
+
+                    <!-- Titre -->
+                    <h3 id="inviteLabel" class="text-xl font-bold flex items-center gap-2">
+                        <span id="inviteIcon" class="text-2xl">🎒</span>
+                        Inviter un élève
+                    </h3>
+
+                    <!-- Description -->
+                    <p id="inviteDesc" class="text-slate-400 text-sm leading-relaxed">
+                        Partagez ce code avec vos élèves. Ils devront le saisir lors de leur premier lancement de l'application GPS Tracker.
+                    </p>
+
+                    <!-- Code à copier -->
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase tracking-wide font-semibold mb-2">Votre code parent</p>
+                        <div class="flex items-center gap-2">
+                            <code id="inviteCodeDisplay"
+                                class="flex-1 bg-slate-900 border border-indigo-500/40 text-indigo-300 font-mono text-sm px-4 py-3 rounded-lg select-all tracking-widest break-all">
+                                Chargement...
+                            </code>
+                            <button id="btnCopyInviteCode"
+                                class="px-3 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-all whitespace-nowrap">
+                                📋 Copier
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
+                        <p class="text-xs font-semibold text-indigo-300 mb-2">📲 Comment inviter un élève ?</p>
+                        <ol class="text-xs text-indigo-400 space-y-1.5 list-decimal list-inside leading-relaxed">
+                            <li>Copiez le code ci-dessus</li>
+                            <li>Envoyez-le à l'élève par SMS ou WhatsApp</li>
+                            <li>L'élève télécharge l'app GPS Tracker et saisit ce code</li>
+                            <li>Son appareil apparaît ici pour approbation</li>
+                        </ol>
+                    </div>
+
+                    <!-- Message d'erreur (requis par fleet.js — section invitation) -->
+                    <div id="errorMessageInvite" class="hidden bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm"></div>
+
+                </div>
+            </div>
+
             <!-- Liste des agents -->
             <div class="lg:col-span-2">
                 <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
@@ -286,7 +335,7 @@
                             <svg class="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                             </svg>
-                            Ma Flotte
+                            <span id="titreFlotte">Ma Flotte</span>
                         </h3>
                         <span id="agentCount" class="px-3 py-1 bg-sky-500/20 text-sky-400 rounded-full text-sm font-medium">
                             0 agents
@@ -298,8 +347,8 @@
                         <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
-                        <p class="text-slate-400 text-lg mb-2">Aucun appareil suivi</p>
-                        <p class="text-slate-500 text-sm">Ajoutez votre premier appareil pour démarrer le suivi</p>
+                        <p id="emptyStateTitle" class="text-slate-400 text-lg mb-2">Aucun appareil suivi</p>
+                        <p id="emptyStateSubtitle" class="text-slate-500 text-sm">Ajoutez votre premier appareil pour démarrer le suivi</p>
                     </div>
 
                     <!-- Liste des agents -->

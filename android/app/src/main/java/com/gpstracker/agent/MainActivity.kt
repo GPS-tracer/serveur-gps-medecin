@@ -354,6 +354,11 @@ class MainActivity : AppCompatActivity() {
                 trialManager.syncFromFirebase(uid) { status ->
                     runOnUiThread { verifierEtRediriger(status) }
                 }
+
+                // ── Écrire isDeviceOwner dans Firebase (R7) ──────────────────
+                // Lit la valeur depuis les prefs (set lors de l'onboarding ou du provisioning QR)
+                val isDeviceOwner = prefs.getBoolean("isDeviceOwner", false)
+                ecrireIsDeviceOwner(uid, isDeviceOwner)
             } else {
                 verifierEtRediriger(trialManager.getTrialStatus())
             }
@@ -379,6 +384,27 @@ class MainActivity : AppCompatActivity() {
 
         // Démarrer le tracking GPS
         checkPermissionsAndStart()
+    }
+
+    /**
+     * Écrit isDeviceOwner: true/false dans companies/{uid} sur Firebase.
+     * Appelé au démarrage pour que le dashboard web affiche le bon badge (R7).
+     */
+    private fun ecrireIsDeviceOwner(uid: String, isDeviceOwner: Boolean) {
+        FirebaseAuthHelper.ensureSignedIn(
+            onReady = {
+                db.child("companies/$uid/isDeviceOwner").setValue(isDeviceOwner)
+                    .addOnSuccessListener {
+                        Log.i(TAG, "✅ isDeviceOwner=$isDeviceOwner écrit dans companies/$uid")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.w(TAG, "Erreur écriture isDeviceOwner: ${e.message}")
+                    }
+            },
+            onError = {
+                Log.w(TAG, "Impossible de s'authentifier pour écrire isDeviceOwner")
+            }
+        )
     }
 
     // ─────────────────────────────────────────────────────────────

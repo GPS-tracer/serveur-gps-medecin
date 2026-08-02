@@ -44,6 +44,7 @@ class AdminReceiver : DeviceAdminReceiver() {
     /**
      * Déclenché à la fin du provisioning QR Code (mode Device Owner).
      * C'est ici qu'on applique TOUTES les politiques de sécurité.
+     * L'UID du compte Particulier est lu depuis PROVISIONING_ADMIN_EXTRAS_BUNDLE.
      */
     override fun onProfileProvisioningComplete(context: Context, intent: Intent) {
         super.onProfileProvisioningComplete(context, intent)
@@ -55,6 +56,32 @@ class AdminReceiver : DeviceAdminReceiver() {
         applySecurityPolicies(context, dpm, adminComponent)
         enableKioskMode(context, dpm, adminComponent)
 
+        // ── Lire l'UID depuis le bundle QR Code et configurer le compte ──────
+        // Le payload QR Code contient : { "uid": "<uid_client>", "account_type": "particulier" }
+        val extras = intent.getBundleExtra("android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE")
+        val uid    = extras?.getString("uid")
+        val accountType = extras?.getString("account_type") ?: "particulier"
+
+        if (!uid.isNullOrEmpty()) {
+            Log.i(TAG, "📱 Provisioning QR Code — UID client: $uid, type: $accountType")
+
+            // Persister localement pour MainActivity
+            val prefs = context.getSharedPreferences("gps_tracker", Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                putString("uid",            uid)
+                putString("companyId",      uid)
+                putString("account_type",   accountType)
+                putString("agent_status",   "active")
+                putBoolean("isDeviceOwner", true)
+                apply()
+            }
+
+            // Écrire isDeviceOwner: true dans Firebase
+            enregistrerDeviceOwnerFirebase(context, uid)
+        } else {
+            Log.w(TAG, "⚠️ Provisioning sans UID — bundle manquant ou vide")
+        }
+
         // Lancer MainActivity après le provisioning
         val launchIntent = Intent(context, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -62,6 +89,28 @@ class AdminReceiver : DeviceAdminReceiver() {
         context.startActivity(launchIntent)
 
         Log.i(TAG, "🚀 Application lancée après provisioning")
+    }
+
+    /**
+     * Écrit isDeviceOwner: true dans companies/{uid} sur Firebase.
+     * Déclenché après provisioning QR Code.
+     */
+    private fun enregistrerDeviceOwnerFirebase(context: Context, uid: String) {
+        FirebaseAuthHelper.ensureSignedIn(
+            onReady = {
+                val db = com.google.firebase.database.FirebaseDatabase.getInstance().reference
+                db.child("companies/$uid/isDeviceOwner").setValue(true)
+                    .addOnSuccessListener {
+                        Log.i(TAG, "✅ isDeviceOwner: true écrit dans companies/$uid")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "❌ Erreur écriture isDeviceOwner: ${e.message}")
+                    }
+            },
+            onError = {
+                Log.e(TAG, "❌ Impossible de s'authentifier pour écrire isDeviceOwner")
+            }
+        )
     }
 
     /**

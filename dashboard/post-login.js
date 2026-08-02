@@ -1,6 +1,7 @@
 /**
  * Redirection après connexion — intention d'achat ou dashboard.
  * Si le compte a role = "superadmin" → redirige vers admin.html
+ * Si le compte a role = "eleve" ou "etudiant" → redirige vers mobile-only.html
  */
 import {
   aIntentAchatEnAttente,
@@ -9,7 +10,7 @@ import {
 } from './intent-achat.js';
 import { auth, db } from '../shared/firebase.js';
 import { get, ref } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-import { estSuperadmin } from './roles.js';
+import { estSuperadmin, lireRole, estRoleMobileUniquement } from './roles.js';
 
 const PAGES_AUTORISEES = new Set([
   'index.html',
@@ -43,6 +44,7 @@ export function lireRedirectApresLogin(defaut = PAGE_DASHBOARD_DEFAUT) {
 /**
  * Après auth réussie :
  * - superadmin           → admin.html
+ * - eleve / etudiant     → mobile-only.html
  * - produit en attente   → licence.html (catalogue)
  * - sinon                → fleet.html ou ?redirect=
  */
@@ -59,6 +61,20 @@ export async function redirigerApresLogin(defaut = PAGE_DASHBOARD_DEFAUT, user =
     }
   } catch (err) {
     console.error("[post-login] Erreur redirection superadmin:", err);
+    redirectionEnCours = false;
+  }
+
+  // Bloquer les rôles mobile-uniquement (élève / étudiant)
+  try {
+    if (user) {
+      const role = await lireRole(user);
+      if (estRoleMobileUniquement(role)) {
+        window.location.replace('mobile-only.html');
+        return;
+      }
+    }
+  } catch (err) {
+    console.error("[post-login] Erreur vérification rôle mobile:", err);
     redirectionEnCours = false;
   }
 

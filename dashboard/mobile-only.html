@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accès mobile uniquement — GPS Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="tailwind-output.css">
+  <style>
+    body { margin: 0; background: #0f172a; color: #f1f5f9; font-family: system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-6">
+
+  <div class="max-w-md w-full text-center">
+
+    <!-- Icône -->
+    <div class="text-6xl mb-6" aria-hidden="true">📱</div>
+
+    <!-- Titre -->
+    <h1 class="text-2xl font-bold text-white mb-3">
+      Accès uniquement depuis l'application mobile
+    </h1>
+
+    <!-- Message -->
+    <p class="text-slate-400 text-sm leading-relaxed mb-8">
+      Ce compte est réservé à l'application <strong class="text-white">GPS Tracker</strong> sur Android.
+      Le tableau de bord web n'est pas disponible pour les comptes Élève et Étudiant.
+    </p>
+
+    <!-- Bloc info -->
+    <div class="bg-indigo-500/10 border border-indigo-500/30 rounded-2xl p-5 text-left mb-8">
+      <p class="text-sm font-semibold text-indigo-300 mb-2">Comment accéder à votre suivi ?</p>
+      <ol class="text-xs text-indigo-400 leading-relaxed space-y-1 list-decimal list-inside">
+        <li>Téléchargez l'application <strong>GPS Tracker</strong> sur votre téléphone Android</li>
+        <li>Saisissez le <strong>code parent</strong> fourni par votre parent ou établissement</li>
+        <li>Votre suivi sera automatiquement activé</li>
+      </ol>
+    </div>
+
+    <!-- Lien téléchargement -->
+    <a href="telecharger.html"
+      class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors mb-4 w-full">
+      📲 Télécharger l'application
+    </a>
+
+    <!-- Retour login -->
+    <button id="btnDeconnexion"
+      class="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-red-400 text-sm py-2 transition-colors">
+      ← Se déconnecter
+    </button>
+
+  </div>
+
+  <script type="module">
+    import { brancherBoutonDeconnexion } from './deconnexion.js';
+    brancherBoutonDeconnexion('#btnDeconnexion');
+  </script>
+</body>
+</html>

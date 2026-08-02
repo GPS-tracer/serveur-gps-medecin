@@ -327,10 +327,15 @@ class OnboardingActivity : AppCompatActivity() {
                     "appVersion"     to APP_VERSION,
                     "createdAt"      to System.currentTimeMillis(),
                     "status"         to "active",
-                    "accountType"    to "particulier"
+                    "accountType"    to "particulier",
+                    // isDeviceOwner: false car installation APK classique (pas QR Code)
+                    "isDeviceOwner"  to false,
                 )
                 db.child("particuliers/$uid").setValue(userData)
                     .addOnSuccessListener {
+                        // Écrire isDeviceOwner: false dans companies/{uid}
+                        db.child("companies/$uid/isDeviceOwner").setValue(false)
+
                         setLoading(false)
                         prefs.edit().apply {
                             putString("uid",          uid)
@@ -339,6 +344,7 @@ class OnboardingActivity : AppCompatActivity() {
                             putString("agent_status", "active")
                             putString("account_type", "particulier")
                             putString("companyId",    uid)
+                            putBoolean("isDeviceOwner", false)
                             apply()
                         }
                         val trialManager = TrialManager(this)

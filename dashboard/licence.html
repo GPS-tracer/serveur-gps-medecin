@@ -115,6 +115,117 @@
             </ul>
         </div>
 
+        <!-- ══════════════════════════════════════════════════════
+             BLOC QR CODE ANTIVOL — Comptes Particulier uniquement
+             Affiché si le compte est de type Particulier (R5/R7)
+        ══════════════════════════════════════════════════════ -->
+        <div id="blocAntivol" class="hidden mt-6 bg-slate-800 rounded-xl border border-slate-700 p-6">
+            <div class="flex items-start justify-between gap-4 mb-5">
+                <div>
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <span>🛡️</span> Protection Antivol
+                    </h3>
+                    <p class="text-slate-400 text-sm mt-1">
+                        Activez la protection maximale en enrôlant votre téléphone en mode Device Owner.
+                    </p>
+                </div>
+                <!-- Badge niveau de protection (R7) -->
+                <div id="badgeProtection" class="flex-shrink-0">
+                    <span class="px-3 py-1.5 rounded-full text-xs font-bold border bg-slate-700 text-slate-400 border-slate-600">
+                        Chargement…
+                    </span>
+                </div>
+            </div>
+
+            <!-- Indicateur niveau de protection (R7) -->
+            <div id="blocNiveauProtection" class="mb-5 rounded-xl p-4 border hidden">
+                <div class="flex items-center gap-3 mb-2">
+                    <span id="iconeProtection" class="text-2xl">🔒</span>
+                    <div>
+                        <p id="titreProtection" class="font-semibold text-sm text-white"></p>
+                        <p id="descProtection" class="text-xs text-slate-400 mt-0.5"></p>
+                    </div>
+                </div>
+                <a id="lienPasserProtectionTotale" href="#blocQrCode"
+                    class="hidden text-xs text-sky-400 hover:text-sky-300 underline transition-colors">
+                    ↓ Passer en protection totale via QR Code
+                </a>
+            </div>
+
+            <!-- Bloc QR Code (R5) -->
+            <div id="blocQrCode" class="bg-slate-900/50 rounded-xl border border-slate-700/50 p-5">
+                <h4 class="text-sm font-semibold text-white mb-1 flex items-center gap-2">
+                    <span>📲</span> QR Code antivol — Téléphone neuf
+                </h4>
+                <p class="text-slate-400 text-xs mb-4 leading-relaxed">
+                    Pour une protection maximale, scannez ce QR Code <strong class="text-white">lors du premier démarrage</strong>
+                    d'un téléphone Android vierge (écran de configuration). L'application s'installe en mode
+                    <strong class="text-white">Device Owner</strong> et verrouille l'appareil contre le vol.
+                </p>
+
+                <!-- Instructions étape par étape -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5 text-xs">
+                    <div class="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                        <p class="font-bold text-sky-400 mb-1">① Téléphone neuf</p>
+                        <p class="text-slate-400">Allumez le téléphone sur l'écran de bienvenue initial (avant toute configuration)</p>
+                    </div>
+                    <div class="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                        <p class="font-bold text-sky-400 mb-1">② Tapotez 6 fois</p>
+                        <p class="text-slate-400">Sur l'écran de bienvenue, tapotez 6 fois rapidement pour activer le mode QR Code</p>
+                    </div>
+                    <div class="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                        <p class="font-bold text-sky-400 mb-1">③ Scannez</p>
+                        <p class="text-slate-400">Scannez le QR Code ci-dessous. L'app s'installe et se configure automatiquement</p>
+                    </div>
+                </div>
+
+                <!-- Zone QR Code -->
+                <div class="flex flex-col items-center gap-4">
+                    <div id="qrCodeContainer"
+                        class="bg-white rounded-2xl p-4 flex items-center justify-center min-w-[240px] min-h-[240px]">
+                        <p class="text-slate-400 text-sm text-center px-4">
+                            Cliquez sur "Générer mon QR Code" pour créer votre QR Code personnalisé
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+                        <button id="btnGenererQrCode"
+                            class="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors">
+                            🔄 Générer mon QR Code
+                        </button>
+                        <button id="btnTelechargerQrCode"
+                            class="hidden flex-1 flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors border border-slate-600">
+                            ⬇️ Télécharger PNG
+                        </button>
+                    </div>
+
+                    <p class="text-xs text-slate-500 text-center max-w-sm">
+                        Ce QR Code est lié à votre compte et ne peut être utilisé que pour votre appareil.
+                        Ne le partagez pas.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Séparateur -->
+            <div class="my-5 border-t border-slate-700/50"></div>
+
+            <!-- Lien vers installation APK classique -->
+            <div class="flex items-start gap-3">
+                <span class="text-slate-500 text-lg flex-shrink-0">📦</span>
+                <div>
+                    <p class="text-sm font-semibold text-slate-300">Téléphone déjà configuré ?</p>
+                    <p class="text-xs text-slate-500 mt-0.5 mb-2">
+                        Si votre téléphone est déjà utilisé, installez l'APK directement.
+                        La protection sera active mais sans les droits Device Owner (pas de blocage reinitialisation usine).
+                    </p>
+                    <a href="telecharger.html"
+                        class="inline-flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300 underline transition-colors">
+                        ↗ Télécharger l'APK GPS Tracker
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Alertes Antivol -->
         <div class="mt-6 bg-slate-800 rounded-xl border border-slate-700 p-6">
             <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
@@ -157,6 +268,7 @@
 
     </main>
 
+    <script src="./qrcode.min.js"></script>
     <script type="module" src="./boot-licence-catalogue.js"></script>
     <script type="module" defer src="./boot-app.js"></script>
     <script type="module" src="./antivol-sms-toggle.js"></script>
