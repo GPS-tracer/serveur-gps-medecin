@@ -11,6 +11,20 @@ import { ref, set, onValue, remove, get, query, orderByChild, equalTo } from "ht
 // Par défaut : vocabulaire flotte standard.
 function getVocabulaire(typeAbonnement) {
   switch (typeAbonnement) {
+    case '__particulier__':
+      return {
+        titreFlotte:       'Mon appareil',
+        labelAgent:        'appareil',
+        labelAgentPluriel: 'appareils',
+        iconeAgent:        '📱',
+        titreAjout:        'Ajouter mon appareil',
+        labelCode:         'Mon identifiant antivol',
+        descriptionCode:   'Cet identifiant est lié à votre compte antivol. Gardez-le en sécurité.',
+        conseilCode:       'Ne le partagez pas.',
+        emptyTitle:        'Aucun appareil suivi',
+        emptySubtitle:     'Ajoutez votre appareil pour démarrer le suivi antivol',
+        modeInvitation:    false,
+      };
     case 'suivi_eleve':
       return {
         titreFlotte:       'Mes élèves',
@@ -103,7 +117,11 @@ if (IS_FLEET_PAGE) {
 
       // Charger le vocabulaire selon l'abonnement scolaire
       const typeAbonnement = company.licence?.type_abonnement || null;
-      vocab = getVocabulaire(typeAbonnement);
+      // Un compte Particulier n'a pas de flotte — on garde le vocabulaire standard
+      // mais on masque le formulaire d'ajout si c'est un particulier
+      const estParticulier = company.accountType === 'particulier'
+        || company.role === 'particulier';
+      vocab = getVocabulaire(estParticulier ? '__particulier__' : typeAbonnement);
       appliquerVocabulaire(vocab);
     }
 
