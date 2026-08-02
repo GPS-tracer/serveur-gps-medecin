@@ -2,12 +2,9 @@
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { brancherBoutonDeconnexion } from "./deconnexion.js";
 import { exigerSessionDashboard } from "./auth-session.js";
-import { genererListeUpsellHtml } from "./chariow-paiement.js";
-import { showQuotaEpuise } from "./quota-ui.js";
-// v2.1 — section appareils en attente active
-
-export { showQuotaEpuise };
 import { ref, set, onValue, remove, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// v2.1 — section appareils en attente active
 
 // Éléments DOM
 const form = document.getElementById('addAgentForm');
