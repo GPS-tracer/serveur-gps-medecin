@@ -72,6 +72,9 @@ onAuthStateChanged(auth, async (user) => {
   // ── Injecter logo + nom dans la nouvelle sidebar ────────────
   injecterIdentiteSidebar(companyName || user.email.split('@')[0], companyData.logoUrl || null);
 
+  // ── Adapter le vocabulaire sidebar selon le type de compte ──
+  adapterVocabulaireSidebar(companyData);
+
   // ── Statut bonus / plan gratuit (décrémente 1 crédit bonus par visite) ──
   await chargerStatutUtilisateur(user);
 
@@ -126,8 +129,78 @@ function injecterIdentiteSidebar(nom, logoUrl) {
 }
 
 /**
- * Appelle /api/user/check-status et expose le résultat à app.js.
+ * Adapte les labels de la sidebar selon le type de compte.
+ * - Particulier : "Mon appareil" au lieu de "Ma Flotte"
+ * - Suivi élève : "Mes élèves"
+ * - Suivi étudiant : "Mes étudiants"
  */
+function adapterVocabulaireSidebar(companyData) {
+  const accountType      = companyData.accountType || companyData.role || 'company';
+  const typeAbonnement   = companyData.licence?.type_abonnement || null;
+
+  // Déterminer le label et l'icône du lien "flotte"
+  let labelFlotte = 'Ma Flotte';
+  let iconeFlotte = '🚗';
+
+  if (accountType === 'particulier' || companyData.role === 'particulier') {
+    labelFlotte = 'Mon appareil';
+    iconeFlotte = '📱';
+  } else if (typeAbonnement === 'suivi_eleve') {
+    labelFlotte = 'Mes élèves';
+    iconeFlotte = '🎒';
+  } else if (typeAbonnement === 'suivi_etudiant') {
+    labelFlotte = 'Mes étudiants';
+    iconeFlotte = '🎓';
+  }
+
+  // Mettre à jour le lien "Ma Flotte" dans la sidebar de index.html
+  const navFlotte = document.querySelector('a[href="fleet.html"] span:last-child');
+  if (navFlotte) navFlotte.textContent = labelFlotte;
+
+  // Mettre à jour l'icône du lien flotte dans la sidebar
+  const navFlotteParent = document.querySelector('a[href="fleet.html"]');
+  if (navFlotteParent) {
+    const svgEl = navFlotteParent.querySelector('svg');
+    // Remplacer le SVG par l'emoji pour les cas non-flotte
+    if (svgEl && iconeFlotte !== '🚗') {
+      const span = document.createElement('span');
+      span.textContent = iconeFlotte;
+      span.className   = 'text-base';
+      svgEl.replaceWith(span);
+    }
+  }
+
+  // Mettre à jour la barre de navigation mobile
+  const mobileFlotte = document.querySelector('[data-mobile-nav="flotte"] span:last-child');
+  if (mobileFlotte) mobileFlotte.textContent = labelFlotte;
+
+  const mobileFlotteIcon = document.querySelector('[data-mobile-nav="flotte"] .mobile-nav-icon');
+  if (mobileFlotteIcon) mobileFlotteIcon.textContent = iconeFlotte;
+
+  // Mettre à jour le titre "AGENTS ACTIFS" dans la sidebar
+  const agentsTitle = document.querySelector('.sidebar-new nav p.text-slate-600');
+  if (agentsTitle) {
+    if (accountType === 'particulier' || companyData.role === 'particulier') {
+      agentsTitle.textContent = 'MON APPAREIL';
+    } else if (typeAbonnement === 'suivi_eleve') {
+      agentsTitle.textContent = 'ÉLÈVES ACTIFS';
+    } else if (typeAbonnement === 'suivi_etudiant') {
+      agentsTitle.textContent = 'ÉTUDIANTS ACTIFS';
+    }
+  }
+
+  // Mettre à jour le lien "Ajouter un appareil à suivre"
+  const emptyLink = document.querySelector('#emptyState a[href="fleet.html"]');
+  if (emptyLink) {
+    if (accountType === 'particulier' || companyData.role === 'particulier') {
+      emptyLink.textContent = '+ Ajouter mon appareil';
+    } else if (typeAbonnement === 'suivi_eleve') {
+      emptyLink.textContent = '+ Inviter un élève';
+    } else if (typeAbonnement === 'suivi_etudiant') {
+      emptyLink.textContent = '+ Inviter un étudiant';
+    }
+  }
+}
 async function chargerStatutUtilisateur(user) {
   try {
     const token = await user.getIdToken();
