@@ -18,6 +18,9 @@ import androidx.appcompat.app.AppCompatActivity
  *  1. "Payer et continuer" → redirige vers le paiement (Chariow / Mobile Money)
  *  2. "Continuer gratuitement" → active la version gratuite limitée et démarre le tracking
  *
+ * onResume() — vérifie si le paiement a été effectué pendant que l'utilisateur
+ * était sur Chariow. Si oui, démarre MainActivity directement sans interaction.
+ *
  * Cette Activity est non-annulable (pas de bouton retour) pour forcer le choix.
  */
 class TrialExpiredActivity : AppCompatActivity() {
@@ -29,6 +32,9 @@ class TrialExpiredActivity : AppCompatActivity() {
     private lateinit var btnGratuit:    Button
     private lateinit var progressBar:   ProgressBar
     private lateinit var tvPlanGratuit: TextView
+
+    // Flag pour éviter de lancer plusieurs vérifications en parallèle
+    private var verificationEnCours = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,16 +52,58 @@ class TrialExpiredActivity : AppCompatActivity() {
         btnGratuit.setOnClickListener { onGratuitClicked() }
     }
 
+    // ─────────────────────────────────────────────────────────
+    // onResume — vérifier si le paiement a été effectué
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Appelé à chaque retour dans l'app (depuis Chariow ou depuis l'arrière-plan).
+     * Si le statut Firebase est passé à PREMIUM, on démarre MainActivity directement.
+     */
+    override fun onResume() {
+        super.onResume()
+
+        if (verificationEnCours) return
+        val uid = prefs.getString("uid", null) ?: return
+
+        verificationEnCours = true
+        setLoading(true)
+
+        trialManager.syncFromFirebase(uid) { status ->
+            runOnUiThread {
+                verificationEnCours = false
+                setLoading(false)
+
+                when (status) {
+                    TrialManager.TrialStatus.PREMIUM -> {
+                        // Paiement confirmé — démarrer l'app
+                        android.widget.Toast.makeText(
+                            this,
+                            "✅ Paiement confirmé ! Bienvenue en Premium.",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                        goToMain()
+                    }
+                    TrialManager.TrialStatus.FREE_LIMITED -> {
+                        // L'utilisateur a déjà choisi la version gratuite
+                        goToMain()
+                    }
+                    else -> {
+                        // Trial toujours expiré — rester sur cet écran
+                    }
+                }
+            }
+        }
+    }
+
     // ── Bouton "Payer et continuer" ───────────────────────────
     private fun onPayerClicked() {
         // Ouvrir le lien de paiement Chariow dans le navigateur
         val uri = android.net.Uri.parse("https://chariow.com")
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
-
-        // Note : la vérification du paiement se fera via Firebase
-        // (le backend met à jour subscription_type = "premium" après confirmation)
-        // L'app détectera le changement au prochain démarrage via syncFromFirebase()
+        // onResume() sera appelé automatiquement au retour
+        // et détectera si le paiement a été confirmé
     }
 
     // ── Bouton "Continuer gratuitement" ──────────────────────
@@ -64,7 +112,6 @@ class TrialExpiredActivity : AppCompatActivity() {
 
         val uid = prefs.getString("uid", null)
         if (uid.isNullOrEmpty()) {
-            // Fallback : activer localement sans Firebase
             trialManager.activerVersionGratuite("")
             goToMain()
             return
@@ -72,7 +119,6 @@ class TrialExpiredActivity : AppCompatActivity() {
 
         trialManager.activerVersionGratuite(uid)
 
-        // Petit délai pour laisser Firebase écrire
         btnGratuit.postDelayed({
             setLoading(false)
             goToMain()
