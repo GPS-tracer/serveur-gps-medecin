@@ -534,127 +534,121 @@
     pingHealth();
   </script>
 
-  <script>
-    // ── Modale téléchargement APK ────────────────────────────
-    (function () {
-      'use strict';
+  <script type="module">
+    // ── Modale téléchargement APK — QR Code personnalisé ─────
+    import { auth } from '/shared/firebase.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-      // Payload JSON pour le QR Code d'enrôlement Device Owner
-      const QR_PAYLOAD = JSON.stringify({
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME":
-          "com.gpstracker.agent/.AdminReceiver",
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION":
-          "https://serveur-gps-medecin.onrender.com/download/GPTS-Tracker.apk",
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM":
-          "d00k2k7RW4Yt5sF2XICR6Gi6c4PjvizwsTZTQMCCE9w",
+    const APK_URL      = 'https://serveur-gps-medecin.onrender.com/download/GPTS-Tracker.apk';
+    const APK_CHECKSUM = 'd00k2k7RW4Yt5sF2XICR6Gi6c4PjvizwsTZTQMCCE9w';
+    const COMPONENT    = 'com.gpstracker.agent/.AdminReceiver';
+
+    // Payload QR Code — uid injecté si utilisateur connecté, sinon générique
+    function buildQrPayload(uid) {
+      return JSON.stringify({
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": COMPONENT,
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": APK_URL,
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": APK_CHECKSUM,
         "android.app.extra.PROVISIONING_SKIP_ENCRYPTION": false,
         "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
-        "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
-          "server_url": "https://db-tracker-d39a7-default-rtdb.firebaseio.com"
-        }
+        "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": uid
+          ? { uid, account_type: "particulier" }
+          : { server_url: "https://db-tracker-d39a7-default-rtdb.firebaseio.com" },
       });
+    }
 
-      const modal        = document.getElementById('dlModal');
-      const viewChoice   = document.getElementById('dlViewChoice');
-      const viewQR       = document.getElementById('dlViewQR');
-      const btnClose     = document.getElementById('dlModalClose');
-      const btnContinue  = document.getElementById('dlModalContinue');
-      const btnContinue2 = document.getElementById('dlModalContinue2');
-      const btnShowQR    = document.getElementById('btnShowQR');
-      const btnBack      = document.getElementById('btnBackToChoice');
-      const qrCanvas     = document.getElementById('qrCanvas');
+    let currentUid   = null;
+    let qrGenerated  = false;
 
-      let qrGenerated = false;
+    // Écouter l'auth pour récupérer l'UID si connecté
+    onAuthStateChanged(auth, (user) => {
+      if (user?.emailVerified) currentUid = user.uid;
+    });
 
-      // ── Ouvrir la modale ──────────────────────────────────
-      function openModal() {
-        showView('choice');
-        modal.classList.add('is-open');
-        document.body.style.overflow = 'hidden';
-        setTimeout(() => btnClose.focus(), 50);
+    const modal        = document.getElementById('dlModal');
+    const viewChoice   = document.getElementById('dlViewChoice');
+    const viewQR       = document.getElementById('dlViewQR');
+    const btnClose     = document.getElementById('dlModalClose');
+    const btnContinue  = document.getElementById('dlModalContinue');
+    const btnContinue2 = document.getElementById('dlModalContinue2');
+    const btnShowQR    = document.getElementById('btnShowQR');
+    const btnBack      = document.getElementById('btnBackToChoice');
+    const qrCanvas     = document.getElementById('qrCanvas');
+
+    function openModal() {
+      showView('choice');
+      modal.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => btnClose.focus(), 50);
+    }
+
+    function closeModal() {
+      modal.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    function showView(name) {
+      viewChoice.classList.toggle('hidden', name !== 'choice');
+      viewQR.classList.toggle('hidden', name !== 'qr');
+    }
+
+    function generateQR() {
+      if (qrGenerated) return;
+      qrCanvas.innerHTML = '';
+
+      if (typeof QRCode === 'undefined') {
+        qrCanvas.innerHTML = '<p style="color:#f87171;font-size:.75rem;text-align:center;padding:1rem">⚠️ Librairie QR Code non chargée.</p>';
+        return;
       }
 
-      // ── Fermer la modale ──────────────────────────────────
-      function closeModal() {
-        modal.classList.remove('is-open');
-        document.body.style.overflow = '';
+      qrGenerated = true;
+      const size    = window.innerWidth < 480 ? 220 : 260;
+      const payload = buildQrPayload(currentUid);
+
+      // Afficher un badge si le QR est personnalisé
+      if (currentUid) {
+        const badge = document.createElement('p');
+        badge.style.cssText = 'text-align:center;font-size:.7rem;color:#34d399;margin-bottom:.5rem;font-weight:600';
+        badge.textContent = '🔒 QR Code lié à votre compte';
+        qrCanvas.parentNode.insertBefore(badge, qrCanvas);
       }
 
-      // ── Basculer entre les vues ───────────────────────────
-      function showView(name) {
-        viewChoice.classList.toggle('hidden', name !== 'choice');
-        viewQR.classList.toggle('hidden', name !== 'qr');
-      }
-
-      // ── Générer le QR Code — logique robuste ──────────────
-      function generateQR() {
-        if (qrGenerated) return;
-
-        // Vider le conteneur
-        qrCanvas.innerHTML = '';
-
-        if (typeof QRCode === 'undefined') {
-          qrCanvas.innerHTML =
-            '<p style="color:#f87171;font-size:.75rem;text-align:center;padding:1rem">⚠️ Librairie QR Code non chargée.<br>Vérifiez votre connexion internet.</p>';
-          return;
-        }
-
-        qrGenerated = true;
-        const size = window.innerWidth < 480 ? 220 : 260;
-
-        try {
-          new QRCode(qrCanvas, {
-            text:         QR_PAYLOAD,
-            width:        size,
-            height:       size,
-            colorDark:    '#0f172a',
-            colorLight:   '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M,
-          });
-        } catch (e) {
-          qrCanvas.innerHTML =
-            '<p style="color:#f87171;font-size:.75rem;text-align:center;padding:1rem">Erreur génération QR Code.<br>' + e.message + '</p>';
-        }
-      }
-
-      // ── Fermeture sur clic en dehors de la boîte ─────────
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-      });
-
-      // ── Fermeture touche Escape ───────────────────────────
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
-      });
-
-      btnClose.addEventListener('click', closeModal);
-      btnContinue.addEventListener('click', () => {
-        closeModal();
-        window.location.href = '/dashboard/login.html';
-      });
-      btnContinue2.addEventListener('click', () => {
-        closeModal();
-        window.location.href = '/dashboard/login.html';
-      });
-
-      btnShowQR.addEventListener('click', () => {
-        showView('qr');
-        // Petit délai pour s'assurer que le DOM est prêt
-        setTimeout(generateQR, 50);
-      });
-
-      btnBack.addEventListener('click', () => showView('choice'));
-
-      // ── Intercepter TOUS les boutons de téléchargement APK ──
-      document.querySelectorAll('a[href*="GPTS-Tracker.apk"], a[href*="agent.apk"]')
-        .forEach((link) => {
-          link.addEventListener('click', () => {
-            // Laisser le téléchargement se lancer normalement
-            setTimeout(openModal, 150);
-          });
+      try {
+        new QRCode(qrCanvas, {
+          text:         payload,
+          width:        size,
+          height:       size,
+          colorDark:    '#0f172a',
+          colorLight:   '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M,
         });
+      } catch (e) {
+        qrCanvas.innerHTML = '<p style="color:#f87171;font-size:.75rem;text-align:center;padding:1rem">Erreur génération QR Code.<br>' + e.message + '</p>';
+      }
+    }
 
-    })();
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+    });
+
+    btnClose.addEventListener('click', closeModal);
+    btnContinue.addEventListener('click', () => { closeModal(); window.location.href = '/dashboard/login.html'; });
+    btnContinue2.addEventListener('click', () => { closeModal(); window.location.href = '/dashboard/login.html'; });
+
+    btnShowQR.addEventListener('click', () => {
+      showView('qr');
+      // Réinitialiser pour régénérer avec l'UID à jour
+      qrGenerated = false;
+      setTimeout(generateQR, 50);
+    });
+
+    btnBack.addEventListener('click', () => showView('choice'));
+
+    document.querySelectorAll('a[href*="GPTS-Tracker.apk"], a[href*="agent.apk"]')
+      .forEach((link) => {
+        link.addEventListener('click', () => setTimeout(openModal, 150));
+      });
   </script>
 
 </body>
