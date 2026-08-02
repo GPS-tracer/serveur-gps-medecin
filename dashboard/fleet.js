@@ -7,7 +7,7 @@ import { showQuotaEpuise } from "./quota-ui.js";
 // v2.1 — section appareils en attente active
 
 export { showQuotaEpuise };
-import { ref, set, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { ref, set, onValue, remove, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // Éléments DOM
 const form = document.getElementById('addAgentForm');
@@ -367,21 +367,27 @@ function afficherCodeEntreprise(uid) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// [NOUVEAU] — Écoute temps réel des appareils en attente
-// Lit pending/ filtré par companyId == currentUser.uid
+// [OPTIMISÉ] — Écoute temps réel des appareils en attente
+// Utilise orderByChild('companyId').equalTo(uid) pour ne charger
+// que les appareils de cette société — pas toute la collection pending.
+// L'index ".indexOn": ["companyId"] est déclaré dans firebase-rules.json.
 // ══════════════════════════════════════════════════════════════
 function ecouterAppareisEnAttente(companyId) {
-  const pendingRef = ref(db, 'pending');
-  onValue(pendingRef, (snapshot) => {
+  const pendingQuery = query(
+    ref(db, 'pending'),
+    orderByChild('companyId'),
+    equalTo(companyId)
+  );
+
+  onValue(pendingQuery, (snapshot) => {
     pendingAgents = {};
 
     if (snapshot.exists()) {
       snapshot.forEach((child) => {
         const data = child.val();
-        // Filtre : seulement les agents de cette société
         // Accepte status "pending" OU status absent (ancienne APK)
         const statusOk = !data.status || data.status === 'pending';
-        if (data.companyId === companyId && statusOk) {
+        if (statusOk) {
           pendingAgents[child.key] = data;
         }
       });

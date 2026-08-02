@@ -26,7 +26,8 @@
       "$deviceId": {
         ".read": "auth != null",
         ".write": "auth != null"
-      }
+      },
+      ".indexOn": ["companyId", "status"]
     },
 
     "companies": {
