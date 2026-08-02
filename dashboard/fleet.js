@@ -90,14 +90,14 @@ function showSuccess(message) {
 // ─── Écouter les agents (chemin societes/{uid}/agents) ────────
 function listenToAgents(companyId) {
     const agentsRef = ref(db, agentsPath(companyId));
-    onValue(agentsRef, (snapshot) => {
+    onValue(agentsRef, async (snapshot) => {
         agents = snapshot.val() || {};
-        renderAgents();
+        await renderAgents();
     });
 }
 
 // ─── Rendre la liste des agents ───────────────────────────────
-function renderAgents() {
+async function renderAgents() {
     const agentIds = Object.keys(agents);
     const count = agentIds.length;
 
@@ -106,7 +106,7 @@ function renderAgents() {
     if (count === 0) {
         emptyState.classList.remove('hidden');
         agentsList.innerHTML = '';
-        syncAddAgentUi();
+        await syncAddAgentUi();
         return;
     }
 
@@ -144,7 +144,7 @@ function renderAgents() {
             </div>`;
     }).join('');
 
-    syncAddAgentUi();
+    await syncAddAgentUi();
 }
 
 // ─── Synchroniser l'état du bouton + formulaire ───────────────
