@@ -4,12 +4,13 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
-const express  = require('express');
-const path     = require('path');
-const admin    = require('firebase-admin');
-const cron     = require('node-cron');
-const crypto   = require('crypto');
-const https    = require('https');
+const express      = require('express');
+const path         = require('path');
+const admin        = require('firebase-admin');
+const cron         = require('node-cron');
+const crypto       = require('crypto');
+const https        = require('https');
+const rateLimit    = require('express-rate-limit');
 const { envoyerAlertesAntivol } = require('./notifications/brevo');
 
 const app  = express();
@@ -58,6 +59,47 @@ const firestore = admin.firestore();
 // Middleware
 // ─────────────────────────────────────────────────────────────
 app.use(express.json());
+
+// ─────────────────────────────────────────────────────────────
+// RATE LIMITING — protection contre les abus et brute-force
+// ─────────────────────────────────────────────────────────────
+
+// Inscription entreprise — max 5 tentatives / 15 min par IP
+// Évite la création massive de comptes fantômes
+const limiterRegister = rateLimit({
+  windowMs:         15 * 60 * 1000,
+  max:              5,
+  standardHeaders:  true,
+  legacyHeaders:    false,
+  message:          { error: 'Trop de tentatives d\'inscription. Réessayez dans 15 minutes.' },
+});
+
+// Vérification géofencing — max 120 req / min par IP
+// L'app Android appelle cette route à chaque envoi GPS (toutes les 5–20s)
+// 120/min = 1 req toutes les 500ms — largement suffisant même en mode moto
+const limiterGeofencing = rateLimit({
+  windowMs:         60 * 1000,
+  max:              120,
+  standardHeaders:  true,
+  legacyHeaders:    false,
+  message:          { error: 'Trop de requêtes géofencing. Ralentissez l\'intervalle GPS.' },
+});
+
+// API générale authentifiée — max 300 req / min par IP
+const limiterApi = rateLimit({
+  windowMs:         60 * 1000,
+  max:              300,
+  standardHeaders:  true,
+  legacyHeaders:    false,
+  message:          { error: 'Trop de requêtes. Réessayez dans un instant.' },
+});
+
+// Appliquer le limiteur général sur toutes les routes /api/
+app.use('/api/', limiterApi);
+
+// Limiteurs spécifiques sur les routes sensibles
+app.use('/api/register/entreprise',        limiterRegister);
+app.use('/api/geofencing/:companyId/check', limiterGeofencing);
 
 // Vérifier le token Firebase Auth sur les routes protégées
 async function requireAuth(req, res, next) {
