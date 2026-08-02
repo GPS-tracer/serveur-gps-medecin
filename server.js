@@ -2369,9 +2369,10 @@ function distanceHaversineMetres(lat1, lon1, lat2, lon2) {
 }
 
 // Planification des notifications d'expiration : tous les jours à 08h00 UTC
+// Utilise la même logique que la route /api/admin/notifications/expiration
+// avec un garde-fou anti-doublon (notif_key = companyId + type + date)
 cron.schedule('0 8 * * *', async () => {
   try {
-    // Simuler un appel interne à la route de notification
     const maintenant = new Date();
     const snapshot   = await firestore
       .collection('licences')
@@ -2390,16 +2391,36 @@ cron.schedule('0 8 * * *', async () => {
       const diffJours = Math.ceil((dateExp.getTime() - maintenant.getTime()) / (1000 * 60 * 60 * 24));
       if (![7, 3, 1].includes(diffJours)) continue;
 
+      // Garde-fou anti-doublon : clé unique = companyId + seuil + date du jour
+      const dateKey  = maintenant.toISOString().slice(0, 10); // YYYY-MM-DD
+      const notifKey = `expiration_j${diffJours}_${dateKey}`;
+
+      // Vérifier si une notification avec cette clé existe déjà aujourd'hui
+      const dejaEnvoyee = await db.ref(`companies/${companyId}/notifications`)
+        .orderByChild('notif_key')
+        .equalTo(notifKey)
+        .limitToFirst(1)
+        .get();
+
+      if (dejaEnvoyee.exists()) {
+        continue; // Déjà envoyée aujourd'hui pour ce seuil
+      }
+
       const packLabel = data.type_pack === 'abonnement_flotte'
         ? 'Forfait Flotte'
         : `Tarif à l'Unité (${data.quantite_agents || 1} agent(s))`;
+
+      const dateStr = dateExp.toLocaleDateString('fr-FR', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      });
 
       await db.ref(`companies/${companyId}/notifications`).push({
         type:          'expiration_imminente',
         typePack:      data.type_pack,
         joursRestants: diffJours,
         expiredAt:     dateExp.toISOString(),
-        message:       `⚠️ Votre ${packLabel} expire dans ${diffJours} jour(s). Renouvelez dès maintenant.`,
+        message:       `⚠️ Votre ${packLabel} expire dans ${diffJours} jour(s) (le ${dateStr}). Renouvelez dès maintenant.`,
+        notif_key:     notifKey,
         lu:            false,
         createdAt:     maintenant.toISOString(),
       });

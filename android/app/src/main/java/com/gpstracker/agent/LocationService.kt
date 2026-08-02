@@ -218,23 +218,56 @@ class LocationService : Service() {
     }
 
     /**
-     * Enregistre le receiver pour surveiller la connexion réseau
+     * Enregistre le receiver pour surveiller la connexion réseau.
+     *
+     * CORRECTION : CONNECTIVITY_ACTION est déprécié depuis API 28 et ne se
+     * déclenche pas en arrière-plan sur Android 7+. On utilise NetworkCallback
+     * (API 21+) qui fonctionne correctement pour les services foreground.
      */
     private fun registerNetworkReceiver() {
-        networkReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                checkNetworkStatus()
-                
-                // Si le réseau revient, synchroniser le cache
-                if (isNetworkAvailable) {
-                    syncCachedLocations()
+        val connectivityManager =
+            getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            // API 24+ → NetworkCallback (méthode recommandée)
+            val request = android.net.NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+
+            connectivityManager.registerNetworkCallback(request,
+                object : ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: android.net.Network) {
+                        val wasAvailable = isNetworkAvailable
+                        isNetworkAvailable = true
+                        if (!wasAvailable) {
+                            Log.i(TAG, "📶 Réseau disponible — Synchronisation du cache...")
+                            updateNotification("📶 Réseau rétabli — Synchronisation...")
+                            syncCachedLocations()
+                        }
+                    }
+
+                    override fun onLost(network: android.net.Network) {
+                        isNetworkAvailable = false
+                        Log.w(TAG, "📵 Réseau indisponible — Mode cache activé")
+                        updateNotification("📵 Mode hors ligne — Cache local")
+                    }
+                }
+            )
+            Log.d(TAG, "NetworkCallback enregistré (API ${Build.VERSION.SDK_INT})")
+        } else {
+            // API 21–23 → BroadcastReceiver (fallback)
+            @Suppress("DEPRECATION")
+            networkReceiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    checkNetworkStatus()
+                    if (isNetworkAvailable) syncCachedLocations()
                 }
             }
+            @Suppress("DEPRECATION")
+            val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+            registerReceiver(networkReceiver, filter)
+            Log.d(TAG, "BroadcastReceiver réseau enregistré (API ${Build.VERSION.SDK_INT})")
         }
-        
-        val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
-        registerReceiver(networkReceiver, filter)
-        Log.d(TAG, "Network receiver enregistré")
     }
 
     /**
@@ -515,30 +548,45 @@ class LocationService : Service() {
     }
 
     /**
-     * Ajuste les paramètres de tracking selon le type de véhicule
+     * Ajuste les paramètres de tracking selon le type de véhicule.
+     *
+     * Intervalles choisis selon l'usage réel :
+     *  - Moto    : 5 s / 10 m  (livraisons rapides, virages fréquents)
+     *  - Voiture : 10 s / 20 m (standard)
+     *  - Camion  : 20 s / 50 m (lent, économie batterie / bande passante)
+     *
+     * Après ajustement, redémarre les mises à jour GPS pour appliquer
+     * immédiatement les nouveaux paramètres.
      */
     private fun adjustTrackingParameters(vehicleType: String?) {
         when (vehicleType) {
             "moto" -> {
-                // Moto: tracking plus fréquent (livraisons rapides)
-                Log.d(TAG, "🏍️ Mode Moto: tracking haute fréquence")
-                // Les paramètres sont déjà gérés par Remote Config
+                updateIntervalMs    = 5_000L   // 5 secondes
+                minDistanceMeters   = 10f       // 10 mètres
+                Log.d(TAG, "🏍️ Mode Moto : intervalle=5s, distance=10m")
             }
             "voiture" -> {
-                // Voiture: tracking standard
-                Log.d(TAG, "🚗 Mode Voiture: tracking standard")
+                updateIntervalMs    = 10_000L  // 10 secondes (défaut)
+                minDistanceMeters   = 20f      // 20 mètres
+                Log.d(TAG, "🚗 Mode Voiture : intervalle=10s, distance=20m")
             }
             "camion" -> {
-                // Camion: tracking moins fréquent (économie carburant)
-                Log.d(TAG, "🚚 Mode Camion: tracking optimisé")
+                updateIntervalMs    = 20_000L  // 20 secondes
+                minDistanceMeters   = 50f      // 50 mètres
+                Log.d(TAG, "🚚 Mode Camion : intervalle=20s, distance=50m")
             }
             else -> {
-                Log.d(TAG, "Type de véhicule inconnu: $vehicleType")
+                // Type inconnu → garder les valeurs actuelles
+                Log.d(TAG, "Type de véhicule inconnu ($vehicleType) — paramètres inchangés")
+                return
             }
         }
-        
-        // Note: Les intervalles sont gérés par Remote Config
-        // Cette fonction peut être étendue pour des ajustements spécifiques
+
+        // Redémarrer le GPS pour appliquer immédiatement les nouveaux paramètres
+        if (::fusedClient.isInitialized) {
+            restartLocationUpdates()
+            Log.i(TAG, "🔄 GPS redémarré avec nouveaux paramètres ($vehicleType)")
+        }
     }
 
     /**
