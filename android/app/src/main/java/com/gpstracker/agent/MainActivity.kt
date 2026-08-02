@@ -333,6 +333,32 @@ class MainActivity : AppCompatActivity() {
         tvConfigStatus.text = "🔒 Configuration gérée par l'administrateur"
         tvConfigStatus.visibility = View.VISIBLE
 
+        // ── Vérification trial pour les comptes Particulier ──────────────────
+        val accountType = prefs.getString("account_type", null)
+        if (accountType == "particulier") {
+            val trialManager = TrialManager(this)
+            val uid = prefs.getString("uid", null)
+
+            val verifierEtRediriger = { status: TrialManager.TrialStatus ->
+                if (status == TrialManager.TrialStatus.TRIAL_EXPIRED) {
+                    startActivity(Intent(this, TrialExpiredActivity::class.java))
+                    finish()
+                } else {
+                    // Trial actif ou premium → afficher le label dans l'UI
+                    tvConfigStatus.text = trialManager.getPlanLabel()
+                }
+            }
+
+            if (!uid.isNullOrEmpty()) {
+                // Sync Firebase pour avoir le statut à jour
+                trialManager.syncFromFirebase(uid) { status ->
+                    runOnUiThread { verifierEtRediriger(status) }
+                }
+            } else {
+                verifierEtRediriger(trialManager.getTrialStatus())
+            }
+        }
+
         // Afficher le bouton guide démarrage automatique
         btnAutostartGuide.visibility = View.VISIBLE
         btnAutostartGuide.setOnClickListener {

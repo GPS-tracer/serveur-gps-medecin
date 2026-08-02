@@ -55,6 +55,13 @@
       }
     },
 
+    "utilisateurs_particuliers": {
+      "$uid": {
+        ".read":  "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+
     "destruction_commands": {
       "$agentId": {
         ".read": true,
