@@ -234,7 +234,10 @@ function renderStatus(data) {
       <div class="bg-slate-700/50 rounded-lg p-4">
         <p class="text-slate-400 text-xs mb-1">Rapports</p>
         <p class="font-semibold">${rapportsHtml}</p>
-        <p class="text-slate-500 text-xs mt-1">${data.freeReportsRemainingToday} gratuit(s) aujourd'hui</p>
+        ${data.rapportsIllimites
+          ? ''
+          : `<p class="text-slate-500 text-xs mt-1">${data.freeReportsRemainingToday ?? 0} gratuit(s) aujourd'hui</p>`
+        }
       </div>
       <div class="bg-slate-700/50 rounded-lg p-4">
         <p class="text-slate-400 text-xs mb-1">Agents</p>
