@@ -271,22 +271,51 @@
           document.getElementById('abonnementExpire').textContent = 'Expiré';
         }
 
-        // Dernière position
+        // Dernière position — écoute temps réel (onValue au lieu de get)
+        // Si l'étudiant bouge, l'UI se met à jour automatiquement
         const parentId = data.parentId;
         if (parentId) {
-          const agentSnap = await get(ref(db, `societes/${parentId}/agents/${uid}`));
-          const agent     = agentSnap.val();
-          if (agent?.lastUpdate) {
-            const d = new Date(agent.lastUpdate);
-            document.getElementById('dernierePosition').textContent =
-              d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
-            document.getElementById('gpsStatusDot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot';
-            document.getElementById('gpsStatusText').textContent = 'Actif';
-          }
+          demarrerEcouteGPS(parentId, uid);
         }
       } catch (err) {
         console.error('chargerProfil error:', err);
       }
+    }
+
+    // ── Écoute GPS temps réel ─────────────────────────────────
+    // Séparée de chargerProfil pour être appelée une seule fois
+    // et éviter d'empiler des listeners à chaque re-render.
+    let gpsListenerActif = false;
+    function demarrerEcouteGPS(parentId, uid) {
+      if (gpsListenerActif) return; // éviter les listeners en double
+      gpsListenerActif = true;
+
+      const agentRef = ref(db, `societes/${parentId}/agents/${uid}`);
+      onValue(agentRef, (snap) => {
+        const agent = snap.val();
+
+        if (agent?.lastUpdate) {
+          const d = new Date(agent.lastUpdate);
+          const maintenant = Date.now();
+          const age = maintenant - agent.lastUpdate;
+          const enLigne = age < 2 * 60 * 1000; // actif si mise à jour < 2 min
+
+          document.getElementById('dernierePosition').textContent =
+            d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+
+          document.getElementById('gpsStatusDot').className =
+            enLigne
+              ? 'w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot'
+              : 'w-2.5 h-2.5 rounded-full bg-amber-400';
+
+          document.getElementById('gpsStatusText').textContent =
+            enLigne ? 'Actif' : 'Dernière position connue';
+        } else {
+          document.getElementById('dernierePosition').textContent = 'Aucune position';
+          document.getElementById('gpsStatusDot').className = 'w-2.5 h-2.5 rounded-full bg-slate-600';
+          document.getElementById('gpsStatusText').textContent = 'Inactif';
+        }
+      });
     }
 
     // ── Charger l'assiduité (30 derniers jours) ───────────────
