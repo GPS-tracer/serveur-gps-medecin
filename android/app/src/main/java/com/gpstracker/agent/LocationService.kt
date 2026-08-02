@@ -20,11 +20,15 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.android.gms.location.*
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -68,6 +72,9 @@ class LocationService : Service() {
         private const val CONGO_LAT_MAX =  3.8
         private const val CONGO_LNG_MIN = 11.0
         private const val CONGO_LNG_MAX = 18.7
+
+        // URL du serveur GPS Tracker
+        private const val SERVER_URL = "https://serveur-gps-medecin.onrender.com"
     }
 
     private lateinit var fusedClient: FusedLocationProviderClient
@@ -751,9 +758,13 @@ class LocationService : Service() {
         db.updateChildren(updates)
             .addOnSuccessListener {
                 Log.d(TAG, "✅ Données envoyées à Firebase avec succès")
-                
+
                 // Nettoyer l'historique si trop de points
                 cleanupHistory(societeId, agentId)
+
+                // [GEOFENCING] — Vérifier les zones géographiques après chaque envoi GPS réussi
+                // L'appel est fait sur un thread séparé pour ne pas bloquer le thread GPS
+                verifierGeofencing(societeId, agentId, location.latitude, location.longitude)
             }
             .addOnFailureListener { e ->
                 Log.e(TAG, "❌ Erreur Firebase: ${e.message}", e)
@@ -887,6 +898,76 @@ class LocationService : Service() {
     }
 
     /**
+    /**
+     * [GEOFENCING] — Appelle POST /api/geofencing/:companyId/check après chaque
+     * mise à jour GPS réussie. Détecte les entrées/sorties de zones et crée
+     * des notifications dans Firebase pour le dashboard.
+     *
+     * Exécuté sur un thread dédié (IO) pour ne pas bloquer le thread GPS.
+     * Silencieux en cas d'erreur réseau — le prochain ping retentera.
+     */
+    private fun verifierGeofencing(societeId: String, agentId: String, lat: Double, lng: Double) {
+        // Ne vérifier que si le réseau est disponible
+        if (!isNetworkAvailable) return
+
+        Thread {
+            try {
+                // Récupérer le token Firebase ID de l'agent (authentification requise par /check)
+                val user = FirebaseAuth.getInstance().currentUser
+                if (user == null) {
+                    Log.w(TAG, "[Geofencing] Utilisateur Firebase non connecté — vérification ignorée")
+                    return@Thread
+                }
+
+                // Obtenir le token de façon synchrone (on est déjà sur un thread IO)
+                val tokenTask = user.getIdToken(false)
+                val token     = com.google.android.gms.tasks.Tasks.await(tokenTask)?.token
+                if (token.isNullOrEmpty()) {
+                    Log.w(TAG, "[Geofencing] Token Firebase vide — vérification ignorée")
+                    return@Thread
+                }
+
+                val url  = URL("$SERVER_URL/api/geofencing/$societeId/check")
+                val body = JSONObject().apply {
+                    put("agentId", agentId)
+                    put("lat",     lat)
+                    put("lng",     lng)
+                }.toString()
+
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod         = "POST"
+                    setRequestProperty("Content-Type",  "application/json")
+                    setRequestProperty("Authorization", "Bearer $token")
+                    connectTimeout        = 8_000
+                    readTimeout           = 8_000
+                    doOutput              = true
+                }
+
+                OutputStreamWriter(conn.outputStream, "UTF-8").use { it.write(body) }
+
+                val code     = conn.responseCode
+                val response = conn.inputStream.bufferedReader().readText()
+                conn.disconnect()
+
+                if (code == 200) {
+                    val json    = JSONObject(response)
+                    val alertes = json.optJSONArray("alertes")
+                    if (alertes != null && alertes.length() > 0) {
+                        Log.i(TAG, "[Geofencing] ✅ ${alertes.length()} alerte(s) géofencing générée(s)")
+                    } else {
+                        Log.d(TAG, "[Geofencing] ✅ Pas de transition de zone")
+                    }
+                } else {
+                    Log.w(TAG, "[Geofencing] ⚠️ Réponse serveur $code : $response")
+                }
+
+            } catch (e: Exception) {
+                // Silencieux — une erreur réseau ne doit pas impacter le tracking GPS
+                Log.d(TAG, "[Geofencing] Vérification ignorée : ${e.message}")
+            }
+        }.start()
+    }
+
     /**
      * Nettoie l'historique pour ne garder que les N derniers points.
      *
