@@ -2758,7 +2758,38 @@ app.get('/sw.js', (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ROUTES ANTIVOL — doivent être AVANT le catch-all 404
+// ROUTE : Log destruction à distance (superadmin uniquement)
+// POST /api/admin/destruction/trigger
+// Body : { targetId, raison }
+//
+// La commande DESTROY est déjà écrite dans Firebase RTDB par le dashboard.
+// Cette route sert uniquement à logger l'action côté serveur pour audit.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/admin/destruction/trigger', requireSuperadmin, async (req, res) => {
+  const { targetId, raison } = req.body || {};
+  if (!targetId) return res.status(400).json({ error: 'targetId requis' });
+
+  const issuedBy = req.user?.uid || 'superadmin';
+  const ts       = Date.now();
+
+  console.log(`💣 [DESTRUCTION] targetId=${targetId} | raison="${raison || '—'}" | issuedBy=${issuedBy} | ts=${ts}`);
+
+  // Écrire un log d'audit dans Firebase pour traçabilité
+  try {
+    await db.ref(`destruction_logs/${targetId}`).push({
+      targetId,
+      raison:    raison || 'Commande admin',
+      issuedBy,
+      issuedAt:  ts,
+      status:    'triggered',
+    });
+  } catch (err) {
+    console.warn('[DESTRUCTION] Log Firebase échoué (non bloquant):', err.message);
+  }
+
+  res.json({ success: true, message: 'Commande loguée.', targetId, ts });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.patch('/api/antivol/sms', requireAuth, async (req, res) => {
