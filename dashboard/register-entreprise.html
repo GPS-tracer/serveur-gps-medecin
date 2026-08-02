@@ -57,6 +57,16 @@
         </div>
 
         <div class="register-form__field">
+          <label class="register-form__label" for="accountType">Type de compte <span class="register-form__req">*</span></label>
+          <select id="accountType" required class="register-form__select">
+            <option value="company">🏢 Entreprise / Institution</option>
+            <option value="particulier">👤 Particulier (antivol personnel)</option>
+            <option value="suivi_eleve">🎒 Parent — Suivi élève</option>
+            <option value="suivi_etudiant">🎓 Établissement — Suivi étudiant</option>
+          </select>
+        </div>
+
+        <div class="register-form__field">
           <label class="register-form__label" for="address">Adresse <span class="register-form__req">*</span></label>
           <textarea id="address" required rows="2" placeholder="Numéro, rue, ville, pays" class="register-form__textarea"></textarea>
         </div>

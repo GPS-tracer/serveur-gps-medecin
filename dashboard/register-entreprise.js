@@ -136,6 +136,7 @@ form.addEventListener('submit', async (e) => {
     const address = document.getElementById('address').value.trim();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
+    const accountType = document.getElementById('accountType')?.value || 'company';
     const logoFile = logoInput.files[0];
     
     try {
@@ -149,7 +150,7 @@ form.addEventListener('submit', async (e) => {
         const createRes = await fetch('/api/register/entreprise', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ companyName, sector, address, email, password }),
+            body: JSON.stringify({ companyName, sector, address, email, password, accountType }),
         });
         const createData = await createRes.json();
         if (!createRes.ok) {

@@ -546,11 +546,21 @@ app.get('/api/user/role', requireAuth, async (req, res) => {
 // erreurs partielles, pas besoin qu'ils soient atomiques).
 // ─────────────────────────────────────────────────────────────
 app.post('/api/register/entreprise', async (req, res) => {
-  const companyName = (req.body?.companyName || '').trim();
+  const companyName  = (req.body?.companyName || '').trim();
   const sector       = (req.body?.sector || '').trim();
-  const address       = (req.body?.address || '').trim();
-  const email          = (req.body?.email || '').trim().toLowerCase();
-  const password        = req.body?.password || '';
+  const address      = (req.body?.address || '').trim();
+  const email        = (req.body?.email || '').trim().toLowerCase();
+  const password     = req.body?.password || '';
+  const accountType  = req.body?.accountType || 'company';
+
+  // Mapper accountType → role Firebase
+  const roleMap = {
+    'company':         'company',
+    'particulier':     'particulier',
+    'suivi_eleve':     'company',    // parent/école → rôle company, type_abonnement différencie
+    'suivi_etudiant':  'company',
+  };
+  const role = roleMap[accountType] || 'company';
 
   if (companyName.length < 2) {
     return res.status(400).json({ error: 'Le nom de la société doit contenir au moins 2 caractères.' });
@@ -585,10 +595,14 @@ app.post('/api/register/entreprise', async (req, res) => {
       sector,
       address,
       email,
-      logoUrl:   null,
-      createdAt: Date.now(),
-      role:      'company',
-      status:    'active',
+      logoUrl:     null,
+      createdAt:   Date.now(),
+      role,
+      accountType,
+      // Pour les abonnements scolaires, pré-initialiser le type
+      ...(accountType === 'suivi_eleve'    && { licence: { type_abonnement: 'suivi_eleve' } }),
+      ...(accountType === 'suivi_etudiant' && { licence: { type_abonnement: 'suivi_etudiant' } }),
+      status:      'active',
     });
 
     res.json({ success: true, uid });
