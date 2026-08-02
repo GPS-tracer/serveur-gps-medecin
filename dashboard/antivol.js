@@ -61,7 +61,7 @@ export function genererQrCodeAntivol(uid, containerId, options = {}) {
     return;
   }
 
-  const apkUrl      = options.apkUrl      || 'https://gpstrackercongo.com/download/gpstracker-latest.apk';
+  const apkUrl      = options.apkUrl      || 'https://serveur-gps-medecin.onrender.com/download/GPTS-Tracker.apk';
   const apkChecksum = options.apkChecksum || '';
 
   const payload = construirePayloadQrCode(uid, apkUrl, apkChecksum);
