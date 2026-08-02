@@ -17,13 +17,13 @@ function getVocabulaire(typeAbonnement) {
         labelAgent:        'appareil',
         labelAgentPluriel: 'appareils',
         iconeAgent:        '📱',
-        titreAjout:        'Ajouter mon appareil',
+        titreAjout:        'Protéger mon téléphone',
         labelCode:         'Mon identifiant antivol',
         descriptionCode:   'Cet identifiant est lié à votre compte antivol. Gardez-le en sécurité.',
         conseilCode:       'Ne le partagez pas.',
         emptyTitle:        'Aucun appareil suivi',
-        emptySubtitle:     'Ajoutez votre appareil pour démarrer le suivi antivol',
-        modeInvitation:    false,
+        emptySubtitle:     'Installez l\'application sur votre téléphone pour démarrer le suivi antivol',
+        modeInvitation:    true,
       };
     case 'suivi_eleve':
       return {
@@ -189,9 +189,39 @@ function appliquerVocabulaire(v) {
     const inviteLabelEl = document.getElementById('inviteLabel');
     if (inviteLabelEl) inviteLabelEl.textContent = v.titreAjout;
     const inviteDescEl = document.getElementById('inviteDesc');
-    if (inviteDescEl) inviteDescEl.textContent = `Partagez ce code avec vos ${v.labelAgentPluriel}. Ils devront le saisir lors de leur premier lancement de l'application GPS Tracker.`;
+    if (inviteDescEl) {
+      if (v.titreAjout === 'Protéger mon téléphone') {
+        // Cas Particulier — instructions installation
+        inviteDescEl.textContent = 'Installez l\'application GPS Tracker sur votre téléphone et saisissez cet identifiant pour lier votre appareil à votre compte.';
+      } else {
+        inviteDescEl.textContent = `Partagez ce code avec vos ${v.labelAgentPluriel}. Ils devront le saisir lors de leur premier lancement de l'application GPS Tracker.`;
+      }
+    }
     const inviteIconEl = document.getElementById('inviteIcon');
     if (inviteIconEl) inviteIconEl.textContent = v.iconeAgent;
+
+    // Instructions adaptées selon le mode
+    const instructTitle = document.getElementById('inviteInstructionsTitle');
+    const instructList  = document.getElementById('inviteInstructionsList');
+    if (v.titreAjout === 'Protéger mon téléphone') {
+      // Particulier — instructions installation APK
+      if (instructTitle) instructTitle.textContent = '📲 Comment activer le suivi antivol ?';
+      if (instructList) instructList.innerHTML = `
+        <li>Copiez l'identifiant ci-dessus</li>
+        <li>Téléchargez l'app GPS Tracker sur votre téléphone Android</li>
+        <li>Choisissez "Particulier" au premier lancement</li>
+        <li>Saisissez cet identifiant pour lier votre téléphone</li>
+      `;
+    } else {
+      // Scolaire — instructions invitation
+      if (instructTitle) instructTitle.textContent = `📲 Comment inviter un ${v.labelAgent} ?`;
+      if (instructList) instructList.innerHTML = `
+        <li>Copiez le code ci-dessus</li>
+        <li>Envoyez-le au${v.labelAgent === 'étudiant' ? 'x étudiants' : 'x élèves'} par SMS ou WhatsApp</li>
+        <li>L'${v.labelAgent} télécharge l'app GPS Tracker et saisit ce code</li>
+        <li>Son appareil apparaît ici pour approbation</li>
+      `;
+    }
   } else {
     formSection?.classList.remove('hidden');
     inviteSection?.classList.add('hidden');
