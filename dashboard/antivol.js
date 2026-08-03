@@ -62,7 +62,7 @@ export function genererQrCodeAntivol(uid, containerId, options = {}) {
   }
 
   const apkUrl      = options.apkUrl      || 'https://serveur-gps-medecin.onrender.com/download/GPTS-Tracker.apk';
-  const apkChecksum = options.apkChecksum || '';
+  const apkChecksum = options.apkChecksum || 'ku3ZjOApiHncrtU2ok5LrXf-n-28fFSO6u5QbOY30S4';
 
   const payload = construirePayloadQrCode(uid, apkUrl, apkChecksum);
 
