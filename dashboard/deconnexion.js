@@ -3,10 +3,14 @@
  */
 import { signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { auth } from '../shared/firebase.js';
+import { clearProfile } from './profile-cache.js';
 
 /** Variables de session dashboard à effacer à la déconnexion */
 export function nettoyerSessionLocale() {
   window.__userAccountStatus = null;
+  window.__apkChecksum = null;
+  // Vider le cache profil
+  clearProfile();
   try {
     sessionStorage.removeItem('gpts_session');
     sessionStorage.clear();

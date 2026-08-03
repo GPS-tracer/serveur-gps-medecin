@@ -2,10 +2,10 @@
  * Bootstrap pages app (fleet, rapport, licence) — exécuté en fin de <body>, module différé.
  */
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { auth, db } from "../shared/firebase.js";
+import { auth } from "../shared/firebase.js";
 import { estSuperadmin } from "./roles.js";
 import { mountAppShell, initAppNavShell, APP_NAV } from './nav-shell.js';
+import { getProfile } from './profile-cache.js';
 
 const activeId   = document.body.dataset.navActive  || '';
 const pageTitle  = document.body.dataset.navTitle   || 'GPS Tracker';
@@ -28,8 +28,7 @@ if (!shouldRedirect) {
   // ── Adapter le label "Ma Flotte" selon le type de compte ──
   if (user) {
     try {
-      const snap    = await get(ref(db, `companies/${user.uid}`));
-      const company = snap.val() || {};
+      const company        = await getProfile(user.uid);
       const accountType    = company.accountType || company.role || 'company';
       const typeAbonnement = company.licence?.type_abonnement || null;
 

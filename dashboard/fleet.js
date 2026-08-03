@@ -3,6 +3,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/fi
 import { brancherBoutonDeconnexion } from "./deconnexion.js";
 import { exigerSessionDashboard } from "./auth-session.js";
 import { ref, set, onValue, remove, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getProfile } from './profile-cache.js';
 
 // v2.2 — vocabulaire adaptatif scolaire (R3/R4)
 
@@ -99,31 +100,29 @@ let agentLimitState = { max: 1, count: 0, allowed: true, estIllimite: false, typ
 const vehicleIcons = { moto: '🏍️', voiture: '🚗', camion: '🚚' };
 const vehicleLabels = { moto: 'Moto (Livraison/Taxi-moto)', voiture: 'Voiture', camion: 'Camion' };
 
-// IS_FLEET_PAGE détecte si on est sur fleet.html (formulaire OU section invitation présente)
-const IS_FLEET_PAGE = Boolean(document.getElementById('addAgentForm') || document.getElementById('sectionInvitation'));
+// IS_FLEET_PAGE : détecte si on est sur fleet.html de façon robuste
+// Vérifie la présence du formulaire OU de la section invitation OU du titre flotte
+const IS_FLEET_PAGE = Boolean(
+  document.getElementById('addAgentForm') ||
+  document.getElementById('sectionInvitation') ||
+  document.getElementById('titreFlotte')
+);
 
 // ─── Auth (page flotte uniquement) ────────────────────────────
 if (IS_FLEET_PAGE) {
   async function demarrerPageFlotte() {
     currentUser = await exigerSessionDashboard('login.html');
 
-    const companyRef = ref(db, `companies/${currentUser.uid}`);
-    const snapshot = await get(companyRef);
-    if (snapshot.exists()) {
-      const company = snapshot.val();
-      const name = company.companyName || 'Ma Société';
-      if (companyNameEl) companyNameEl.textContent = name;
-      renderWelcomeBanner(name);
+    // Utiliser le cache partagé au lieu d'un get() direct
+    const company = await getProfile(currentUser.uid);
+    const name = company.companyName || 'Ma Société';
+    if (companyNameEl) companyNameEl.textContent = name;
+    renderWelcomeBanner(name);
 
-      // Charger le vocabulaire selon l'abonnement scolaire
-      const typeAbonnement = company.licence?.type_abonnement || null;
-      // Un compte Particulier n'a pas de flotte — on garde le vocabulaire standard
-      // mais on masque le formulaire d'ajout si c'est un particulier
-      const estParticulier = company.accountType === 'particulier'
-        || company.role === 'particulier';
-      vocab = getVocabulaire(estParticulier ? '__particulier__' : typeAbonnement);
-      appliquerVocabulaire(vocab);
-    }
+    const typeAbonnement = company.licence?.type_abonnement || null;
+    const estParticulier = company.accountType === 'particulier' || company.role === 'particulier';
+    vocab = getVocabulaire(estParticulier ? '__particulier__' : typeAbonnement);
+    appliquerVocabulaire(vocab);
 
     // [NOUVEAU] — Afficher le Code Entreprise (= UID Firebase)
     afficherCodeEntreprise(currentUser.uid);

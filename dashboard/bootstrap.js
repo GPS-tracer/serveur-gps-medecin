@@ -9,6 +9,7 @@ import { get, ref } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-dat
 import { auth, db } from "../shared/firebase.js";
 import { verifierSessionGeo } from "./session-geo.js";
 import { estSuperadmin, fusionnerProfil } from "./roles.js";
+import { getProfile, clearProfile } from "./profile-cache.js";
 
 verifierSessionGeo();
 
@@ -51,12 +52,10 @@ onAuthStateChanged(auth, async (user) => {
   let companyName = null;
   let companyData = {};
   try {
-    const compSnap = await get(ref(db, `companies/${user.uid}`));
-    const company = compSnap.val() || {};
-    companyData = fusionnerProfil(company);
+    // Utiliser le cache partagé — évite la double lecture avec boot-app.js
+    companyData = await getProfile(user.uid);
     companyName = companyData.companyName || null;
 
-    // ── Redirection superadmin → admin.html ─────────────────
     if (await estSuperadmin(user)) {
       const page = window.location.pathname.split('/').pop();
       if (page !== 'admin.html') {

@@ -15,6 +15,7 @@ import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.7.1/fir
 import { consommerIntentAchat, aIntentAchatEnAttente, PAGE_ACHAT_AUTH } from './intent-achat.js';
 import { rendreCatalogueLicence, surlignerOffreIntentee } from './chariow-paiement.js';
 import { genererQrCodeAntivol, telechargerQrCode } from './antivol.js';
+import { getProfile, patchProfile } from './profile-cache.js';
 
 function pageLoginSiDeconnecte() {
   return aIntentAchatEnAttente() ? PAGE_ACHAT_AUTH : 'login.html';
@@ -409,6 +410,9 @@ function initialiserBlocAntivol(uid) {
   onValue(ref(db, `companies/${uid}`), (snap) => {
     if (!snap.exists()) return;
     const data = snap.val();
+
+    // Mettre à jour le cache avec les données fraîches
+    patchProfile(uid, data);
 
     // Afficher le bloc uniquement pour les comptes Particulier
     const estParticulier = data.role === 'particulier'
