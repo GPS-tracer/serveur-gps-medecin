@@ -40,6 +40,9 @@
         },
         "uninstall_alerts": {
           ".write": "auth != null"
+        },
+        "isDeviceOwner": {
+          ".write": "auth != null"
         }
       }
     },
