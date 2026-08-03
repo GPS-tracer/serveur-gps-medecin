@@ -12,6 +12,7 @@ const crypto       = require('crypto');
 const https        = require('https');
 const rateLimit    = require('express-rate-limit');
 const { envoyerAlertesAntivol } = require('./notifications/brevo');
+const { notifierNouveauPaiement } = require('./notifications/paiement');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -1795,6 +1796,19 @@ app.post('/api/webhook/chariow-pulse', async (req, res) => {
     }
 
     console.log(`✅ Webhook Chariow : ${productId} → société ${companyId}`, result);
+
+    // ── Notification SuperAdmin en temps réel ─────────────────
+    // Non bloquant — on répond au webhook avant d'attendre la notification
+    const profil = await lireProfilSociete(companyId).catch(() => ({}));
+    notifierNouveauPaiement({
+      companyId,
+      productId,
+      companyName: profil.companyName || null,
+      email:       profil.email       || null,
+      orderId:     payload.order_id   || null,
+      montant:     payload.amount     || payload.montant || null,
+    }).catch(err => console.warn('[webhook] Erreur notification:', err.message));
+
     res.json({ success: true, companyId, productId, ...result });
   } catch (err) {
     console.error('webhook chariow error:', err);
