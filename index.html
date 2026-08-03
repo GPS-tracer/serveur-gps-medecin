@@ -540,15 +540,27 @@
     import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
     const APK_URL      = 'https://serveur-gps-medecin.onrender.com/download/GPTS-Tracker.apk';
-    const APK_CHECKSUM = 'ku3ZjOApiHncrtU2ok5LrXf-n-28fFSO6u5QbOY30S4';
+    const APK_CHECKSUM_FALLBACK = 'ku3ZjOApiHncrtU2ok5LrXf-n-28fFSO6u5QbOY30S4';
     const COMPONENT    = 'com.gpstracker.agent/.AdminReceiver';
 
+    // Récupère le checksum depuis le serveur (mis en cache)
+    async function getApkChecksum() {
+      if (window.__apkChecksum) return window.__apkChecksum;
+      try {
+        const res  = await fetch('/api/apk/checksum');
+        const data = await res.json();
+        if (data.checksum) { window.__apkChecksum = data.checksum; return data.checksum; }
+      } catch { /* silencieux */ }
+      return APK_CHECKSUM_FALLBACK;
+    }
+
     // Payload QR Code — uid injecté si utilisateur connecté, sinon générique
-    function buildQrPayload(uid) {
+    async function buildQrPayload(uid) {
+      const checksum = await getApkChecksum();
       return JSON.stringify({
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": COMPONENT,
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": APK_URL,
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": APK_CHECKSUM,
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": checksum,
         "android.app.extra.PROVISIONING_SKIP_ENCRYPTION": false,
         "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
         "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": uid
@@ -592,7 +604,7 @@
       viewQR.classList.toggle('hidden', name !== 'qr');
     }
 
-    function generateQR() {
+    async function generateQR() {
       if (qrGenerated) return;
       qrCanvas.innerHTML = '';
 
@@ -603,7 +615,7 @@
 
       qrGenerated = true;
       const size    = window.innerWidth < 480 ? 220 : 260;
-      const payload = buildQrPayload(currentUid);
+      const payload = await buildQrPayload(currentUid);
 
       // Afficher un badge si le QR est personnalisé
       if (currentUid) {

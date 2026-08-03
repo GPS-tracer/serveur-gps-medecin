@@ -630,7 +630,57 @@ app.post('/api/register/entreprise', async (req, res) => {
   }
 });
 
-app.post('/api/user/init-account', requireAuth, async (req, res) => {
+// ─────────────────────────────────────────────────────────────
+// ROUTE : Créer un compte Particulier
+// POST /api/register/particulier
+// Logique dédiée : isDeviceOwner: false, accountType: particulier,
+// trial automatique de 30 jours.
+// ─────────────────────────────────────────────────────────────
+app.post('/api/register/particulier', limiterRegister, async (req, res) => {
+  const nom      = (req.body?.nom      || req.body?.companyName || '').trim();
+  const email    = (req.body?.email    || '').trim().toLowerCase();
+  const password = req.body?.password  || '';
+
+  if (nom.length < 2)          return res.status(400).json({ error: 'Le nom doit contenir au moins 2 caractères.' });
+  if (!email.includes('@'))    return res.status(400).json({ error: 'Email invalide.' });
+  if (password.length < 6)     return res.status(400).json({ error: 'Mot de passe trop court (6 caractères minimum).' });
+
+  let uid = null;
+  try {
+    const userRecord = await admin.auth().createUser({ email, password, emailVerified: false, displayName: nom });
+    uid = userRecord.uid;
+
+    const maintenant = Date.now();
+    const trialExpire = maintenant + 30 * 24 * 60 * 60 * 1000; // 30 jours
+
+    await ecrireProfilSociete(uid, {
+      companyName:    nom,
+      email,
+      logoUrl:        null,
+      createdAt:      maintenant,
+      role:           'particulier',
+      accountType:    'particulier',
+      isDeviceOwner:  false,
+      status:         'active',
+      trial_expire:   trialExpire,
+    });
+
+    console.log(`✅ Compte particulier créé: ${uid} (${email})`);
+    res.json({ success: true, uid });
+  } catch (err) {
+    console.error('register/particulier error:', err);
+
+    if (uid) {
+      try { await admin.auth().deleteUser(uid); } catch {}
+    }
+
+    let message = 'Une erreur serveur est survenue.';
+    if (err.code === 'auth/email-already-exists') message = 'Cet email est déjà utilisé.';
+    else if (err.code === 'auth/invalid-password') message = 'Mot de passe invalide (6 caractères minimum).';
+    else if (err.code === 'auth/invalid-email')   message = 'Adresse email invalide.';
+    res.status(400).json({ error: message });
+  }
+});
   const companyId = req.user.uid;
 
   try {
@@ -2627,6 +2677,44 @@ app.get('/download/GPTS-Tracker.apk', (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename="GPTS-Tracker.apk"');
   res.setHeader('Content-Type', 'application/vnd.android.package-archive');
   res.sendFile(apkPath);
+});
+
+// ─────────────────────────────────────────────────────────────
+// ROUTE : Checksum APK automatique
+// GET /api/apk/checksum
+// Retourne le SHA-256 de l'APK en Base64 URL-Safe (mis en cache).
+// Utilisé par le front pour générer le QR Code MDM sans hardcoder
+// la valeur à chaque rebuild.
+// ─────────────────────────────────────────────────────────────
+let _apkChecksumCache = null; // cache en mémoire — invalidé au redémarrage
+app.get('/api/apk/checksum', (req, res) => {
+  if (_apkChecksumCache) {
+    return res.json({ checksum: _apkChecksumCache });
+  }
+
+  const fs      = require('fs');
+  const apkPath = path.join(__dirname, 'download', 'GPTS-Tracker.apk');
+
+  if (!fs.existsSync(apkPath)) {
+    return res.status(404).json({ error: 'APK introuvable sur le serveur.' });
+  }
+
+  try {
+    const bytes    = fs.readFileSync(apkPath);
+    const hash     = crypto.createHash('sha256').update(bytes).digest();
+    // Base64 URL-Safe sans padding (= requis par Android Device Owner)
+    const checksum = hash.toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    _apkChecksumCache = checksum;
+    console.log(`✅ APK checksum calculé: ${checksum}`);
+    res.json({ checksum });
+  } catch (err) {
+    console.error('Erreur calcul checksum APK:', err.message);
+    res.status(500).json({ error: 'Erreur calcul checksum.' });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────

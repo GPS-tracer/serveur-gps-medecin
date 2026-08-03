@@ -60,8 +60,9 @@ export function estRoleMobileUniquement(role) {
 export function fusionnerProfil(company = {}, societe = {}) {
   return {
     ...company,
-    companyName: company.companyName || null,
-    logoUrl:     company.logoUrl     || null,
-    role:        company.role        || 'company',
+    companyName:  company.companyName  || null,
+    logoUrl:      company.logoUrl      || null,
+    role:         company.role         || 'company',
+    accountType:  company.accountType  || company.role || 'company',
   };
 }

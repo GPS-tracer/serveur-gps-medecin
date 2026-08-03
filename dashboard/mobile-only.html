@@ -55,7 +55,21 @@
 
   <script type="module">
     import { brancherBoutonDeconnexion } from './deconnexion.js';
+    import { auth } from '../shared/firebase.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { lireRole, estRoleMobileUniquement } from './roles.js';
+
     brancherBoutonDeconnexion('#btnDeconnexion');
+
+    // Vérifier que l'utilisateur a bien un rôle mobile-uniquement
+    // Si non (accès direct), rediriger vers index.html
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.replace('login.html'); return; }
+      const role = await lireRole(user);
+      if (!estRoleMobileUniquement(role)) {
+        window.location.replace('index.html');
+      }
+    });
   </script>
 </body>
 </html>

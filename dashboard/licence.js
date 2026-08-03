@@ -433,6 +433,8 @@ function initialiserBlocAntivol(uid) {
 
     if (blocNiveauProtection) {
       blocNiveauProtection.classList.remove('hidden');
+      // Masquer le skeleton
+      document.getElementById('skeletonProtection')?.remove();
 
       if (isDeviceOwner) {
         blocNiveauProtection.className = 'mb-5 rounded-xl p-4 border bg-emerald-500/10 border-emerald-500/30';

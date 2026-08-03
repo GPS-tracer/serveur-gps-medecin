@@ -49,12 +49,33 @@ export function construirePayloadQrCode(uid, apkUrl, apkChecksum) {
 }
 
 /**
+ * Récupère le checksum APK depuis le serveur (mis en cache localement).
+ * Évite de hardcoder la valeur à chaque rebuild.
+ * @returns {Promise<string>}
+ */
+async function fetchApkChecksum() {
+  if (window.__apkChecksum) return window.__apkChecksum;
+  try {
+    const res  = await fetch('/api/apk/checksum');
+    const data = await res.json();
+    if (data.checksum) {
+      window.__apkChecksum = data.checksum;
+      return data.checksum;
+    }
+  } catch (err) {
+    console.warn('[antivol] Impossible de récupérer le checksum APK:', err.message);
+  }
+  // Fallback statique si l'API est indisponible
+  return 'ku3ZjOApiHncrtU2ok5LrXf-n-28fFSO6u5QbOY30S4';
+}
+
+/**
  * Génère et affiche le QR Code dans un élément canvas/div.
  * @param {string} uid        — UID Firebase du client
  * @param {string} containerId — ID de l'élément DOM cible
  * @param {object} options    — options optionnelles { apkUrl, apkChecksum }
  */
-export function genererQrCodeAntivol(uid, containerId, options = {}) {
+export async function genererQrCodeAntivol(uid, containerId, options = {}) {
   const container = document.getElementById(containerId);
   if (!container) {
     console.error(`[antivol] Conteneur introuvable: #${containerId}`);
@@ -62,7 +83,7 @@ export function genererQrCodeAntivol(uid, containerId, options = {}) {
   }
 
   const apkUrl      = options.apkUrl      || 'https://serveur-gps-medecin.onrender.com/download/GPTS-Tracker.apk';
-  const apkChecksum = options.apkChecksum || 'ku3ZjOApiHncrtU2ok5LrXf-n-28fFSO6u5QbOY30S4';
+  const apkChecksum = options.apkChecksum || await fetchApkChecksum();
 
   const payload = construirePayloadQrCode(uid, apkUrl, apkChecksum);
 

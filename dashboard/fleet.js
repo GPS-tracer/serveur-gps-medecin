@@ -306,6 +306,8 @@ async function renderAgents() {
 // ─── Synchroniser l'état du bouton + formulaire ───────────────
 async function syncAddAgentUi() {
     if (!currentUser) return;
+    // En mode invitation (scolaire/particulier), le formulaire est absent — rien à faire
+    if (!form || !submitBtn) return;
 
     try {
         const token = await currentUser.getIdToken();

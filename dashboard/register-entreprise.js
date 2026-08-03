@@ -147,10 +147,15 @@ form.addEventListener('submit', async (e) => {
         // Le serveur crée le compte Auth ET le profil companies/{uid} ensemble.
         // En cas d'échec du profil, le compte Auth est automatiquement annulé
         // côté serveur — plus de compte "fantôme" bloquant l'email pour toujours.
-        const createRes = await fetch('/api/register/entreprise', {
+        // Choisir la route selon le type de compte
+        const route = accountType === 'particulier'
+          ? '/api/register/particulier'
+          : '/api/register/entreprise';
+
+        const createRes = await fetch(route, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ companyName, sector, address, email, password, accountType }),
+            body: JSON.stringify({ nom: companyName, companyName, sector, address, email, password, accountType }),
         });
         const createData = await createRes.json();
         if (!createRes.ok) {
