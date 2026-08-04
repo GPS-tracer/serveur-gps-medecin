@@ -682,6 +682,8 @@ app.post('/api/register/particulier', limiterRegister, async (req, res) => {
     res.status(400).json({ error: message });
   }
 });
+
+app.post('/api/user/init-account', requireAuth, async (req, res) => {
   const companyId = req.user.uid;
 
   try {
