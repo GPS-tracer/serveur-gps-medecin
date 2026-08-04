@@ -157,16 +157,29 @@ async function envoyerEmailAntivol(destinataire, nomDestinataire, alerte) {
 // SMS
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Normalise un numéro vers le format E.164 pour le Congo-Brazzaville.
+ * - Déjà en +XXX...      → inchangé
+ * - Commence par 00      → remplacé par +
+ * - Commence par 242     → + ajouté devant
+ * - Format local (ex: 066787146) → 0 de tête retiré, +242 ajouté devant
+ */
+function normaliserNumeroCongo(telephone) {
+  let chiffres = String(telephone).replace(/[\s\-().]/g, '');
+  if (chiffres.startsWith('+')) return chiffres;
+  if (chiffres.startsWith('00')) return '+' + chiffres.slice(2);
+  if (chiffres.startsWith('242')) return '+' + chiffres;
+  chiffres = chiffres.replace(/^0+/, '');
+  return '+242' + chiffres;
+}
+
 async function envoyerSMSAntivol(telephone, alerte) {
   if (!telephone) {
     console.warn('[Brevo] SMS ignoré : numéro manquant');
     return { success: false, reason: 'telephone manquant' };
   }
 
-  // Normaliser : retirer espaces/tirets/parenthèses, garder chiffres et +
-  // Si le numéro ne commence pas par +, on l'ajoute
-  const chiffres = String(telephone).replace(/[\s\-().]/g, '');
-  const numeroNet = chiffres.startsWith('+') ? chiffres : '+' + chiffres;
+  const numeroNet = normaliserNumeroCongo(telephone);
 
   try {
     const client    = getClient();
@@ -185,8 +198,20 @@ async function envoyerSMSAntivol(telephone, alerte) {
     return { success: true, result: result?.data || result };
 
   } catch (err) {
-    const detail = err?.response?.data || err?.message || String(err);
-    console.error('[Brevo] ❌ Erreur SMS antivol :', detail);
+    // Extraction élargie : les SDK générés OpenAPI (comme @getbrevo/brevo)
+    // planquent parfois le vrai détail dans .response.body, .response.text
+    // ou .body plutôt que .response.data — on tente tout, dans l'ordre.
+    const detail =
+      err?.response?.body ??
+      err?.response?.data ??
+      err?.body ??
+      err?.response?.text ??
+      err?.message ??
+      String(err);
+    console.error(
+      `[Brevo] ❌ Erreur SMS antivol (destinataire: ${numeroNet}, statut HTTP: ${err?.status || err?.response?.status || '?'}) :`,
+      typeof detail === 'object' ? JSON.stringify(detail) : detail
+    );
     return { success: false, error: detail };
   }
 }
