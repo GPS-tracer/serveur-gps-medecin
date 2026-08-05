@@ -15,6 +15,13 @@ const { envoyerAlertesAntivol } = require('./notifications/brevo');
 const { notifierNouveauPaiement } = require('./notifications/paiement');
 
 const app  = express();
+
+// Render (et la plupart des hébergeurs) placent l'app derrière un proxy
+// inverse qui ajoute l'en-tête X-Forwarded-For. Sans "trust proxy", Express
+// rejette cet en-tête par sécurité — ce qui casse express-rate-limit
+// (ERR_ERL_UNEXPECTED_X_FORWARDED_FOR). "1" = faire confiance au premier
+// proxy uniquement (celui de Render), pas à toute la chaîne.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // ─────────────────────────────────────────────────────────────
